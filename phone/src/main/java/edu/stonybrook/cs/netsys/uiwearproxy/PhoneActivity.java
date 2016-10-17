@@ -1,8 +1,12 @@
 package edu.stonybrook.cs.netsys.uiwearproxy;
 
 import android.app.Activity;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.v4.app.NotificationCompat;
 import android.view.View;
 import android.widget.Button;
 
@@ -11,6 +15,8 @@ import com.orhanobut.logger.Logger;
 import edu.stonybrook.cs.netsys.uiwearproxy.PreferenceManager.TransparentActivity;
 
 public class PhoneActivity extends Activity {
+
+    private static int NOTIFY_ID = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,9 +27,27 @@ public class PhoneActivity extends Activity {
         set.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                startActivity(new Intent(getApplication(), TransparentActivity.class));
+                raiseNotification();
+                finish();
             }
         });
+    }
+
+    private void raiseNotification() {
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle("UIWear is running")
+                        .setContentText("Setting preference");
+        Intent resultIntent = new Intent(this, TransparentActivity.class);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(this, 0,
+                resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        mBuilder.setContentIntent(resultPendingIntent);
+        NotificationManager mNotificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        mNotificationManager.notify(NOTIFY_ID, mBuilder.build());
     }
 
     @Override
