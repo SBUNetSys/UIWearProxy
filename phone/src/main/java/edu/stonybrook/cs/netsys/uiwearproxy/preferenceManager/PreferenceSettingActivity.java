@@ -1,8 +1,6 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager;
 
 import android.app.Activity;
-import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Rect;
 import android.os.Bundle;
@@ -80,21 +78,4 @@ public class PreferenceSettingActivity extends Activity {
         super.onPause();
     }
 
-    @Override
-    protected void onUserLeaveHint() {
-        new AlertDialog.Builder(this)
-                .setIcon(android.R.drawable.ic_dialog_alert)
-                .setTitle(R.string.exit_preference_setting)
-                .setMessage(R.string.exit_preference_confirm)
-                .setPositiveButton(R.string.yes, new DialogInterface.OnClickListener()
-                {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-
-                    }
-
-                })
-                .setNegativeButton(R.string.no, null)
-                .show();
-    }
 }

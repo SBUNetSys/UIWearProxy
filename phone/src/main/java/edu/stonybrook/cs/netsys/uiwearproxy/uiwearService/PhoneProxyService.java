@@ -84,8 +84,7 @@ public class PhoneProxyService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        Logger.e(event.getSource().toString());
-        Logger.e(event.toString());
+        Logger.i(event.toString());
     }
 
     @Override
