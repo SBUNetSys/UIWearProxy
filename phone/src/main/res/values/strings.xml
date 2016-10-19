@@ -9,8 +9,11 @@
     <string name="start">Start Proxy</string>
     <string name="stop">Stop UIWear</string>
     <string name="service_not_enabled">UIWear Accessibility Service not enabled!</string>
-    <string name="exit_preference_setting">Preference Setting Exit</string>
+    <string name="exit_preference_setting">Exited Setting!</string>
     <string name="service_enabled">UIWear service started</string>
     <string name="turn_off_proxy_service">Please manually turn off UIWear accessibility service</string>
+    <string name="exit_preference_confirm">Have you finished preference setting?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
 
 </resources>

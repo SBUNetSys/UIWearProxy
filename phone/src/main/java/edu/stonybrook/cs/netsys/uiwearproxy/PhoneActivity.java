@@ -9,21 +9,20 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v4.app.NotificationCompat;
 import android.view.View;
-import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
 
 import com.orhanobut.logger.Logger;
 
-import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.TransparentActivity;
 import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.REQUEST_ACCESSIBILITY_SERVICE_CODE;
 
 public class PhoneActivity extends Activity {
 
     private final Intent accessibilitySettingIntent = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);
     private Intent phoneServiceIntent;
-    private AccessibilityNodeInfo rootNodeOfCurrentScreen;
     private static int NOTIFY_ID = 1;
 
     @Override
@@ -41,8 +40,9 @@ public class PhoneActivity extends Activity {
 //        phoneServiceIntent.putExtra(STOP_PHONE_PROXY_SERVICE_KEY, STOP_PHONE_PROXY_SERVICE_CODE);
         //stopProxyService(phoneServiceIntent); //bounded to AccessibilityService, so not working
 //        startService(phoneServiceIntent);
-        startActivity(accessibilitySettingIntent);
-        Toast.makeText(this, R.string.turn_off_proxy_service, Toast.LENGTH_SHORT).show();
+        finishAffinity();
+        stopService(phoneServiceIntent);
+//        android.os.Process.killProcess(android.os.Process.myPid());
     }
 
     public void startPreferenceSetting(View setButton) {
@@ -55,10 +55,7 @@ public class PhoneActivity extends Activity {
 
         if (requestCode == REQUEST_ACCESSIBILITY_SERVICE_CODE) {
             if (isAccessibilityEnabled()) {
-
-                Toast.makeText(this, R.string.service_enabled, Toast.LENGTH_SHORT).show();
                 startService(phoneServiceIntent);
-
             } else {
                 Toast.makeText(this, R.string.service_not_enabled, Toast.LENGTH_SHORT).show();
             }
@@ -100,10 +97,9 @@ public class PhoneActivity extends Activity {
                         .setSmallIcon(R.mipmap.ic_launcher)
                         .setContentTitle("UIWear is running")
                         .setContentText("Setting preference");
-        Intent resultIntent = new Intent(this, TransparentActivity.class);
-        PendingIntent resultPendingIntent = PendingIntent.getActivity(this, 0,
-                resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-
+        phoneServiceIntent.putExtra(PREFERENCE_SETTING_KEY, PREFERENCE_SETTING_CODE);
+        PendingIntent resultPendingIntent = PendingIntent.getService(this, 0,
+                phoneServiceIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         mBuilder.setContentIntent(resultPendingIntent);
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
@@ -114,12 +110,6 @@ public class PhoneActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-//        Logger.i("");
-    }
-
-    @Override
-    protected void onRestart() {
-        super.onRestart();
 //        Logger.i("");
     }
 
@@ -143,7 +133,7 @@ public class PhoneActivity extends Activity {
 
     @Override
     protected void onDestroy() {
-        Logger.i("onDestroy");
+//        Logger.i("onDestroy");
         super.onDestroy();
     }
 
@@ -153,15 +143,15 @@ public class PhoneActivity extends Activity {
 //        super.onUserLeaveHint();
 //    }
 
-    @Override
-    public void onAttachedToWindow() {
-        Logger.i("");
-        super.onAttachedToWindow();
-    }
-
-    @Override
-    public void onDetachedFromWindow() {
-        Logger.i("");
-        super.onDetachedFromWindow();
-    }
+//    @Override
+//    public void onAttachedToWindow() {
+//        Logger.i("");
+//        super.onAttachedToWindow();
+//    }
+//
+//    @Override
+//    public void onDetachedFromWindow() {
+//        Logger.i("");
+//        super.onDetachedFromWindow();
+//    }
 }

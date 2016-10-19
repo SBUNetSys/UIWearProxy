@@ -87,7 +87,7 @@ public class CaptureView extends View {
                 int bottom = (int) Math.max(nowY, lastY);
 
                 preferRect.set(left, top, right, bottom);
-                Logger.d("prefer rect: " + preferRect);
+//                Logger.d("prefer rect: " + preferRect);
                 drawPath.reset();
                 drawCanvas.drawColor(Color.TRANSPARENT, PorterDuff.Mode.CLEAR);
 //                Logger.d("now x: " + nowX + "y: " + nowY);

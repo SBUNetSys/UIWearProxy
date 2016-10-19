@@ -20,12 +20,13 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".preferenceManager.TransparentActivity"
+            android:name=".preferenceManager.PreferenceSettingActivity"
             android:theme="@style/Theme.Transparent" />
 
         <service
             android:name=".uiwearService.PhoneProxyService"
             android:label="@string/service_accessibility"
+            android:enabled="true"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
 
             <intent-filter>
