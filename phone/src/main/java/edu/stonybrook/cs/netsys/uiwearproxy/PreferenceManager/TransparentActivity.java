@@ -1,4 +1,4 @@
-package edu.stonybrook.cs.netsys.uiwearproxy.PreferenceManager;
+package edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager;
 
 import android.app.Activity;
 import android.graphics.Rect;
@@ -38,6 +38,7 @@ public class TransparentActivity extends Activity {
     @Override
     public void onBackPressed() {
         if (doubleBackToExitPressedOnce) {
+            Toast.makeText(this, R.string.exit_preference_setting, Toast.LENGTH_SHORT).show();
             super.onBackPressed();
             return;
         }

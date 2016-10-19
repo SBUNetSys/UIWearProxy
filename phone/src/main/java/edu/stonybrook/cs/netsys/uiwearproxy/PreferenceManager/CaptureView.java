@@ -1,4 +1,4 @@
-package edu.stonybrook.cs.netsys.uiwearproxy.PreferenceManager;
+package edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager;
 
 import android.content.Context;
 import android.graphics.Bitmap;

@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="edu.stonybrook.cs.netsys.uiwearproxy">
 
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
@@ -18,8 +20,22 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".PreferenceManager.TransparentActivity"
-            android:theme="@style/Theme.Transparent"/>
+            android:name=".preferenceManager.TransparentActivity"
+            android:theme="@style/Theme.Transparent" />
+
+        <service
+            android:name=".uiwearService.PhoneProxyService"
+            android:label="@string/service_accessibility"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
     </application>
 
 </manifest>

@@ -10,7 +10,7 @@
         android:layout_height="wrap_content"
         android:text="@string/draw_hint"/>
 
-    <edu.stonybrook.cs.netsys.uiwearproxy.PreferenceManager.CaptureView
+    <edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.CaptureView
         android:id="@+id/drawing"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
