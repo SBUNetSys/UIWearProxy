@@ -1,9 +1,13 @@
 package edu.stonybrook.cs.netsys.uiwearproxy;
 
 import android.app.Activity;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
+import android.support.v4.app.NotificationCompat;
 import android.view.View;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.widget.Toast;
@@ -20,6 +24,7 @@ public class PhoneActivity extends Activity {
     private final Intent accessibilitySettingIntent = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);
     private Intent phoneServiceIntent;
     private AccessibilityNodeInfo rootNodeOfCurrentScreen;
+    private static int NOTIFY_ID = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,9 +45,9 @@ public class PhoneActivity extends Activity {
         Toast.makeText(this, R.string.turn_off_proxy_service, Toast.LENGTH_SHORT).show();
     }
 
-    public void setPreference(View setButton) {
-        startActivity(new Intent(getApplication(), TransparentActivity.class));
-
+    public void startPreferenceSetting(View setButton) {
+        raiseNotification();
+        finish();
     }
 
     @Override
@@ -87,6 +92,23 @@ public class PhoneActivity extends Activity {
         }
 
         return false;
+    }
+
+    private void raiseNotification() {
+        NotificationCompat.Builder mBuilder =
+                new NotificationCompat.Builder(this)
+                        .setSmallIcon(R.mipmap.ic_launcher)
+                        .setContentTitle("UIWear is running")
+                        .setContentText("Setting preference");
+        Intent resultIntent = new Intent(this, TransparentActivity.class);
+        PendingIntent resultPendingIntent = PendingIntent.getActivity(this, 0,
+                resultIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        mBuilder.setContentIntent(resultPendingIntent);
+        NotificationManager mNotificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+
+        mNotificationManager.notify(NOTIFY_ID, mBuilder.build());
     }
 
     @Override
