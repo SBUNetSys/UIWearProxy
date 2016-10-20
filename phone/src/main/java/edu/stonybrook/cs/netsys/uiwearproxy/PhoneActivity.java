@@ -55,6 +55,7 @@ public class PhoneActivity extends Activity {
 
         if (requestCode == REQUEST_ACCESSIBILITY_SERVICE_CODE) {
             if (isAccessibilityEnabled()) {
+                Toast.makeText(this, R.string.service_enabled, Toast.LENGTH_SHORT).show();
                 startService(phoneServiceIntent);
             } else {
                 Toast.makeText(this, R.string.service_not_enabled, Toast.LENGTH_SHORT).show();

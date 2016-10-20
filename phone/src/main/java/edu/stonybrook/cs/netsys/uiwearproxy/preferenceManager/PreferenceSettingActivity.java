@@ -1,7 +1,10 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager;
 
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Rect;
 import android.os.Bundle;
 import android.os.Handler;
@@ -10,17 +13,19 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Toast;
 
-import com.orhanobut.logger.Logger;
+import java.util.ArrayList;
 
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_RECT_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_INTENT;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_PREPARED;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
 
 public class PreferenceSettingActivity extends Activity {
     private CaptureView drawView;
-
+    private ArrayList<Rect> preferredNodes = new ArrayList<>();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -34,7 +39,11 @@ public class PreferenceSettingActivity extends Activity {
             }
         });
 
+        LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(PREFERENCE_SETTING_STARTED));
     }
+
+    //TODO: use click to select available nodes, which are prepared from phone proxy service
+    // to do this, need to render the nodes on current CaptureView and set onCheckLister on that
 
     private boolean doubleBackToExitPressedOnce = false;
 
@@ -48,13 +57,14 @@ public class PreferenceSettingActivity extends Activity {
         }
 
         this.doubleBackToExitPressedOnce = true;
+
+        //TODO: change this to get user's selected nodes
         Rect preferRect = drawView.getPreferRect();
         if (preferRect == null) {
             Toast.makeText(this, R.string.null_back, Toast.LENGTH_SHORT).show();
         } else {
-            Logger.d(preferRect);
-            Intent rectIntent = new Intent(PREFERENCE_SETTING_INTENT);
-            rectIntent.putExtra(PREFERENCE_RECT_KEY, preferRect);
+            Intent rectIntent = new Intent(PREFERENCE_SETTING_SAVE);
+            rectIntent.putExtra(PREFERENCE_NODE_KEY, preferredNodes);
             LocalBroadcastManager.getInstance(this).sendBroadcast(rectIntent);
             Toast.makeText(this, R.string.saved_back, Toast.LENGTH_SHORT).show();
         }
@@ -70,12 +80,28 @@ public class PreferenceSettingActivity extends Activity {
 
     @Override
     protected void onResume() {
+        IntentFilter filter = new IntentFilter(PREFERENCE_SETTING_PREPARED);
+        LocalBroadcastManager.getInstance(getApplicationContext())
+                .registerReceiver(preparedReceiver, filter);
         super.onResume();
     }
 
     @Override
     protected void onPause() {
+        LocalBroadcastManager.getInstance(getApplicationContext())
+                .unregisterReceiver(preparedReceiver);
         super.onPause();
     }
 
+    private BroadcastReceiver preparedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            switch (intent.getAction()) {
+                case PREFERENCE_SETTING_PREPARED:
+
+                    break;
+                default:
+            }
+        }
+    };
 }
