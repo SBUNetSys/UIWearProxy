@@ -2,7 +2,7 @@
     <string name="app_name">UIWearProxy</string>
     <string name="set_preference">Set Preference</string>
     <string name="draw_hint">Click on the highlight area to select, press back to save</string>
-    <string name="null_back">Prefer area is null ! click BACK again to exit</string>
+    <string name="null_back">You did not select any area! click BACK again to exit</string>
     <string name="saved_back">Prefer area saved! click BACK again to exit</string>
 
     <string name="service_accessibility">UIWear Accessibility Service</string>
@@ -17,5 +17,6 @@
     <string name="no">No</string>
     <string name="running_phone_proxy">UIWear is running</string>
     <string name="setting_preference">Setting preference</string>
+    <string name="not_ready_for_selection">Not ready for selection</string>
 
 </resources>

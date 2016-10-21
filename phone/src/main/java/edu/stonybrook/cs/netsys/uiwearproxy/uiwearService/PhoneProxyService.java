@@ -207,7 +207,7 @@ public class PhoneProxyService extends AccessibilityService {
     private void savePreferenceNodes(ArrayList<Rect> preferredNodes) {
         // ensure that leafNodesIDMapOfAppWindow is not cleared
         HashMap<Rect, String> savedMap = new HashMap<>(leafNodesIDMapOfAppWindow);
-        leafNodesIDMapOfAppWindow.clear();
+        Logger.i("mapped nodes: "+ leafNodesIDMapOfAppWindow.keySet().toString());
         String name = appRootNode.getPackageName().toString();
         SharedPreferences sharedPref = getSharedPreferences(name, MODE_APPEND);
         SharedPreferences.Editor editor = sharedPref.edit();
@@ -215,7 +215,7 @@ public class PhoneProxyService extends AccessibilityService {
             String id = savedMap.get(rect); // can't be null since already checked during put time
             String rectString = rect.flattenToString();
             Logger.i("save preference: " + id + " " + rect);
-            // FIXME: 10/21/16 possibly not right, to be improved
+            // FIXME: 10/21/16 possibly to be improved
             try {
                 String existingRect = sharedPref.getString(id, "");
                 Logger.i("existingRect: " + existingRect);
