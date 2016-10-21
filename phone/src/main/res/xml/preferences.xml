@@ -1,4 +1,18 @@
-<?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-
-</PreferenceScreen>
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <string name="com.spotify.music:id/context_subtitle">168 148 912 201</string>
+    <string name="com.spotify.music:id/in_collection">0 1180 168 1324</string>
+    <string name="com.spotify.music:id/quickActionDotDotDot">912 1180 1080 1324</string>
+    <string name="com.spotify.music:id/title">168 1192 912 1253</string>
+    <string name="com.spotify.music:id/btn_play">420 1485 660 1725</string>
+    <string name="com.spotify.music:id/btn_next">684 1533 828 1677</string>
+    <string name="com.spotify.music:id/time_length">950 1338 1032 1482</string>
+    <string name="com.spotify.music:id/btn_prev">252 1533 396 1677</string>
+    <string name="com.spotify.music:id/context_title">168 110 912 148</string>
+    <string name="com.spotify.music:id/time_position">48 1338 130 1482</string>
+    <set name="com.spotify.music:id/image">
+        <string>96 254 984 1142</string>
+        <string>0 302 48 1094</string>
+    </set>
+    <string name="com.spotify.music:id/right_action">852 1533 996 1677</string>
+</map>
