@@ -17,13 +17,13 @@ import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
 
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.REQUEST_ACCESSIBILITY_SERVICE_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.accessibilitySettingIntent;
 
 public class PhoneActivity extends Activity {
-
-    private final Intent accessibilitySettingIntent = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);
     private Intent phoneServiceIntent;
-    private static int NOTIFY_ID = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,7 +46,7 @@ public class PhoneActivity extends Activity {
     }
 
     public void startPreferenceSetting(View setButton) {
-        raiseNotification();
+        raisePreferenceSettingNotification();
         finish();
     }
 
@@ -92,20 +92,26 @@ public class PhoneActivity extends Activity {
         return false;
     }
 
-    private void raiseNotification() {
+    private void raisePreferenceSettingNotification() {
         NotificationCompat.Builder mBuilder =
                 new NotificationCompat.Builder(this)
                         .setSmallIcon(R.mipmap.ic_launcher)
-                        .setContentTitle("UIWear is running")
-                        .setContentText("Setting preference");
+                        .setContentTitle(getString(R.string.running_phone_proxy))
+                        .setContentText(getString(R.string.setting_preference));
+        Intent stopIntent = new Intent(phoneServiceIntent);
         phoneServiceIntent.putExtra(PREFERENCE_SETTING_KEY, PREFERENCE_SETTING_CODE);
         PendingIntent resultPendingIntent = PendingIntent.getService(this, 0,
                 phoneServiceIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        // attention to the request code
+        stopIntent.putExtra(PREFERENCE_STOP_KEY, PREFERENCE_STOP_CODE);
+        PendingIntent deletePendingIntent = PendingIntent.getService(this, 1,
+                stopIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
         mBuilder.setContentIntent(resultPendingIntent);
+        mBuilder.setDeleteIntent(deletePendingIntent);
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-
-        mNotificationManager.notify(NOTIFY_ID, mBuilder.build());
+        mNotificationManager.notify(1, mBuilder.build());
     }
 
     @Override

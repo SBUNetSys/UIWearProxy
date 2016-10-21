@@ -15,5 +15,7 @@
     <string name="exit_preference_confirm">Have you finished preference setting?</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
+    <string name="running_phone_proxy">UIWear is running</string>
+    <string name="setting_preference">Setting preference</string>
 
 </resources>

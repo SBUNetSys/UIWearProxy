@@ -17,7 +17,8 @@ import java.util.ArrayList;
 
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODE_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.LEAF_NODES_FOR_PREFERENCE_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_PREPARED;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
@@ -63,8 +64,9 @@ public class PreferenceSettingActivity extends Activity {
         if (preferRect == null) {
             Toast.makeText(this, R.string.null_back, Toast.LENGTH_SHORT).show();
         } else {
+
             Intent rectIntent = new Intent(PREFERENCE_SETTING_SAVE);
-            rectIntent.putExtra(PREFERENCE_NODE_KEY, preferredNodes);
+            rectIntent.putExtra(PREFERENCE_NODES_KEY, preferredNodes);
             LocalBroadcastManager.getInstance(this).sendBroadcast(rectIntent);
             Toast.makeText(this, R.string.saved_back, Toast.LENGTH_SHORT).show();
         }
@@ -98,7 +100,8 @@ public class PreferenceSettingActivity extends Activity {
         public void onReceive(Context context, Intent intent) {
             switch (intent.getAction()) {
                 case PREFERENCE_SETTING_PREPARED:
-
+                    preferredNodes = intent.
+                            getParcelableArrayListExtra(LEAF_NODES_FOR_PREFERENCE_KEY);
                     break;
                 default:
             }
