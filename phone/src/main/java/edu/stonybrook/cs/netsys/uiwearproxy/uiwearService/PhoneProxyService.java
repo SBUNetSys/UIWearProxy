@@ -261,7 +261,7 @@ public class PhoneProxyService extends AccessibilityService {
         NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(getString(R.string.running_phone_proxy))
-                .setContentText(getString(R.string.running_phone_proxy))
+                .setContentText("")
                 .setOngoing(true)
                 .setContentIntent(PendingIntent.getActivity(this, 0,
                         accessibilitySettingIntent, PendingIntent.FLAG_UPDATE_CURRENT));

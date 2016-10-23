@@ -16,6 +16,8 @@ import android.widget.Toast;
 import com.orhanobut.logger.Logger;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
@@ -96,6 +98,7 @@ public class PreferenceSettingActivity extends Activity {
                     // mark the selected area by drawing a slim frame
                     preferenceView.addNode(rect);
                 }
+                break;
             }
         }
     }
@@ -171,6 +174,13 @@ public class PreferenceSettingActivity extends Activity {
                 case NODES_AVAILABLE:
                     availableNodes = intent.
                             getParcelableArrayListExtra(AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY);
+                    Collections.sort(availableNodes, new Comparator<Rect>() {
+                        @Override
+                        public int compare(Rect o1, Rect o2) {
+                            return o1.width()*o1.height() - o2.width()*o2.height();
+                        }
+                    });
+
                     break;
                 default:
             }

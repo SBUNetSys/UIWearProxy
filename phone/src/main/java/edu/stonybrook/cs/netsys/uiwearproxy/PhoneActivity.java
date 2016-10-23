@@ -43,6 +43,7 @@ public class PhoneActivity extends Activity {
 //        startService(phoneServiceIntent);
         finishAffinity();
         stopService(phoneServiceIntent);
+        startActivity(accessibilitySettingIntent);
 //        android.os.Process.killProcess(android.os.Process.myPid());
     }
 
