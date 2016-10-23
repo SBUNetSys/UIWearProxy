@@ -20,15 +20,15 @@ import java.util.ArrayList;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
 
 public class PreferenceSettingActivity extends Activity {
     private ArrayList<Rect> availableNodes; // all available nodes from phone proxy service
-    private Toast notReadyToast;
+    private Toast hintToast;
     private SelectPreferenceView preferenceView;
     private static final float CLICK_SPAN_THRESHOLD = 5.0f;
 
@@ -38,7 +38,7 @@ public class PreferenceSettingActivity extends Activity {
         setContentView(R.layout.activity_transparent);
 
         preferenceView = (SelectPreferenceView) findViewById(R.id.drawing);
-        notReadyToast = Toast.makeText(getApplicationContext(),
+        hintToast = Toast.makeText(getApplicationContext(),
                 R.string.not_ready_for_selection, Toast.LENGTH_SHORT);
 
         preferenceView.setOnTouchListener(new View.OnTouchListener() {
@@ -48,7 +48,7 @@ public class PreferenceSettingActivity extends Activity {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if (availableNodes == null) {
-                    notReadyToast.show();
+                    hintToast.show();
                 } else {
 //                    Logger.i("onTouch");
                     switch (event.getAction()) {
@@ -110,7 +110,8 @@ public class PreferenceSettingActivity extends Activity {
     @Override
     public void onBackPressed() {
         if (doubleBackToExitPressedOnce) {
-            Toast.makeText(this, R.string.exit_preference_setting, Toast.LENGTH_SHORT).show();
+            hintToast.setText(R.string.exit_preference_setting);
+            hintToast.show();
             LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(PREFERENCE_SETTING_EXIT));
             super.onBackPressed();
             return;
@@ -119,18 +120,21 @@ public class PreferenceSettingActivity extends Activity {
         this.doubleBackToExitPressedOnce = true;
 
         if (availableNodes == null) {
-            notReadyToast.show();
+            hintToast.setText(R.string.not_ready_for_selection);
+            hintToast.show();
         } else {
 
             // retrieve all selected nodes
             ArrayList<Rect> selectedNodes = preferenceView.getPreferredNodes();
             if (selectedNodes.isEmpty()) {
-                Toast.makeText(this, R.string.null_back, Toast.LENGTH_SHORT).show();
+                hintToast.setText(R.string.null_back);
+                hintToast.show();
             } else {
                 Intent rectIntent = new Intent(PREFERENCE_SETTING_SAVE);
                 rectIntent.putExtra(PREFERENCE_NODES_KEY, selectedNodes);
                 LocalBroadcastManager.getInstance(this).sendBroadcast(rectIntent);
-                Toast.makeText(this, R.string.saved_back, Toast.LENGTH_SHORT).show();
+                hintToast.setText(R.string.saved_back);
+                hintToast.show();
             }
         }
 
