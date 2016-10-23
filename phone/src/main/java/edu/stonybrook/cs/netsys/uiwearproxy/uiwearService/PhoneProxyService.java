@@ -26,11 +26,11 @@ import edu.stonybrook.cs.netsys.uiwearlib.NodeUtils;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
@@ -102,7 +102,6 @@ public class PhoneProxyService extends AccessibilityService {
 
         // preference setting functionality
         if (isRunningPreferenceSetting) {
-
             AccessibilityNodeInfo rootNode = getRootInActiveWindow();
 //            Logger.v("root node: " + rootNode.toString());
 //            NodeUtils.printNodeTree(rootNode);
@@ -123,6 +122,9 @@ public class PhoneProxyService extends AccessibilityService {
     }
 
     private boolean isAppRootNode(AccessibilityNodeInfo rootNode) {
+        if (rootNode == null) {
+            return false;
+        }
         CharSequence nodePkgName = rootNode.getPackageName();
         return !SYSTEM_UI_PKG.equals(nodePkgName) && !getPackageName().equals(nodePkgName);
     }
@@ -136,15 +138,12 @@ public class PhoneProxyService extends AccessibilityService {
 
         int count = rootNode.getChildCount();
         if (count == 0) { // no child, leaf node
-            if (rootNode.isVisibleToUser()&& !rootNode.getClassName()
+            if (rootNode.isVisibleToUser() && !rootNode.getClassName()
                     .toString().endsWith("Layout")) { // filter the ViewGroup
                 Rect region = new Rect();
                 rootNode.getBoundsInScreen(region);
                 String id = rootNode.getViewIdResourceName();
-                if (!region.isEmpty() && id != null
-                        && id.startsWith(appRootNodePkgName)) {
-                    // use app pkg name to filter system UI id
-
+                if (!region.isEmpty() && id != null) {
                     Logger.i("add: " + NodeUtils.getBriefNodeInfo(rootNode));
                     appLeafNodesMap.put(region, id);
                 }
