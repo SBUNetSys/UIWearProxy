@@ -96,14 +96,12 @@ public class PreferenceSettingActivity extends Activity {
                     // mark the selected area by drawing a slim frame
                     preferenceView.addNode(rect);
                 }
-                preferenceView.invalidate();
             }
         }
     }
 
     private void resetPreference() {
         preferenceView.removeAllNodes();
-        preferenceView.invalidate();
     }
 
 

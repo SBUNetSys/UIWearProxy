@@ -135,14 +135,17 @@ public class SelectPreferenceView extends View {
 
     public void removeNode(Rect preferRect) {
         preferredNodes.remove(preferRect);
+        invalidate();
     }
 
     public void addNode(Rect preferRect) {
         preferredNodes.add(preferRect);
+        invalidate();
     }
 
     public void removeAllNodes() {
         preferredNodes.clear();
+        invalidate();
     }
 
     public ArrayList<Rect> getPreferredNodes() {
