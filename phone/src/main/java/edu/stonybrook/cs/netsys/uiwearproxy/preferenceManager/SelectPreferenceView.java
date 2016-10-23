@@ -4,10 +4,12 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Path;
+import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
 import android.view.View;
+
+import java.util.ArrayList;
 
 /**
  * Created by qqcao on 10/9/16.
@@ -15,28 +17,30 @@ import android.view.View;
  * Customized view to capture user drawing area
  */
 
-public class CaptureView extends View {
-    public static final int STROKE_WIDTH = 1;
+public class SelectPreferenceView extends View {
+    public static final int STROKE_WIDTH = 2;
     public static final int DRAWING_COLOR = Color.RED;
+//    public static final int UNSELECTED_COLOR = Color.TRANSPARENT;
 
-    private Path drawPath;
+//    private Path drawPath;
     private Paint drawPaint;//, canvasPaint;
-    private Canvas drawCanvas;
+
+    //    private Canvas drawCanvas;
 //    private Bitmap canvasBitmap;
 //
 //    private float lastX;
 //    private float lastY;
 //
-//    private Rect preferRect;
+    private ArrayList<Rect> preferredNodes;
 
-    public CaptureView(Context context, AttributeSet attrs) {
+    public SelectPreferenceView(Context context, AttributeSet attrs) {
         super(context, attrs);
         setupDrawing();
     }
 
     //get drawing area setup for interaction
     private void setupDrawing() {
-        drawPath = new Path();
+//        drawPath = new Path();
         drawPaint = new Paint();
         drawPaint.setColor(DRAWING_COLOR);
         drawPaint.setAntiAlias(true);
@@ -44,6 +48,7 @@ public class CaptureView extends View {
         drawPaint.setStyle(Paint.Style.STROKE);
         drawPaint.setStrokeJoin(Paint.Join.ROUND);
         drawPaint.setStrokeCap(Paint.Cap.ROUND);
+        preferredNodes = new ArrayList<>();
 //        canvasPaint = new Paint(Paint.DITHER_FLAG);
 //        preferRect = new Rect();
     }
@@ -58,7 +63,9 @@ public class CaptureView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
 //        canvas.drawBitmap(canvasBitmap, 0, 0, canvasPaint);
-        canvas.drawPath(drawPath, drawPaint);
+        for (Rect rect : preferredNodes) {
+            canvas.drawRect(rect, drawPaint);
+        }
     }
 
     @Override
@@ -122,11 +129,27 @@ public class CaptureView extends View {
 //        }
 //        return preferRect;
 //    }
-    public Path getDrawPath() {
-        return drawPath;
+//    public Path getDrawPath() {
+//        return drawPath;
+//    }
+
+    public void removeNode(Rect preferRect) {
+        preferredNodes.remove(preferRect);
     }
 
-    public Paint getDrawPaint() {
-        return drawPaint;
+    public void addNode(Rect preferRect) {
+        preferredNodes.add(preferRect);
+    }
+
+    public void removeAllNodes() {
+        preferredNodes.clear();
+    }
+
+    public ArrayList<Rect> getPreferredNodes() {
+        return preferredNodes;
+    }
+
+    public boolean hasSelected(Rect rect) {
+        return preferredNodes.contains(rect);
     }
 }

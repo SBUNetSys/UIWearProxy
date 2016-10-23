@@ -113,7 +113,7 @@ public class AccessibilityNodeInfoDumper {
      * @param node
      * @return true if node is excluded.
      */
-    private static boolean nafExcludedClass(AccessibilityNodeInfo node) {
+    public static boolean nafExcludedClass(AccessibilityNodeInfo node) {
         String className = safeCharSeqToString(node.getClassName());
         for(String excludedClassName : NAF_EXCLUDED_CLASSES) {
             if(className.endsWith(excludedClassName))
@@ -131,7 +131,7 @@ public class AccessibilityNodeInfoDumper {
      * @param node
      * @return false if a node fails the check, true if all is OK
      */
-    private static boolean nafCheck(AccessibilityNodeInfo node) {
+    public static boolean nafCheck(AccessibilityNodeInfo node) {
         boolean isNaf = node.isClickable() && node.isEnabled()
                 && safeCharSeqToString(node.getContentDescription()).isEmpty()
                 && safeCharSeqToString(node.getText()).isEmpty();

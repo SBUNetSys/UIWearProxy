@@ -16,8 +16,8 @@ public class Constant {
     public static final String PREFERENCE_SETTING_EXIT = "PREFERENCE_SETTING_EXIT";
     public static final String SYSTEM_UI_PKG = "com.android.systemui";
     public static final String PREFERENCE_SETTING_STARTED = "PREFERENCE_SETTING_STARTED";
-    public static final String PREFERENCE_SETTING_PREPARED = "PREFERENCE_SETTING_PREPARED";
-    public static final String LEAF_NODES_FOR_PREFERENCE_KEY = "LEAF_NODES_FOR_PREFERENCE_KEY";
+    public static final String NODES_AVAILABLE = "NODES_AVAILABLE";
+    public static final String AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY = "AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY";
     public static final String PREFERENCE_STOP_KEY = "PREFERENCE_STOP_KEY";
     public static final int PREFERENCE_STOP_CODE = 3;
     public static final Intent accessibilitySettingIntent = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);

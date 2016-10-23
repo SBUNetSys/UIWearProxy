@@ -13,6 +13,7 @@ import android.widget.Toast;
 
 import com.orhanobut.logger.Logger;
 
+import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.PreferenceSettingActivity;
 import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
 
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
@@ -46,6 +47,8 @@ public class PhoneActivity extends Activity {
     }
 
     public void startPreferenceSetting(View setButton) {
+        phoneServiceIntent.putExtra(PREFERENCE_SETTING_KEY, PREFERENCE_SETTING_CODE);
+        startService(phoneServiceIntent);
         raisePreferenceSettingNotification();
         finish();
     }
@@ -98,17 +101,19 @@ public class PhoneActivity extends Activity {
                         .setSmallIcon(R.mipmap.ic_launcher)
                         .setContentTitle(getString(R.string.running_phone_proxy))
                         .setContentText(getString(R.string.setting_preference));
-        Intent stopIntent = new Intent(phoneServiceIntent);
-        phoneServiceIntent.putExtra(PREFERENCE_SETTING_KEY, PREFERENCE_SETTING_CODE);
-        PendingIntent resultPendingIntent = PendingIntent.getService(this, 0,
-                phoneServiceIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        // attention to the request code
-        stopIntent.putExtra(PREFERENCE_STOP_KEY, PREFERENCE_STOP_CODE);
-        PendingIntent deletePendingIntent = PendingIntent.getService(this, 1,
-                stopIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        mBuilder.setContentIntent(resultPendingIntent);
-        mBuilder.setDeleteIntent(deletePendingIntent);
+        Intent preferenceSettingIntent = new Intent(getApplicationContext(),
+                PreferenceSettingActivity.class);
+        PendingIntent preferenceSettingPendingIntent = PendingIntent.getActivity(this, 0,
+                preferenceSettingIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        phoneServiceIntent.putExtra(PREFERENCE_STOP_KEY, PREFERENCE_STOP_CODE);
+        PendingIntent stopPreferenceSetting = PendingIntent.getService(this, 1,
+                phoneServiceIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+
+        mBuilder.setContentIntent(preferenceSettingPendingIntent);
+        mBuilder.setDeleteIntent(stopPreferenceSetting);
+
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         mNotificationManager.notify(1, mBuilder.build());
