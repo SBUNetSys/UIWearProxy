@@ -26,6 +26,8 @@ import java.util.List;
 import edu.stonybrook.cs.netsys.uiwearlib.AppUtil;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ENABLED_APP_LIST_PREF_NAME;
+
 /**
  * For selecting apps that use UIWear service
  */
@@ -93,7 +95,7 @@ class AppAdapter extends RecyclerView.Adapter<AppAdapter.ViewHolder> {
     AppAdapter(Context context, List<String> list) {
         mContext = context;
         pkgNameList = list;
-        mSharedPreferences = mContext.getSharedPreferences("UIWearServingAppList", Context.MODE_PRIVATE);
+        mSharedPreferences = mContext.getSharedPreferences(ENABLED_APP_LIST_PREF_NAME, Context.MODE_PRIVATE);
 
         appEnabledStated = new ArrayList<>();
         for (String pkg : pkgNameList) {

@@ -21,5 +21,6 @@ public class Constant {
     public static final String PREFERENCE_STOP_KEY = "PREFERENCE_STOP_KEY";
     public static final int PREFERENCE_STOP_CODE = 3;
     public static final Intent accessibilitySettingIntent = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);
+    public static final String ENABLED_APP_LIST_PREF_NAME = "UIWearServingAppList";
 
 }
