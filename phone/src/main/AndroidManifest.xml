@@ -22,13 +22,13 @@
         <activity
             android:name=".preferenceManager.PreferenceSettingActivity"
             android:theme="@style/Theme.Transparent" />
+        <activity android:name=".uiwearService.PreferredAppsSettingActivity" />
 
         <service
             android:name=".uiwearService.PhoneProxyService"
-            android:label="@string/service_accessibility"
             android:enabled="true"
+            android:label="@string/service_accessibility"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
-
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
             </intent-filter>
@@ -37,6 +37,7 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
         </service>
+
     </application>
 
 </manifest>

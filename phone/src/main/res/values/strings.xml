@@ -19,4 +19,8 @@
     <string name="setting_preference">Setting preference</string>
     <string name="not_ready_for_selection">Not ready for selection</string>
 
+    <string name="title_activity_preferred_apps_setting">PreferredApps</string>
+    <string name="app_icon">app_icon</string>
+    <string name="select_app">Select App</string>
+    <string name="set_all">Set all</string>
 </resources>

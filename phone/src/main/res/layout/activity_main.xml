@@ -10,32 +10,42 @@
         android:id="@+id/start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/activity_horizontal_margin"
         android:layout_marginEnd="@dimen/activity_horizontal_margin"
-        android:text="@string/start"
+        android:layout_marginStart="@dimen/activity_horizontal_margin"
         android:onClick="startProxyService"
-        android:textAppearance="@android:style/TextAppearance"
-        />
+        android:text="@string/start"
+        android:textAppearance="@android:style/TextAppearance" />
 
     <Button
         android:id="@+id/stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="@dimen/activity_horizontal_margin"
+        android:layout_marginStart="@dimen/activity_horizontal_margin"
         android:layout_toEndOf="@+id/start"
         android:onClick="stopProxyService"
-        android:layout_marginStart="@dimen/activity_horizontal_margin"
-        android:layout_marginEnd="@dimen/activity_horizontal_margin"
         android:text="@string/stop"
         android:textAppearance="@android:style/TextAppearance" />
 
     <Button
-        android:id="@+id/set_btn"
+        android:id="@+id/set_preference_btn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_alignStart="@+id/start"
         android:layout_below="@+id/start"
-        android:onClick="startPreferenceSetting"
         android:layout_marginTop="@dimen/activity_horizontal_margin"
+        android:onClick="startPreferenceSetting"
         android:text="@string/set_preference"
-        android:textAppearance="@android:style/TextAppearance"
-        android:layout_centerHorizontal="true" />
+        android:textAppearance="@android:style/TextAppearance" />
+
+    <Button
+        android:id="@+id/select_app_btn"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignEnd="@+id/stop"
+        android:layout_below="@+id/stop"
+        android:layout_marginTop="@dimen/activity_horizontal_margin"
+        android:onClick="startSelectingApp"
+        android:text="@string/select_app"
+        android:textAppearance="@android:style/TextAppearance" />
 </RelativeLayout>

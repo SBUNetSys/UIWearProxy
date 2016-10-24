@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".uiwearService.PreferredAppsSettingActivity">
+    <item
+        android:id="@+id/set_all"
+        android:actionViewClass="android.widget.CheckBox"
+        android:showAsAction="always|collapseActionView"
+        android:title="@string/set_all"
+        />
+</menu>
