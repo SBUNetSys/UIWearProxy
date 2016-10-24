@@ -22,7 +22,7 @@
         <activity
             android:name=".preferenceManager.PreferenceSettingActivity"
             android:theme="@style/Theme.Transparent" />
-        <activity android:name=".uiwearService.PreferredAppsSettingActivity" />
+        <activity android:name=".uiwearService.SettingEnabledAppsActivity" />
 
         <service
             android:name=".uiwearService.PhoneProxyService"

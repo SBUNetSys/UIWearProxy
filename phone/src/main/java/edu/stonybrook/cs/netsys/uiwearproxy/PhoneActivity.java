@@ -15,7 +15,7 @@ import com.orhanobut.logger.Logger;
 
 import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.PreferenceSettingActivity;
 import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
-import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PreferredAppsSettingActivity;
+import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.SettingEnabledAppsActivity;
 
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
@@ -56,7 +56,7 @@ public class PhoneActivity extends Activity {
     }
 
     public void startSelectingApp(View view) {
-        startActivity(new Intent(this, PreferredAppsSettingActivity.class));
+        startActivity(new Intent(this, SettingEnabledAppsActivity.class));
     }
 
     @Override
