@@ -20,7 +20,8 @@ public class Constant {
     public static final String AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY = "AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY";
     public static final String PREFERENCE_STOP_KEY = "PREFERENCE_STOP_KEY";
     public static final int PREFERENCE_STOP_CODE = 3;
-    public static final Intent accessibilitySettingIntent = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);
+    public static final Intent ACCESSIBILITY_SETTING_INTENT = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);
     public static final String ENABLED_APP_LIST_PREF_NAME = "UIWearServingAppList";
 
+    public static final float CLICK_SPAN_THRESHOLD = 5.0f;
 }

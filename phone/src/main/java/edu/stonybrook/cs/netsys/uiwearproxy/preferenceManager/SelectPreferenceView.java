@@ -22,8 +22,8 @@ public class SelectPreferenceView extends View {
     public static final int DRAWING_COLOR = Color.RED;
 //    public static final int UNSELECTED_COLOR = Color.TRANSPARENT;
 
-//    private Path drawPath;
-    private Paint drawPaint;//, canvasPaint;
+    //    private Path drawPath;
+    private Paint mPaint;//, canvasPaint;
 
     //    private Canvas drawCanvas;
 //    private Bitmap canvasBitmap;
@@ -31,7 +31,7 @@ public class SelectPreferenceView extends View {
 //    private float lastX;
 //    private float lastY;
 //
-    private ArrayList<Rect> preferredNodes;
+    private ArrayList<Rect> mPreferredNodes;
 
     public SelectPreferenceView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -41,14 +41,14 @@ public class SelectPreferenceView extends View {
     //get drawing area setup for interaction
     private void setupDrawing() {
 //        drawPath = new Path();
-        drawPaint = new Paint();
-        drawPaint.setColor(DRAWING_COLOR);
-        drawPaint.setAntiAlias(true);
-        drawPaint.setStrokeWidth(STROKE_WIDTH);
-        drawPaint.setStyle(Paint.Style.STROKE);
-        drawPaint.setStrokeJoin(Paint.Join.ROUND);
-        drawPaint.setStrokeCap(Paint.Cap.ROUND);
-        preferredNodes = new ArrayList<>();
+        mPaint = new Paint();
+        mPaint.setColor(DRAWING_COLOR);
+        mPaint.setAntiAlias(true);
+        mPaint.setStrokeWidth(STROKE_WIDTH);
+        mPaint.setStyle(Paint.Style.STROKE);
+        mPaint.setStrokeJoin(Paint.Join.ROUND);
+        mPaint.setStrokeCap(Paint.Cap.ROUND);
+        mPreferredNodes = new ArrayList<>();
 //        canvasPaint = new Paint(Paint.DITHER_FLAG);
 //        preferRect = new Rect();
     }
@@ -63,8 +63,8 @@ public class SelectPreferenceView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
 //        canvas.drawBitmap(canvasBitmap, 0, 0, canvasPaint);
-        for (Rect rect : preferredNodes) {
-            canvas.drawRect(rect, drawPaint);
+        for (Rect rect : mPreferredNodes) {
+            canvas.drawRect(rect, mPaint);
         }
     }
 
@@ -107,7 +107,7 @@ public class SelectPreferenceView extends View {
 //                drawPath.moveTo(nowX, lastY);
 //                drawPath.lineTo(nowX, nowY);
 //
-//                drawCanvas.drawPath(drawPath, drawPaint);
+//                drawCanvas.drawPath(drawPath, mPaint);
 //
 //                break;
 //            case MotionEvent.ACTION_UP:
@@ -134,25 +134,25 @@ public class SelectPreferenceView extends View {
 //    }
 
     public void removeNode(Rect preferRect) {
-        preferredNodes.remove(preferRect);
+        mPreferredNodes.remove(preferRect);
         invalidate();
     }
 
     public void addNode(Rect preferRect) {
-        preferredNodes.add(preferRect);
+        mPreferredNodes.add(preferRect);
         invalidate();
     }
 
     public void removeAllNodes() {
-        preferredNodes.clear();
+        mPreferredNodes.clear();
         invalidate();
     }
 
     public ArrayList<Rect> getPreferredNodes() {
-        return preferredNodes;
+        return mPreferredNodes;
     }
 
     public boolean hasSelected(Rect rect) {
-        return preferredNodes.contains(rect);
+        return mPreferredNodes.contains(rect);
     }
 }

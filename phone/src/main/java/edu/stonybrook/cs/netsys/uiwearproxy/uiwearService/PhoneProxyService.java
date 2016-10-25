@@ -1,5 +1,19 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant
+        .AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.SYSTEM_UI_PKG;
+
 import android.accessibilityservice.AccessibilityService;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -25,138 +39,23 @@ import java.util.Set;
 import edu.stonybrook.cs.netsys.uiwearlib.NodeUtils;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.SYSTEM_UI_PKG;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.accessibilitySettingIntent;
-
 public class PhoneProxyService extends AccessibilityService {
 
-    private boolean isRunningPreferenceSetting;
+    private NotificationManager mNotificationManager;
 
     // for preference setting, only need to parse once
-//    private boolean hasParsedPreferenceAppRootNode;
+    private boolean mIsRunningPreferenceSetting;
 
     // either region or id alone is not enough for detecting the specific UI elements
     // so combined them and can cover most cases
     // must use region as key, since id can be the same
-    private HashMap<Rect, String> appLeafNodesMap = new HashMap<>();
-
-    // save a couple of recent app root nodes to HashMap,
-    // where key is node hashcode, value is appLeafNodesMap
-    // otherwise hard to detect the correct app root node for preference setting
-//    private HashMap<Integer, HashMap<Rect, String>> recentAppNodeMaps = new HashMap<>();
-//    private ArrayList<AccessibilityNodeInfo> recentAppRootNodes = new ArrayList<>();
-
-    private String appRootNodePkgName;
+    private HashMap<Rect, String> mAppLeafNodesMap = new HashMap<>();
+    private String mAppRootNodePkgName;
 
     // for bitmap extracting and other heavy work
-    private WorkerThread workerThread;
-    NotificationManager mNotificationManager;
+    private WorkerThread mWorkerThread;
 
-    @Override
-    public void onCreate() {
-        IntentFilter filter = new IntentFilter(PREFERENCE_SETTING_SAVE);
-        filter.addAction(PREFERENCE_SETTING_STARTED);
-        filter.addAction(PREFERENCE_SETTING_EXIT);
-
-        LocalBroadcastManager.getInstance(getApplicationContext())
-                .registerReceiver(broadcastReceiver, filter);
-
-        workerThread = new WorkerThread("worker-thread");
-        workerThread.start();
-        mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        raiseRunningNotification();
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null) {
-            int startCode = intent.getIntExtra(PREFERENCE_SETTING_KEY, 0);
-            if (startCode == PREFERENCE_SETTING_CODE) {
-                isRunningPreferenceSetting = true;
-                Logger.i("start preference setting");
-            }
-
-            int stopCode = intent.getIntExtra(PREFERENCE_STOP_KEY, 0);
-            if (stopCode == PREFERENCE_STOP_CODE) {
-                isRunningPreferenceSetting = false;
-                appLeafNodesMap.clear();
-                Logger.i("stop preference setting");
-            }
-
-        }
-        return START_STICKY;
-    }
-
-    @Override
-    public void onAccessibilityEvent(AccessibilityEvent event) {
-
-        // preference setting functionality
-        if (isRunningPreferenceSetting) {
-            AccessibilityNodeInfo rootNode = getRootInActiveWindow();
-//            Logger.v("root node: " + rootNode.toString());
-//            NodeUtils.printNodeTree(rootNode);
-            if (isAppRootNode(rootNode)) {
-                Logger.i("app node: " + NodeUtils.getBriefNodeInfo(rootNode));
-                appRootNodePkgName = rootNode.getPackageName().toString();
-                appLeafNodesMap.clear();
-                parseLeafNodes(rootNode);
-            }
-        }
-
-        // extracting view tree workflow
-        // TODO: 10/21/16 extract view tree and send to wearable side based on app preference
-        // TODO: 10/21/16 migrate previous on demand bitmap extraction
-        // TODO: 10/21/16 possible caching and optimization here, including migrating previous LRU cache and use worker thread (not AsyncTask, use handler thread)
-
-
-    }
-
-    private boolean isAppRootNode(AccessibilityNodeInfo rootNode) {
-        if (rootNode == null) {
-            return false;
-        }
-        CharSequence nodePkgName = rootNode.getPackageName();
-        return !SYSTEM_UI_PKG.equals(nodePkgName) && !getPackageName().equals(nodePkgName);
-    }
-
-    // parse all UI leaf nodes and save them to list appLeafNodesMap
-    private void parseLeafNodes(AccessibilityNodeInfo rootNode) {
-        if (rootNode == null) {
-            Logger.i("null root node ");
-            return;
-        }
-
-        int count = rootNode.getChildCount();
-        if (count == 0) { // no child, leaf node
-            if (rootNode.isVisibleToUser() && !rootNode.getClassName()
-                    .toString().endsWith("Layout")) { // filter the ViewGroup
-                Rect region = new Rect();
-                rootNode.getBoundsInScreen(region);
-                String id = rootNode.getViewIdResourceName();
-                if (!region.isEmpty() && id != null) {
-                    Logger.i("add: " + NodeUtils.getBriefNodeInfo(rootNode));
-                    appLeafNodesMap.put(region, id);
-                }
-            }
-            rootNode.recycle();
-        } else {
-            for (int i = 0; i < count; i++) {
-                parseLeafNodes(rootNode.getChild(i));
-            }
-        }
-    }
-
-    private BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
+    private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             switch (intent.getAction()) {
@@ -181,12 +80,108 @@ public class PhoneProxyService extends AccessibilityService {
         }
     };
 
+    @Override
+    public void onCreate() {
+        IntentFilter filter = new IntentFilter(PREFERENCE_SETTING_SAVE);
+        filter.addAction(PREFERENCE_SETTING_STARTED);
+        filter.addAction(PREFERENCE_SETTING_EXIT);
+
+        LocalBroadcastManager.getInstance(getApplicationContext())
+                .registerReceiver(mBroadcastReceiver, filter);
+
+        mWorkerThread = new WorkerThread("worker-thread");
+        mWorkerThread.start();
+        mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        raiseRunningNotification();
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null) {
+            int startCode = intent.getIntExtra(PREFERENCE_SETTING_KEY, 0);
+            if (startCode == PREFERENCE_SETTING_CODE) {
+                mIsRunningPreferenceSetting = true;
+                Logger.i("start preference setting");
+            }
+
+            int stopCode = intent.getIntExtra(PREFERENCE_STOP_KEY, 0);
+            if (stopCode == PREFERENCE_STOP_CODE) {
+                mIsRunningPreferenceSetting = false;
+                mAppLeafNodesMap.clear();
+                Logger.i("stop preference setting");
+            }
+
+        }
+        return START_STICKY;
+    }
+
+    @Override
+    public void onAccessibilityEvent(AccessibilityEvent event) {
+
+        // preference setting functionality
+        if (mIsRunningPreferenceSetting) {
+            AccessibilityNodeInfo rootNode = getRootInActiveWindow();
+//            Logger.v("root node: " + rootNode.toString());
+//            NodeUtils.printNodeTree(rootNode);
+            if (isAppRootNode(rootNode)) {
+                Logger.i("app node: " + NodeUtils.getBriefNodeInfo(rootNode));
+                mAppRootNodePkgName = rootNode.getPackageName().toString();
+                mAppLeafNodesMap.clear();
+                parseLeafNodes(rootNode);
+            }
+        }
+
+        // extracting view tree workflow
+        // TODO: 10/21/16 extract view tree and send to wearable side based on app preference
+        // TODO: 10/21/16 migrate previous on demand bitmap extraction
+        // TODO: 10/21/16 possible caching and optimization here, including migrating previous
+        // LRU cache and use worker thread (not AsyncTask, use handler thread)
+
+
+    }
+
+    private boolean isAppRootNode(AccessibilityNodeInfo rootNode) {
+        if (rootNode == null) {
+            return false;
+        }
+        CharSequence nodePkgName = rootNode.getPackageName();
+        return !SYSTEM_UI_PKG.equals(nodePkgName) && !getPackageName().equals(nodePkgName);
+    }
+
+    // parse all UI leaf nodes and save them to list mAppLeafNodesMap
+    private void parseLeafNodes(AccessibilityNodeInfo rootNode) {
+        if (rootNode == null) {
+            Logger.i("null root node ");
+            return;
+        }
+
+        int count = rootNode.getChildCount();
+        if (count == 0) { // no child, leaf node
+            if (rootNode.isVisibleToUser() && !rootNode.getClassName()
+                    .toString().endsWith("Layout")) { // filter the ViewGroup
+                Rect region = new Rect();
+                rootNode.getBoundsInScreen(region);
+                String id = rootNode.getViewIdResourceName();
+                if (!region.isEmpty() && id != null) {
+                    Logger.i("add: " + NodeUtils.getBriefNodeInfo(rootNode));
+                    mAppLeafNodesMap.put(region, id);
+                }
+            }
+            rootNode.recycle();
+        } else {
+            for (int i = 0; i < count; i++) {
+                parseLeafNodes(rootNode.getChild(i));
+            }
+        }
+    }
+
     // send prepared leaf nodes to PreferenceSettingActivity
     private void sendLeafNodesToPreferenceSetting() {
-        if (appLeafNodesMap.size() > 0) {
+        if (mAppLeafNodesMap.size() > 0) {
             Intent nodesIntent = new Intent(NODES_AVAILABLE);
-            ArrayList<Rect> nodes = new ArrayList<>(appLeafNodesMap.keySet());
-            nodesIntent.putParcelableArrayListExtra(AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY, nodes);
+            ArrayList<Rect> nodes = new ArrayList<>(mAppLeafNodesMap.keySet());
+            nodesIntent.putParcelableArrayListExtra(AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY,
+                    nodes);
             LocalBroadcastManager.getInstance(this).sendBroadcast(nodesIntent);
         } else {
             Logger.i("no available nodes to send!");
@@ -194,12 +189,13 @@ public class PhoneProxyService extends AccessibilityService {
     }
 
     // save rect-ID pair of user's selected UI nodes and persist them to app specific xml file
-    // TODO: 10/21/16 save file format to activity granularity, although currently it support all activities
+    // TODO: 10/21/16 save file format to activity granularity, although currently it support all
+    // activities
     private void savePreferenceNodes(ArrayList<Rect> preferredNodes) {
-        // ensure that appLeafNodesMap is not cleared
-        HashMap<Rect, String> savedMap = new HashMap<>(appLeafNodesMap);
-        Logger.i("mapped nodes: " + appLeafNodesMap.keySet().toString());
-        SharedPreferences sharedPref = getSharedPreferences(appRootNodePkgName, MODE_APPEND);
+        // ensure that mAppLeafNodesMap is not cleared
+        HashMap<Rect, String> savedMap = new HashMap<>(mAppLeafNodesMap);
+        Logger.i("mapped nodes: " + mAppLeafNodesMap.keySet().toString());
+        SharedPreferences sharedPref = getSharedPreferences(mAppRootNodePkgName, MODE_APPEND);
         SharedPreferences.Editor editor = sharedPref.edit();
         for (Rect rect : preferredNodes) {
             String id = savedMap.get(rect); // can't be null since already checked during put time
@@ -248,7 +244,7 @@ public class PhoneProxyService extends AccessibilityService {
         Logger.i("");
         stopRunningNotification();
         LocalBroadcastManager.getInstance(getApplicationContext())
-                .unregisterReceiver(broadcastReceiver);
+                .unregisterReceiver(mBroadcastReceiver);
         super.onDestroy();
     }
 
@@ -264,7 +260,7 @@ public class PhoneProxyService extends AccessibilityService {
                 .setContentText("")
                 .setOngoing(true)
                 .setContentIntent(PendingIntent.getActivity(this, 0,
-                        accessibilitySettingIntent, PendingIntent.FLAG_UPDATE_CURRENT));
+                        ACCESSIBILITY_SETTING_INTENT, PendingIntent.FLAG_UPDATE_CURRENT));
         mNotificationManager.notify(2, mBuilder.build());
     }
 

@@ -16,7 +16,7 @@ public class WorkerThread extends HandlerThread {
         mWorkerHandler = new Handler(getLooper());
     }
 
-    public void postTask(Runnable task){
+    public void postTask(Runnable task) {
         mWorkerHandler.post(task);
     }
 }

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/activity_main"
+    android:id="@+id/activity_phone"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_gravity="center_horizontal"
     android:layout_margin="@dimen/activity_horizontal_margin">
 
     <Button
-        android:id="@+id/start"
+        android:id="@+id/btn_start"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="@dimen/activity_horizontal_margin"
@@ -17,35 +17,35 @@
         android:textAppearance="@android:style/TextAppearance" />
 
     <Button
-        android:id="@+id/stop"
+        android:id="@+id/btn_stop"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="@dimen/activity_horizontal_margin"
         android:layout_marginStart="@dimen/activity_horizontal_margin"
-        android:layout_toEndOf="@+id/start"
+        android:layout_toEndOf="@+id/btn_start"
         android:onClick="stopProxyService"
         android:text="@string/stop"
         android:textAppearance="@android:style/TextAppearance" />
 
     <Button
-        android:id="@+id/set_preference_btn"
+        android:id="@+id/btn_start_preference_setting"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignStart="@+id/start"
-        android:layout_below="@+id/start"
+        android:layout_alignStart="@+id/btn_start"
+        android:layout_below="@+id/btn_start"
         android:layout_marginTop="@dimen/activity_horizontal_margin"
         android:onClick="startPreferenceSetting"
-        android:text="@string/set_preference"
+        android:text="@string/start_setting_preference"
         android:textAppearance="@android:style/TextAppearance" />
 
     <Button
-        android:id="@+id/select_app_btn"
+        android:id="@+id/btn_start_app_selection"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignEnd="@+id/stop"
-        android:layout_below="@+id/stop"
+        android:layout_alignEnd="@+id/btn_stop"
+        android:layout_below="@+id/btn_stop"
         android:layout_marginTop="@dimen/activity_horizontal_margin"
         android:onClick="startSelectingApp"
-        android:text="@string/select_app"
+        android:text="@string/start_selecting_app"
         android:textAppearance="@android:style/TextAppearance" />
 </RelativeLayout>

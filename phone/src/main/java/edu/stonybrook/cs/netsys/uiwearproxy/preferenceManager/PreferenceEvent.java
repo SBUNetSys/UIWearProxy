@@ -10,6 +10,7 @@ import android.graphics.Rect;
 
 public class PreferenceEvent {
     private Rect preferredRect;
+
     PreferenceEvent(Rect preferredRect) {
         this.preferredRect = preferredRect;
     }

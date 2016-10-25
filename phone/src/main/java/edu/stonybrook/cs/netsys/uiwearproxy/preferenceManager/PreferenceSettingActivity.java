@@ -1,5 +1,13 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant
+        .AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
+
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -19,50 +27,63 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
+import edu.stonybrook.cs.netsys.uiwearlib.Constant;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
-
 public class PreferenceSettingActivity extends Activity {
-    private ArrayList<Rect> availableNodes; // all available nodes from phone proxy service
-    private Toast hintToast;
-    private SelectPreferenceView preferenceView;
-    private static final float CLICK_SPAN_THRESHOLD = 5.0f;
+    private ArrayList<Rect> mAvailableNodes; // all available nodes from phone proxy service
+    private Toast mHintToast;
+    private SelectPreferenceView mSelectPreferenceView;
+    private boolean mDoubleBackToExitPressedOnce = false;
+    private BroadcastReceiver mAvailableNodesReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            switch (intent.getAction()) {
+                case NODES_AVAILABLE:
+                    mAvailableNodes = intent.
+                            getParcelableArrayListExtra(AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY);
+                    Collections.sort(mAvailableNodes, new Comparator<Rect>() {
+                        @Override
+                        public int compare(Rect o1, Rect o2) {
+                            return o1.width() * o1.height() - o2.width() * o2.height();
+                        }
+                    });
+
+                    break;
+                default:
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_transparent);
+        setContentView(R.layout.activity_preference_setting);
 
-        preferenceView = (SelectPreferenceView) findViewById(R.id.drawing);
-        hintToast = Toast.makeText(getApplicationContext(),
+        mSelectPreferenceView = (SelectPreferenceView) findViewById(R.id.view_drawing);
+        mHintToast = Toast.makeText(getApplicationContext(),
                 R.string.not_ready_for_selection, Toast.LENGTH_SHORT);
 
-        preferenceView.setOnTouchListener(new View.OnTouchListener() {
-            float startX;
-            float startY;
+        mSelectPreferenceView.setOnTouchListener(new View.OnTouchListener() {
+            float mStartX;
+            float mStartY;
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-                if (availableNodes == null) {
-                    hintToast.show();
+                if (mAvailableNodes == null) {
+                    mHintToast.show();
                 } else {
 //                    Logger.i("onTouch");
                     switch (event.getAction()) {
                         case MotionEvent.ACTION_DOWN:
-                            startX = event.getX();
-                            startY = event.getY();
+                            mStartX = event.getX();
+                            mStartY = event.getY();
                             break;
                         case MotionEvent.ACTION_UP:
                             float endX = event.getX();
                             float endY = event.getY();
                             // detect a click
-//                            Logger.i("startX: " + startX + " startY: " + startY
+//                            Logger.i("mStartX: " + mStartX + " mStartY: " + mStartY
 //                                    + " endX: " + endX + " endY: " + endY);
                             if (isClick(endX, endY)) {
 //                                Logger.i("clicked");
@@ -80,23 +101,23 @@ public class PreferenceSettingActivity extends Activity {
             }
 
             private boolean isClick(float endX, float endY) {
-                return Math.abs(startX - endX) < CLICK_SPAN_THRESHOLD
-                        && Math.abs(startY - endY) < CLICK_SPAN_THRESHOLD;
+                return Math.abs(mStartX - endX) < Constant.CLICK_SPAN_THRESHOLD
+                        && Math.abs(mStartY - endY) < Constant.CLICK_SPAN_THRESHOLD;
             }
         });
     }
 
     private void selectPreferenceOnClickPoint(int endX, int endY) {
-        for (Rect rect : availableNodes) {
+        for (Rect rect : mAvailableNodes) {
             if (rect.contains(endX, endY)) {
-                if (preferenceView.hasSelected(rect)) {
+                if (mSelectPreferenceView.hasSelected(rect)) {
                     Logger.i("unselected rect: " + rect);
                     // discard the selected area frame
-                    preferenceView.removeNode(rect);
+                    mSelectPreferenceView.removeNode(rect);
                 } else {
                     Logger.i("selected rect: " + rect);
                     // mark the selected area by drawing a slim frame
-                    preferenceView.addNode(rect);
+                    mSelectPreferenceView.addNode(rect);
                 }
                 break;
             }
@@ -104,40 +125,38 @@ public class PreferenceSettingActivity extends Activity {
     }
 
     private void resetPreference() {
-        preferenceView.removeAllNodes();
+        mSelectPreferenceView.removeAllNodes();
     }
-
-
-    private boolean doubleBackToExitPressedOnce = false;
 
     @Override
     public void onBackPressed() {
-        if (doubleBackToExitPressedOnce) {
-            hintToast.setText(R.string.exit_preference_setting);
-            hintToast.show();
-            LocalBroadcastManager.getInstance(this).sendBroadcast(new Intent(PREFERENCE_SETTING_EXIT));
+        if (mDoubleBackToExitPressedOnce) {
+            mHintToast.setText(R.string.exit_preference_setting);
+            mHintToast.show();
+            LocalBroadcastManager.getInstance(this).sendBroadcast(
+                    new Intent(PREFERENCE_SETTING_EXIT));
             super.onBackPressed();
             return;
         }
 
-        this.doubleBackToExitPressedOnce = true;
+        this.mDoubleBackToExitPressedOnce = true;
 
-        if (availableNodes == null) {
-            hintToast.setText(R.string.not_ready_for_selection);
-            hintToast.show();
+        if (mAvailableNodes == null) {
+            mHintToast.setText(R.string.not_ready_for_selection);
+            mHintToast.show();
         } else {
 
             // retrieve all selected nodes
-            ArrayList<Rect> selectedNodes = preferenceView.getPreferredNodes();
+            ArrayList<Rect> selectedNodes = mSelectPreferenceView.getPreferredNodes();
             if (selectedNodes.isEmpty()) {
-                hintToast.setText(R.string.null_back);
-                hintToast.show();
+                mHintToast.setText(R.string.null_back);
+                mHintToast.show();
             } else {
                 Intent rectIntent = new Intent(PREFERENCE_SETTING_SAVE);
                 rectIntent.putExtra(PREFERENCE_NODES_KEY, selectedNodes);
                 LocalBroadcastManager.getInstance(this).sendBroadcast(rectIntent);
-                hintToast.setText(R.string.saved_back);
-                hintToast.show();
+                mHintToast.setText(R.string.saved_back);
+                mHintToast.show();
             }
         }
 
@@ -145,7 +164,7 @@ public class PreferenceSettingActivity extends Activity {
 
             @Override
             public void run() {
-                doubleBackToExitPressedOnce = false;
+                mDoubleBackToExitPressedOnce = false;
             }
         }, 2000);
     }
@@ -154,7 +173,7 @@ public class PreferenceSettingActivity extends Activity {
     protected void onResume() {
         IntentFilter filter = new IntentFilter(NODES_AVAILABLE);
         LocalBroadcastManager.getInstance(getApplicationContext())
-                .registerReceiver(availableNodesReceiver, filter);
+                .registerReceiver(mAvailableNodesReceiver, filter);
         LocalBroadcastManager.getInstance(this)
                 .sendBroadcast(new Intent(PREFERENCE_SETTING_STARTED));
         super.onResume();
@@ -163,27 +182,7 @@ public class PreferenceSettingActivity extends Activity {
     @Override
     protected void onPause() {
         LocalBroadcastManager.getInstance(getApplicationContext())
-                .unregisterReceiver(availableNodesReceiver);
+                .unregisterReceiver(mAvailableNodesReceiver);
         super.onPause();
     }
-
-    private BroadcastReceiver availableNodesReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            switch (intent.getAction()) {
-                case NODES_AVAILABLE:
-                    availableNodes = intent.
-                            getParcelableArrayListExtra(AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY);
-                    Collections.sort(availableNodes, new Comparator<Rect>() {
-                        @Override
-                        public int compare(Rect o1, Rect o2) {
-                            return o1.width()*o1.height() - o2.width()*o2.height();
-                        }
-                    });
-
-                    break;
-                default:
-            }
-        }
-    };
 }

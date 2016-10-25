@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">UIWearProxy</string>
-    <string name="set_preference">Set Preference</string>
+    <string name="start_setting_preference">Set Preference</string>
     <string name="draw_hint">Click on the highlight area to select, press back to save</string>
     <string name="null_back">You did not select any area! click BACK again to exit</string>
     <string name="saved_back">Prefer area saved! click BACK again to exit</string>
@@ -21,7 +21,7 @@
 
     <string name="title_activity_preferred_apps_setting">PreferredApps</string>
     <string name="app_icon">app_icon</string>
-    <string name="select_app">Select App</string>
-    <string name="set_all">Set all</string>
+    <string name="start_selecting_app">Select App</string>
+    <string name="action_set_all">Set all</string>
     <string name="launch_error">" cannot launch!"</string>
 </resources>

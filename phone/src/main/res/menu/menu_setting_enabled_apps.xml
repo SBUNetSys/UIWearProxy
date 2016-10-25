@@ -5,9 +5,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".uiwearService.SettingEnabledAppsActivity">
     <item
-        android:id="@+id/set_all"
+        android:id="@+id/menu_set_all"
         android:actionViewClass="android.widget.CheckBox"
         android:showAsAction="always|collapseActionView"
-        android:title="@string/set_all"
+        android:title="@string/action_set_all"
         />
 </menu>
