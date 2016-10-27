@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    tools:context=".uiwearService.SettingEnabledAppsActivity">
+    tools:context=".preferenceManager.SettingEnabledAppsActivity">
     <item
         android:id="@+id/menu_set_all"
         android:actionViewClass="android.widget.CheckBox"

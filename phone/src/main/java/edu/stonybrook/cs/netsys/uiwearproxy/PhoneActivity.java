@@ -15,7 +15,7 @@ import com.orhanobut.logger.Logger;
 
 import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.PreferenceSettingActivity;
 import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
-import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.SettingEnabledAppsActivity;
+import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.SettingEnabledAppsActivity;
 
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SERVICE_REQUEST_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;

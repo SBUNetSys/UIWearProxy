@@ -1,4 +1,4 @@
-package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
+package edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager;
 
 import android.content.Context;
 import android.content.SharedPreferences;
