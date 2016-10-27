@@ -1,12 +1,5 @@
 package edu.stonybrook.cs.netsys.uiwearproxy;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.REQUEST_ACCESSIBILITY_SERVICE_CODE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
-
 import android.app.Activity;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -24,6 +17,13 @@ import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.PreferenceSettingA
 import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
 import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.SettingEnabledAppsActivity;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SERVICE_REQUEST_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
+
 public class PhoneActivity extends Activity {
     private Intent mPhoneProxyServiceIntent;
 
@@ -35,13 +35,10 @@ public class PhoneActivity extends Activity {
     }
 
     public void startProxyService(View startButton) {
-        startActivityForResult(ACCESSIBILITY_SETTING_INTENT, REQUEST_ACCESSIBILITY_SERVICE_CODE);
+        startActivityForResult(ACCESSIBILITY_SETTING_INTENT, ACCESSIBILITY_SERVICE_REQUEST_CODE);
     }
 
     public void stopProxyService(View stopButton) {
-//        mPhoneProxyServiceIntent.putExtra(STOP_PHONE_PROXY_SERVICE_KEY, STOP_PHONE_PROXY_SERVICE_CODE);
-        //stopProxyService(mPhoneProxyServiceIntent); //bounded to AccessibilityService, so not working
-//        startService(mPhoneProxyServiceIntent);
         finishAffinity();
         stopService(mPhoneProxyServiceIntent);
         startActivity(ACCESSIBILITY_SETTING_INTENT);
@@ -62,7 +59,7 @@ public class PhoneActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
-        if (requestCode == REQUEST_ACCESSIBILITY_SERVICE_CODE) {
+        if (requestCode == ACCESSIBILITY_SERVICE_REQUEST_CODE) {
             if (isAccessibilityEnabled()) {
                 Toast.makeText(this, R.string.service_enabled, Toast.LENGTH_SHORT).show();
                 startService(mPhoneProxyServiceIntent);
@@ -74,7 +71,7 @@ public class PhoneActivity extends Activity {
 
     private boolean isAccessibilityEnabled() {
         int accessibilityEnabled = 0;
-        final String ACCESSIBILITY_SERVICE_NAME =
+        final String accessibilityServiceName =
                 getPackageName() + "/" + PhoneProxyService.class.getName();
         //"edu.stonybrook.cs.netsys.uiwearproxy/edu.stonybrook.cs.netsys.uiwearproxy
         // .uiwearService.PhoneProxyService";
@@ -91,8 +88,8 @@ public class PhoneActivity extends Activity {
             String settingValue = Settings.Secure.getString(getContentResolver(),
                     Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
             Logger.i("Setting: " + settingValue);
-            Logger.i("ACCESSIBILITY_SERVICE_NAME: " + ACCESSIBILITY_SERVICE_NAME);
-            if (ACCESSIBILITY_SERVICE_NAME.equalsIgnoreCase(settingValue)) {
+            Logger.i("accessibilityServiceName: " + accessibilityServiceName);
+            if (accessibilityServiceName.equalsIgnoreCase(settingValue)) {
                 Logger.i("We've found the correct setting - accessibility is switched on!");
                 return true;
             }

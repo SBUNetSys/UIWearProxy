@@ -1,13 +1,5 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant
-        .AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
-
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -30,6 +22,13 @@ import java.util.Comparator;
 import edu.stonybrook.cs.netsys.uiwearlib.Constant;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
+
 public class PreferenceSettingActivity extends Activity {
     private ArrayList<Rect> mAvailableNodes; // all available nodes from phone proxy service
     private Toast mHintToast;
@@ -41,7 +40,7 @@ public class PreferenceSettingActivity extends Activity {
             switch (intent.getAction()) {
                 case NODES_AVAILABLE:
                     mAvailableNodes = intent.
-                            getParcelableArrayListExtra(AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY);
+                            getParcelableArrayListExtra(AVAILABLE_NODES_PREFERENCE_SETTING_KEY);
                     Collections.sort(mAvailableNodes, new Comparator<Rect>() {
                         @Override
                         public int compare(Rect o1, Rect o2) {
@@ -89,7 +88,8 @@ public class PreferenceSettingActivity extends Activity {
 //                                Logger.i("clicked");
                                 //if the click area has an available node
                                 selectPreferenceOnClickPoint((int) endX, (int) endY);
-                            } else {// swipe to reset all preferences
+                            } else {
+                                // swipe to reset all preferences
                                 resetPreference();
                             }
                             break;

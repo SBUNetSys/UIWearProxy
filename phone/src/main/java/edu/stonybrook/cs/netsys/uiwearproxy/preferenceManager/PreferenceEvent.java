@@ -4,7 +4,7 @@ import android.graphics.Rect;
 
 /**
  * Created by qqcao on 10/19/16.
- *
+ * <p>
  * PreferenceEvent is used to store user's selected preference area for apps.
  */
 

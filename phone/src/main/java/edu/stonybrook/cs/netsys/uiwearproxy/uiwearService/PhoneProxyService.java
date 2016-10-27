@@ -1,19 +1,5 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant
-        .AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.SYSTEM_UI_PKG;
-
 import android.accessibilityservice.AccessibilityService;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -38,6 +24,19 @@ import java.util.Set;
 
 import edu.stonybrook.cs.netsys.uiwearlib.NodeUtils;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
+
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.SYSTEM_UI_PKG;
 
 public class PhoneProxyService extends AccessibilityService {
 
@@ -180,7 +179,7 @@ public class PhoneProxyService extends AccessibilityService {
         if (mAppLeafNodesMap.size() > 0) {
             Intent nodesIntent = new Intent(NODES_AVAILABLE);
             ArrayList<Rect> nodes = new ArrayList<>(mAppLeafNodesMap.keySet());
-            nodesIntent.putParcelableArrayListExtra(AVAILABLE_NODES_FOR_PREFERENCE_SETTING_KEY,
+            nodesIntent.putParcelableArrayListExtra(AVAILABLE_NODES_PREFERENCE_SETTING_KEY,
                     nodes);
             LocalBroadcastManager.getInstance(this).sendBroadcast(nodesIntent);
         } else {
@@ -226,7 +225,8 @@ public class PhoneProxyService extends AccessibilityService {
                     editor.putStringSet(id, set);
                 }
             }
-            editor.commit();// need to commit here, otherwise file not correct!
+            // need to commit here, otherwise file not correct!
+            editor.commit();
 
         }
         editor.apply();

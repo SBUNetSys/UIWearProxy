@@ -1,7 +1,7 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 24
+    compileSdkVersion 25
     buildToolsVersion "25.0.0"
 
     defaultConfig {
@@ -31,3 +31,5 @@ dependencies {
     compile 'com.cscao.libs:gmsapi:0.95'
     testCompile 'junit:junit:4.12'
 }
+
+preBuild.dependsOn 'checkstyle'

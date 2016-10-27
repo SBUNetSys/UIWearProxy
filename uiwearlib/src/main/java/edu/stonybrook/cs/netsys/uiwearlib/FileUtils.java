@@ -23,9 +23,10 @@ public class FileUtils {
 
     /**
      * read file
-     * 
+     *
      * @param filePath
-     * @param charsetName The name of a supported {@link java.nio.charset.Charset </code>charset<code>}
+     * @param charsetName The name of a supported
+     * {@link java.nio.charset.Charset </code>charset<code>}
      * @return if file not exist, return null, else return content of file
      * @throws RuntimeException if an error occurs while operator BufferedReader
      */
@@ -63,10 +64,11 @@ public class FileUtils {
 
     /**
      * write file
-     * 
+     *
      * @param filePath
      * @param content
-     * @param append is append, if true, write to the end of file, else clear content of file and write into it
+     * @param append   is append, if true, write to the end of file,
+     *                 else clear content of file and write into it
      * @return return false if content is empty, true otherwise
      * @throws RuntimeException if an error occurs while operator FileWriter
      */

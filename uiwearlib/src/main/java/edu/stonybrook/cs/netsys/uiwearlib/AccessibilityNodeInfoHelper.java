@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 package edu.stonybrook.cs.netsys.uiwearlib;
+
 import android.graphics.Rect;
 import android.view.accessibility.AccessibilityNodeInfo;
+
 /**
  * This class contains static helper methods to work with
  * {@link AccessibilityNodeInfo}
@@ -25,7 +27,7 @@ class AccessibilityNodeInfoHelper {
      * Returns the node's bounds clipped to the size of the display
      *
      * @param node
-     * @param width pixel width of the display
+     * @param width  pixel width of the display
      * @param height pixel height of the display
      * @return null if node is null, else a Rect containing visible bounds
      */

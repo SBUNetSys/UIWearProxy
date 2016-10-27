@@ -23,7 +23,8 @@ public class SelectPreferenceView extends View {
 //    public static final int UNSELECTED_COLOR = Color.TRANSPARENT;
 
     //    private Path drawPath;
-    private Paint mPaint;//, canvasPaint;
+    private Paint mPaint;
+    //, canvasPaint;
 
     //    private Canvas drawCanvas;
 //    private Bitmap canvasBitmap;

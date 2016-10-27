@@ -1,7 +1,5 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ENABLED_APP_LIST_PREF_NAME;
-
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
@@ -21,6 +19,8 @@ import java.util.List;
 import edu.stonybrook.cs.netsys.uiwearlib.AppUtil;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ENABLED_APP_LIST_PREF_NAME;
+
 class AppAdapter extends RecyclerView.Adapter<AppAdapter.ViewHolder> {
 
     private Context mContext;
@@ -31,7 +31,8 @@ class AppAdapter extends RecyclerView.Adapter<AppAdapter.ViewHolder> {
     AppAdapter(Context context, List<String> list) {
         mContext = context;
         mPkgNameList = list;
-        mSharedPreferences = mContext.getSharedPreferences(ENABLED_APP_LIST_PREF_NAME, Context.MODE_PRIVATE);
+        mSharedPreferences = mContext.getSharedPreferences(ENABLED_APP_LIST_PREF_NAME,
+                Context.MODE_PRIVATE);
 
         mAppEnabledState = new ArrayList<>();
         for (String pkg : mPkgNameList) {
@@ -76,12 +77,12 @@ class AppAdapter extends RecyclerView.Adapter<AppAdapter.ViewHolder> {
 //                } else {
 //                    Logger.i("disabled: " + packageName);
 //                }
-                mAppEnabledState.set(holder.getAdapterPosition(), b);
-                SharedPreferences.Editor editor = mSharedPreferences.edit();
-                editor.putBoolean(packageName, b);
-                editor.apply();
-            }
-        });
+                        mAppEnabledState.set(holder.getAdapterPosition(), b);
+                        SharedPreferences.Editor editor = mSharedPreferences.edit();
+                        editor.putBoolean(packageName, b);
+                        editor.apply();
+                    }
+                });
     }
 
     @Override

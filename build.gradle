@@ -16,6 +16,22 @@ allprojects {
     repositories {
         jcenter()
     }
+    apply plugin: 'checkstyle'
+
+    task checkstyle(type: Checkstyle) {
+        description 'Runs Checkstyle inspection against Android sourcesets.'
+        configFile rootProject.file('checkstyle.xml')
+        source 'src/main/java'
+        ignoreFailures false
+        showViolations true
+        include '**/*.java'
+
+        classpath = files()
+        reports {
+            xml.destination "$project.buildDir/reports/checkstyle/checkstyle-report.xml"
+        }
+    }
+
 }
 
 task clean(type: Delete) {

@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 package edu.stonybrook.cs.netsys.uiwearlib;
+
 import android.os.SystemClock;
 import android.util.Log;
 import android.util.Xml;
 import android.view.accessibility.AccessibilityNodeInfo;
+
 import org.xmlpull.v1.XmlSerializer;
+
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -26,7 +29,7 @@ import java.io.StringWriter;
 
 public class AccessibilityNodeInfoDumper {
     private static final String TAG = AccessibilityNodeInfoDumper.class.getSimpleName();
-    private static final String[] NAF_EXCLUDED_CLASSES = new String[] {
+    private static final String[] NAF_EXCLUDED_CLASSES = new String[]{
             android.widget.GridView.class.getName(), android.widget.GridLayout.class.getName(),
             android.widget.ListView.class.getName(), android.widget.TableLayout.class.getName()
     };
@@ -34,14 +37,15 @@ public class AccessibilityNodeInfoDumper {
     /**
      * Using {@link AccessibilityNodeInfo} this method will walk the layout hierarchy
      * and generates an xml dump to the location specified by <code>dumpFile</code>
-     * @param root The root accessibility node.
+     *
+     * @param root     The root accessibility node.
      * @param dumpFile The file to dump to.
      * @param rotation The rotation of current display
-     * @param width The pixel width of current display
-     * @param height The pixel height of current display
+     * @param width    The pixel width of current display
+     * @param height   The pixel height of current display
      */
     public static void dumpWindowToFile(AccessibilityNodeInfo root, File dumpFile, int rotation,
-            int width, int height) {
+                                        int width, int height) {
         if (root == null) {
             return;
         }
@@ -65,8 +69,9 @@ public class AccessibilityNodeInfoDumper {
         final long endTime = SystemClock.uptimeMillis();
         Log.w(TAG, "Fetch time: " + (endTime - startTime) + "ms");
     }
-    private static void dumpNodeRec(AccessibilityNodeInfo node, XmlSerializer serializer,int index,
-            int width, int height) throws IOException {
+
+    private static void dumpNodeRec(AccessibilityNodeInfo node, XmlSerializer serializer, int index,
+                                    int width, int height) throws IOException {
         serializer.startTag("", "node");
         if (!nafExcludedClass(node) && !nafCheck(node))
             serializer.attribute("", "NAF", Boolean.toString(true));
@@ -105,6 +110,7 @@ public class AccessibilityNodeInfoDumper {
         }
         serializer.endTag("", "node");
     }
+
     /**
      * The list of classes to exclude my not be complete. We're attempting to
      * only reduce noise from standard layout classes that may be falsely
@@ -115,12 +121,13 @@ public class AccessibilityNodeInfoDumper {
      */
     public static boolean nafExcludedClass(AccessibilityNodeInfo node) {
         String className = safeCharSeqToString(node.getClassName());
-        for(String excludedClassName : NAF_EXCLUDED_CLASSES) {
-            if(className.endsWith(excludedClassName))
+        for (String excludedClassName : NAF_EXCLUDED_CLASSES) {
+            if (className.endsWith(excludedClassName))
                 return true;
         }
         return false;
     }
+
     /**
      * We're looking for UI controls that are enabled, clickable but have no
      * text nor content-description. Such controls configuration indicate an
@@ -142,6 +149,7 @@ public class AccessibilityNodeInfoDumper {
         // such layout as fine.
         return childNafCheck(node);
     }
+
     /**
      * This should be used when it's already determined that the node is NAF and
      * a further check of its children is in order. A node maybe a container
@@ -171,6 +179,7 @@ public class AccessibilityNodeInfoDumper {
         }
         return false;
     }
+
     private static String safeCharSeqToString(CharSequence cs) {
         if (cs == null)
             return "";
@@ -178,6 +187,7 @@ public class AccessibilityNodeInfoDumper {
             return stripInvalidXMLChars(cs);
         }
     }
+
     private static String stripInvalidXMLChars(CharSequence cs) {
         StringBuilder ret = new StringBuilder();
         char ch;

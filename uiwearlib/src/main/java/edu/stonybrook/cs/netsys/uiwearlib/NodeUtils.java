@@ -7,7 +7,7 @@ import com.orhanobut.logger.Logger;
 
 /**
  * Created by qqcao on 10/22/16.
- *
+ * <p>
  * AccessibilityNodeInfo utils
  */
 
@@ -15,12 +15,12 @@ public class NodeUtils {
     public static void printNodeTree(AccessibilityNodeInfo node) {
         if (node == null) {
             Logger.v("printing null");
-            return ;
+            return;
         }
 
         int count = node.getChildCount();
         if (count == 0) {
-            Logger.v("printing "+node.toString());
+            Logger.v("printing " + node.toString());
         } else {
             for (int i = 0; i < count; i++) {
                 AccessibilityNodeInfo child = node.getChild(i);
@@ -42,8 +42,6 @@ public class NodeUtils {
                 + "id: " + Integer.toHexString(source.hashCode()) + "; "
                 + "text: " + source.getText() + "; "
                 + "contentDesc: " + source.getContentDescription() + "; "
-                + "click: " + source.isClickable()
-                ;
-
+                + "click: " + source.isClickable();
     }
 }
