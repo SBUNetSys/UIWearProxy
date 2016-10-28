@@ -26,4 +26,11 @@ public class Constant {
     public static final String ENABLED_APP_LIST_PREF_NAME = "UIWearServingAppList";
 
     public static final float CLICK_SPAN_THRESHOLD = 5.0f;
+
+    public static final String WEAR_PLUGIN_ACTION_MAIN = "plugin_action_main";
+    public static final String WEAR_PLUGIN_KEY = "WEAR_PLUGIN_KEY";
+
+    public static final String WEAR_HOST_ACTION_MAIN = "host_action_main";
+    public static final String WEAR_HOST_KEY = "WEAR_HOST_KEY";
+
 }

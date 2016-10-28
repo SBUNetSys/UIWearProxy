@@ -4,7 +4,6 @@
     android:id="@+id/container"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="edu.stonybrook.cs.netsys.uiwearproxy.WearActivity"
     tools:deviceIds="wear">
 
     <LinearLayout
@@ -17,22 +16,15 @@
             android:id="@+id/text"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="goPlugin"
+            android:onClick="goHost"
             android:text="@string/hello_world" />
 
         <Button
-            android:id="@+id/btn_install"
+            android:id="@+id/btn_set"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:onClick="installApk"
-            android:text="@string/action_install" />
-
-        <Button
-            android:id="@+id/btn_open"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="openApp"
-            android:text="@string/action_open" />
+            android:onClick="setResult"
+            android:text="@string/action_set" />
 
     </LinearLayout>
 

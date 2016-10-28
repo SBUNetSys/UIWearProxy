@@ -15,6 +15,7 @@ buildscript {
 allprojects {
     repositories {
         jcenter()
+        maven { url "https://jitpack.io" }
     }
     apply plugin: 'checkstyle'
 
@@ -44,6 +45,8 @@ ext {
             buildToolsVersion        : "25.0.0",
 
             applicationId            : "edu.stonybrook.cs.netsys.uiwearproxy",
+            pluginId                 : "edu.stonybrook.cs.netsys.plugableapp",
+
             minSdkVersion            : 21,
             targetSdkVersion         : 22,
             versionCode              : 1,

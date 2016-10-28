@@ -89,4 +89,9 @@ public class AppUtil {
         }
         return label;
     }
+
+    public static boolean isActionAvailable(Context context, String action) {
+        Intent intent = new Intent(action);
+        return context.getPackageManager().resolveActivity(intent, 0) != null;
+    }
 }

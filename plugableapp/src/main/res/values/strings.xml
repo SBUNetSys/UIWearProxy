@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">PlugableApp</string>
+    <string name="hello_round">Hello Round World!</string>
+    <string name="hello_square">Hello Square World!</string>
+    <string name="action_set">SetResult</string>
+    <string name="hello_world">Hello Plugable App</string>
+</resources>
