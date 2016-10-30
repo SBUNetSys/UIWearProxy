@@ -1,5 +1,12 @@
 package edu.stonybrook.cs.netsys.uiwearproxy;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SERVICE_REQUEST_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
+
 import android.app.Activity;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -14,15 +21,9 @@ import android.widget.Toast;
 import com.orhanobut.logger.Logger;
 
 import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.PreferenceSettingActivity;
-import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
 import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.SettingEnabledAppsActivity;
-
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SERVICE_REQUEST_CODE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
+import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.NotifyService;
+import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
 
 public class PhoneActivity extends Activity {
     private Intent mPhoneProxyServiceIntent;
@@ -63,6 +64,7 @@ public class PhoneActivity extends Activity {
             if (isAccessibilityEnabled()) {
                 Toast.makeText(this, R.string.service_enabled, Toast.LENGTH_SHORT).show();
                 startService(mPhoneProxyServiceIntent);
+                startService(new Intent(this, NotifyService.class));
             } else {
                 Toast.makeText(this, R.string.service_not_enabled, Toast.LENGTH_SHORT).show();
             }

@@ -1,5 +1,18 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.SYSTEM_UI_PKG;
+
 import android.accessibilityservice.AccessibilityService;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -24,19 +37,6 @@ import java.util.Set;
 
 import edu.stonybrook.cs.netsys.uiwearlib.NodeUtils;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
-
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.SYSTEM_UI_PKG;
 
 public class PhoneProxyService extends AccessibilityService {
 
@@ -129,6 +129,24 @@ public class PhoneProxyService extends AccessibilityService {
                 parseLeafNodes(rootNode);
             }
         }
+
+        // or use NotifyService
+//        if (event.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
+//            final String packageName = String.valueOf(event.getPackageName());
+//            if ("com.spotify.music".equals(packageName)) {
+//                // represents the actual notification
+//                final Parcelable payload = event.getParcelableData();
+//                // check for a notification
+//                if (!(payload instanceof Notification)) {
+//                    Logger.i("not notification");
+//                    return;
+//                }
+//
+//                final Notification notification = (Notification) payload;
+//                final RemoteViews contentView = notification.contentView;
+//                Logger.i("contentView " + contentView.getPackage());
+//            }
+//        }
 
         // extracting view tree workflow
         // TODO: 10/21/16 extract view tree and send to wearable side based on app preference

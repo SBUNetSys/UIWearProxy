@@ -24,4 +24,5 @@
     <string name="start_selecting_app">Select App</string>
     <string name="action_set_all">Set all</string>
     <string name="launch_error">" cannot launch!"</string>
+    <string name="service_notify">Notify Service</string>
 </resources>

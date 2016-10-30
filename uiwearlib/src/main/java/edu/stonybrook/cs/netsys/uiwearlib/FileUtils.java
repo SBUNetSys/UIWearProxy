@@ -1,8 +1,14 @@
 package edu.stonybrook.cs.netsys.uiwearlib;
 
+import android.graphics.Bitmap;
+import android.os.Environment;
+
+import com.orhanobut.logger.Logger;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -112,5 +118,40 @@ public class FileUtils {
 
         int filePosi = filePath.lastIndexOf(File.separator);
         return (filePosi == -1) ? "" : filePath.substring(0, filePosi);
+    }
+
+    // imageName does not need a file extension like .png, just the name
+    public static void storeBitmap(Bitmap bitmap, String folder, String imageName) {
+        try {
+            //create app folder
+            File sdcard = Environment.getExternalStorageDirectory();
+            File dir = new File(sdcard.getPath() + File.separator + folder);
+            String appFolder = "";
+
+            boolean isDirCreated = dir.exists() || dir.mkdirs();
+
+            if (isDirCreated) {
+                appFolder = dir.getPath();
+                Logger.d("dir created success:" + appFolder);
+            } else {
+                Logger.e("dir failed to create");
+            }
+
+            File imageFile = new File(appFolder
+                    + File.separator
+                    + imageName
+                    + ".png");
+
+            FileOutputStream outputStream = new FileOutputStream(imageFile);
+//            bitmap.compress(Bitmap.CompressFormat.JPEG, 50, outputStream);
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
+
+            outputStream.flush();
+            outputStream.close();
+
+        } catch (Throwable e) {
+            // Several error may come out with file handling or OOM
+            e.printStackTrace();
+        }
     }
 }
