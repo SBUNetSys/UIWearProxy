@@ -47,6 +47,9 @@ public class NotifyService extends NotificationListenerService {
 
         // TODO: 10/30/16 Sunday explore NMS notifyPostedLocked remote view info for customized
         //  notifications, for reading see https://github.com/KeithYokoma/RemoteViewsReader
+
+        // FIXME: 10/30/16 Sunday see why bitmap is lost from system_server to this service
+        // TODO: 10/30/16 Sunday  add wearableExtender if can retrieve all notifications data
         if ("com.spotify.music".equals(packageName)) {
 
             RemoteViews contentView = sbn.getNotification().contentView;
