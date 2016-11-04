@@ -33,4 +33,5 @@ public class Constant {
     public static final String WEAR_HOST_ACTION_MAIN = "host_action_main";
     public static final String WEAR_HOST_KEY = "WEAR_HOST_KEY";
 
+    public static final String MSG_CAPABILITY = "msg_capability";
 }

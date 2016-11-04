@@ -22,7 +22,7 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile rootProject.ext.dependencies["gmsapi"]
+    compile rootProject.ext.dependencies["gmswear"]
     compile rootProject.ext.dependencies["logger"]
     testCompile rootProject.ext.dependencies["junit"]
 }

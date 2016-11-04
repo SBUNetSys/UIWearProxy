@@ -62,7 +62,7 @@ ext {
             "wearable"       : 'com.google.android.support:wearable:2.0.0-alpha3',
             "gms"            : 'com.google.android.gms:play-services-wearable:9.8.0',
 
-            "gmsapi"         : 'com.cscao.libs:gmsapi:0.95',
+            "gmswear"         : 'com.cscao.libs:GmsWear:0.96',
             "logger"         : 'com.orhanobut:logger:1.15'
 
     ]
