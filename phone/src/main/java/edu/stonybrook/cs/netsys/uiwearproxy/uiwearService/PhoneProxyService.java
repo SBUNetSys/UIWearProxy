@@ -175,6 +175,7 @@ public class PhoneProxyService extends AccessibilityService {
         }
 
         /********** Preference Setting Functionality **********/
+        // TODO: 11/5/16Saturday support multiple preferences (functionality)
         if (mIsRunningPreferenceSetting) {
             Logger.v("app node: " + NodeUtils.getBriefNodeInfo(rootNode));
             mAppRootNodePkgName = rootNode.getPackageName().toString();
@@ -217,6 +218,7 @@ public class PhoneProxyService extends AccessibilityService {
         readAppPreferenceNodesAsync(appPkgName, new AppNodesReadyCallback() {
             @Override
             public void onAppNodesReady(ArrayList<Pair<String, String>> nodes) {
+                // TODO: 11/5/16Saturday find right preference before extracting
                 // extract app subview tree and deliver to wear proxy
                 for (Pair<String, String> pair : nodes) {
                     Logger.i("id: " + pair.first + " rect: " + pair.second);

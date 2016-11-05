@@ -9,10 +9,20 @@
     * textual info can be from TextView (Button is subclass of TextView)
     * image info can be from ImageView (ImageButton is subclass of ImageView)
 
-    src means the id of preference nodes
+    For each element:
+    src attribute means the id of preference nodes from phone app
+    value contains default info (e.g., text, image path ) for initialization, reset functionality.
     -->
-    <Title src="com.spotify.music:id/title" />
-    <Text src="com.spotify.music:id/artistAndAlbum" />
-    <Icon src="com.spotify.music:id/btn_play" />
-    <Background src="com.spotify.music:id/image" />
+    <Title src="com.spotify.music:id/title">
+        The Ambient White Noise of Nature
+    </Title>
+    <Text src="com.spotify.music:id/artistAndAlbum">
+        Quiet Flames in the Dark
+    </Text>
+    <Icon src="com.spotify.music:id/btn_play" >
+        ic_media_play.png
+    </Icon>
+    <Background src="com.spotify.music:id/image">
+        song.png
+    </Background>
 </Card>
