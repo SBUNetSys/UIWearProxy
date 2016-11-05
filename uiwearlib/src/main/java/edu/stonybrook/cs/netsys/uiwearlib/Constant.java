@@ -23,7 +23,7 @@ public class Constant {
     public static final int PREFERENCE_STOP_CODE = 3;
     public static final Intent ACCESSIBILITY_SETTING_INTENT
             = new Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS);
-    public static final String ENABLED_APP_LIST_PREF_NAME = "UIWearServingAppList";
+    public static final String ENABLED_APPS_PREF_NAME = "UIWearEnabledApps";
 
     public static final float CLICK_SPAN_THRESHOLD = 5.0f;
 
@@ -34,4 +34,14 @@ public class Constant {
     public static final String WEAR_HOST_KEY = "WEAR_HOST_KEY";
 
     public static final String MSG_CAPABILITY = "msg_capability";
+    public static final int JSON_INDENT_SPACES = 4;
+
+    public static final int PERSIST_PREFERENCE_NODES_SUCCESS = 5;
+    public static final int READ_PREFERENCE_NODES_SUCCESS = 6;
+    public static final int RUNNING_APP_CACHE_NO = 10;
+
+    public static final String JSON_EXT = ".json";
+    public static final String ID_STRING = "id";
+    public static final String RECT_STRING = "rect";
+
 }

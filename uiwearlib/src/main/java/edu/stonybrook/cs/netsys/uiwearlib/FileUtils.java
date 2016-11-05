@@ -7,11 +7,10 @@ import com.orhanobut.logger.Logger;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 
 /**
  * File Utils
@@ -30,49 +29,36 @@ public class FileUtils {
     /**
      * read file
      *
-     * @param filePath
-     * @param charsetName The name of a supported
-     * {@link java.nio.charset.Charset </code>charset<code>}
      * @return if file not exist, return null, else return content of file
-     * @throws RuntimeException if an error occurs while operator BufferedReader
+     * @throws RuntimeException if an error occurs while operator FileReader
      */
-    public static StringBuilder readFile(String filePath, String charsetName) {
+    public static StringBuilder readFile(String filePath) {
         File file = new File(filePath);
         StringBuilder fileContent = new StringBuilder("");
         if (!file.isFile()) {
-            return null;
+            return fileContent;
         }
 
-        BufferedReader reader = null;
         try {
-            InputStreamReader is = new InputStreamReader(new FileInputStream(file), charsetName);
-            reader = new BufferedReader(is);
+            FileReader fileReader = new FileReader(file);
+            BufferedReader br = new BufferedReader(fileReader);
             String line;
-            while ((line = reader.readLine()) != null) {
-                if (!fileContent.toString().equals("")) {
-                    fileContent.append("\r\n");
-                }
+            while ((line = br.readLine()) != null) {
                 fileContent.append(line);
             }
-            return fileContent;
         } catch (IOException e) {
-            throw new RuntimeException("IOException occurred. ", e);
-        } finally {
-            try {
-                if (reader != null) {
-                    reader.close();
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            e.printStackTrace();
+            throw new RuntimeException("cannot read file: " + filePath, e);
         }
+
+        return fileContent;
     }
 
     /**
      * write file
      *
-     * @param filePath
-     * @param content
+     * @param filePath the file to save
+     * @param content  the string content to write
      * @param append   is append, if true, write to the end of file,
      *                 else clear content of file and write into it
      * @return return false if content is empty, true otherwise

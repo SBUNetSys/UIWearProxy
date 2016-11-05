@@ -24,8 +24,5 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile project(':uiwearlib')
-    compile rootProject.ext.dependencies["gms"]
-    compile rootProject.ext.dependencies["wearable"]
     testCompile rootProject.ext.dependencies["junit"]
-    compile 'com.android.support:support-v4:25.0.0'
 }

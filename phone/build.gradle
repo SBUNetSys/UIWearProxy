@@ -26,9 +26,6 @@ dependencies {
     wearApp project(':watch')
     compile project(':uiwearlib')
     compile 'com.github.keithyokoma:RemoteViewsReader:1.2.0@aar'
-    compile rootProject.ext.dependencies["support-v4"]
-    compile rootProject.ext.dependencies["cardview-v7"]
-    compile rootProject.ext.dependencies["recyclerview-v7"]
     testCompile rootProject.ext.dependencies["junit"]
 }
 

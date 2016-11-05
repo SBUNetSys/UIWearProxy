@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Card>
+    <!--Card has at least two elements:
+    1. title (textual info)
+    2. text (textual info)
+    3. optional icon (image info)
+    4. optional background (image info)
+
+    * textual info can be from TextView (Button is subclass of TextView)
+    * image info can be from ImageView (ImageButton is subclass of ImageView)
+
+    src means the id of preference nodes
+    -->
+    <Title src="com.spotify.music:id/title" />
+    <Text src="com.spotify.music:id/artistAndAlbum" />
+    <Icon src="com.spotify.music:id/btn_play" />
+    <Background src="com.spotify.music:id/image" />
+</Card>

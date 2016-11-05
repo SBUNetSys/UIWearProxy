@@ -1,5 +1,12 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
+
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -22,18 +29,13 @@ import java.util.Comparator;
 import edu.stonybrook.cs.netsys.uiwearlib.Constant;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAVE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
-
 public class PreferenceSettingActivity extends Activity {
     private ArrayList<Rect> mAvailableNodes; // all available nodes from phone proxy service
     private Toast mHintToast;
     private SelectPreferenceView mSelectPreferenceView;
     private boolean mDoubleBackToExitPressedOnce = false;
+
+    // TODO: 11/4/16 render nodes on mSelectPreferenceView if preference file exist
     private BroadcastReceiver mAvailableNodesReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {

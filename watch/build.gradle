@@ -25,7 +25,5 @@ dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile project(':uiwearlib')
     compile project(':DroidPlugin')
-    compile rootProject.ext.dependencies["gms"]
-    compile rootProject.ext.dependencies["wearable"]
     testCompile rootProject.ext.dependencies["junit"]
 }

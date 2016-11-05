@@ -26,7 +26,6 @@ class AccessibilityNodeInfoHelper {
     /**
      * Returns the node's bounds clipped to the size of the display
      *
-     * @param node
      * @param width  pixel width of the display
      * @param height pixel height of the display
      * @return null if node is null, else a Rect containing visible bounds

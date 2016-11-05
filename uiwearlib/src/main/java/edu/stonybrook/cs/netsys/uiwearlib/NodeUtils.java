@@ -44,4 +44,12 @@ public class NodeUtils {
                 + "contentDesc: " + source.getContentDescription() + "; "
                 + "click: " + source.isClickable();
     }
+
+    public static String getNodePkgName(AccessibilityNodeInfo nodeInfo) {
+        CharSequence pkg = nodeInfo.getPackageName();
+        if (pkg != null) {
+            return pkg.toString();
+        }
+        return "";
+    }
 }

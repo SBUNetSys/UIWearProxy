@@ -45,7 +45,7 @@ public class AccessibilityNodeInfoDumper {
      * @param height   The pixel height of current display
      */
     public static void dumpWindowToFile(AccessibilityNodeInfo root, File dumpFile, int rotation,
-                                        int width, int height) {
+            int width, int height) {
         if (root == null) {
             return;
         }
@@ -71,10 +71,11 @@ public class AccessibilityNodeInfoDumper {
     }
 
     private static void dumpNodeRec(AccessibilityNodeInfo node, XmlSerializer serializer, int index,
-                                    int width, int height) throws IOException {
+            int width, int height) throws IOException {
         serializer.startTag("", "node");
-        if (!nafExcludedClass(node) && !nafCheck(node))
+        if (!nafExcludedClass(node) && !nafCheck(node)) {
             serializer.attribute("", "NAF", Boolean.toString(true));
+        }
         serializer.attribute("", "index", Integer.toString(index));
         serializer.attribute("", "text", safeCharSeqToString(node.getText()));
         serializer.attribute("", "resource-id", safeCharSeqToString(node.getViewIdResourceName()));
@@ -116,14 +117,14 @@ public class AccessibilityNodeInfoDumper {
      * only reduce noise from standard layout classes that may be falsely
      * configured to accept clicks and are also enabled.
      *
-     * @param node
      * @return true if node is excluded.
      */
     public static boolean nafExcludedClass(AccessibilityNodeInfo node) {
         String className = safeCharSeqToString(node.getClassName());
         for (String excludedClassName : NAF_EXCLUDED_CLASSES) {
-            if (className.endsWith(excludedClassName))
+            if (className.endsWith(excludedClassName)) {
                 return true;
+            }
         }
         return false;
     }
@@ -135,15 +136,15 @@ public class AccessibilityNodeInfoDumper {
      * accessibility friendly. We refer to such controls here as NAF controls
      * (Not Accessibility Friendly)
      *
-     * @param node
      * @return false if a node fails the check, true if all is OK
      */
     public static boolean nafCheck(AccessibilityNodeInfo node) {
         boolean isNaf = node.isClickable() && node.isEnabled()
                 && safeCharSeqToString(node.getContentDescription()).isEmpty()
                 && safeCharSeqToString(node.getText()).isEmpty();
-        if (!isNaf)
+        if (!isNaf) {
             return true;
+        }
         // check children since sometimes the containing element is clickable
         // and NAF but a child's text or description is available. Will assume
         // such layout as fine.
@@ -159,7 +160,6 @@ public class AccessibilityNodeInfoDumper {
      * its children fill the text or content-description. Such a combination is
      * considered by this dumper as acceptable for accessibility.
      *
-     * @param node
      * @return false if node fails the check.
      */
     private static boolean childNafCheck(AccessibilityNodeInfo node) {
@@ -172,18 +172,20 @@ public class AccessibilityNodeInfoDumper {
                 continue;
             }
             if (!safeCharSeqToString(childNode.getContentDescription()).isEmpty()
-                    || !safeCharSeqToString(childNode.getText()).isEmpty())
+                    || !safeCharSeqToString(childNode.getText()).isEmpty()) {
                 return true;
-            if (childNafCheck(childNode))
+            }
+            if (childNafCheck(childNode)) {
                 return true;
+            }
         }
         return false;
     }
 
     private static String safeCharSeqToString(CharSequence cs) {
-        if (cs == null)
+        if (cs == null) {
             return "";
-        else {
+        } else {
             return stripInvalidXMLChars(cs);
         }
     }

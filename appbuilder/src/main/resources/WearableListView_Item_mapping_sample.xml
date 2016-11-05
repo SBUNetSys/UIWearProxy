@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ListItem>
+    <!--ListItem has at least one element (text or image):
+    we simplify list item layout into the following rule:
+    1. can only have linear layout as container, need specify orientation
+    2. support TextView and ImageView
+    3. support relative position of 2, in the order of adding sequence
+
+    * textual info can be from TextView (Button is subclass of TextView)
+    * image info can be from ImageView (ImageButton is subclass of ImageView)
+    -->
+    <LinearContainer orientation="horizontal">
+        <!-- below src id indicates original phone app use system provided resources-->
+        <Image src="android:id/icon" />
+        <LinearContainer orientation="vertical">
+            <Text src="android:id/text1" />
+            <Text src="android:id/text2" />
+        </LinearContainer>
+    </LinearContainer>
+</ListItem>
