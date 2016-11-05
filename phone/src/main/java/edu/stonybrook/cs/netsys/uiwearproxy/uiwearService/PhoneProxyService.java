@@ -92,6 +92,7 @@ public class PhoneProxyService extends AccessibilityService {
                     ArrayList<Rect> preferredRect =
                             intent.getParcelableArrayListExtra(PREFERENCE_NODES_KEY);
                     persistAppPreferenceNodesAsync(preferredRect);
+                    // TODO: 11/5/16  read mapping rule and start build app process
                     Logger.v("received preferredRect");
                     break;
 
@@ -179,6 +180,8 @@ public class PhoneProxyService extends AccessibilityService {
             mAppRootNodePkgName = rootNode.getPackageName().toString();
             mAppLeafNodesMap.clear();
             parseLeafNodes(rootNode);
+
+            // TODO: 11/5/16 extract preference related sub view tree here for app building
         }
 
         // or use NotifyService
