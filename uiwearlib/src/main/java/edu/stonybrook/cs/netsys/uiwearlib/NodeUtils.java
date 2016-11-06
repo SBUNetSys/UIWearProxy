@@ -1,5 +1,8 @@
 package edu.stonybrook.cs.netsys.uiwearlib;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.SYSTEM_UI_PKG;
+
+import android.content.Context;
 import android.graphics.Rect;
 import android.view.accessibility.AccessibilityNodeInfo;
 
@@ -51,5 +54,21 @@ public class NodeUtils {
             return pkg.toString();
         }
         return "";
+    }
+
+    public static boolean isAppRootNode(Context context, AccessibilityNodeInfo rootNode) {
+        if (context == null) {
+            Logger.e("context shouldn't be null");
+            return false;
+        }
+
+        if (rootNode == null) {
+            Logger.e("root node null");
+            return false;
+        }
+
+        CharSequence nodePkgName = rootNode.getPackageName();
+        return !(nodePkgName == null || nodePkgName.length() == 0) && !SYSTEM_UI_PKG.equals(
+                nodePkgName) && !context.getPackageName().equals(nodePkgName);
     }
 }

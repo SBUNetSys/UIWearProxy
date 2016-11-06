@@ -1,4 +1,4 @@
-package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
+package edu.stonybrook.cs.netsys.uiwearlib;
 
 import android.os.Handler;
 import android.os.HandlerThread;

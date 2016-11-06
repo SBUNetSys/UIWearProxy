@@ -16,7 +16,7 @@ import java.io.IOException;
  * File Utils
  * <ul>
  * Read or write file
- * <li>{@link #readFile(String, String)} read file</li>
+ * <li>{@link #readFile(String)} read file</li>
  * <li>{@link #writeFile(String, String, boolean)} write file from String</li>
  * </ul>
  */
@@ -88,7 +88,7 @@ public class FileUtils {
         }
     }
 
-    public static boolean makeDirs(String filePath) {
+    private static boolean makeDirs(String filePath) {
         String folderName = getFolderName(filePath);
         if (folderName == null || folderName.isEmpty()) {
             return false;
@@ -97,7 +97,7 @@ public class FileUtils {
         return (folder.exists() && folder.isDirectory()) || folder.mkdirs();
     }
 
-    public static String getFolderName(String filePath) {
+    private static String getFolderName(String filePath) {
         if (filePath == null || filePath.isEmpty()) {
             return filePath;
         }

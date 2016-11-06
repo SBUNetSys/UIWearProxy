@@ -19,7 +19,6 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.READ_PREFERENCE_NODES_SUCCESS;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RECT_STRING;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RUNNING_APP_CACHE_NO;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.SYSTEM_UI_PKG;
 import static edu.stonybrook.cs.netsys.uiwearlib.NodeUtils.getNodePkgName;
 
 import android.accessibilityservice.AccessibilityService;
@@ -52,6 +51,7 @@ import java.util.HashMap;
 
 import edu.stonybrook.cs.netsys.uiwearlib.FileUtils;
 import edu.stonybrook.cs.netsys.uiwearlib.NodeUtils;
+import edu.stonybrook.cs.netsys.uiwearlib.WorkerThread;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
 public class PhoneProxyService extends AccessibilityService {
@@ -170,7 +170,7 @@ public class PhoneProxyService extends AccessibilityService {
 //        NodeUtils.printNodeTree(rootNode);
 
         // skip non app node
-        if (!isAppRootNode(rootNode)) {
+        if (!NodeUtils.isAppRootNode(this, rootNode)) {
             return;
         }
 
@@ -226,15 +226,6 @@ public class PhoneProxyService extends AccessibilityService {
             }
         });
 
-    }
-
-    private boolean isAppRootNode(AccessibilityNodeInfo rootNode) {
-        if (rootNode == null) {
-            return false;
-        }
-        CharSequence nodePkgName = rootNode.getPackageName();
-        return !(nodePkgName == null || nodePkgName.length() == 0) && !SYSTEM_UI_PKG.equals(
-                nodePkgName) && !getPackageName().equals(nodePkgName);
     }
 
     // parse all UI leaf nodes and save them to list mAppLeafNodesMap
