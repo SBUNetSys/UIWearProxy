@@ -3,9 +3,6 @@ package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ENABLED_APPS_PREF_NAME;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ID_STRING;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.JSON_EXT;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.JSON_INDENT_SPACES;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PERSIST_PREFERENCE_NODES_SUCCESS;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
@@ -17,8 +14,8 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STA
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.READ_PREFERENCE_NODES_SUCCESS;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RECT_STRING;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RUNNING_APP_CACHE_NO;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.XML_EXT;
 import static edu.stonybrook.cs.netsys.uiwearlib.NodeUtils.getNodePkgName;
 
 import android.accessibilityservice.AccessibilityService;
@@ -35,23 +32,21 @@ import android.os.Message;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.util.Pair;
+import android.text.format.DateFormat;
 import android.util.LruCache;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.orhanobut.logger.Logger;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import edu.stonybrook.cs.netsys.uiwearlib.FileUtils;
 import edu.stonybrook.cs.netsys.uiwearlib.NodeUtils;
 import edu.stonybrook.cs.netsys.uiwearlib.WorkerThread;
+import edu.stonybrook.cs.netsys.uiwearlib.XmlUtils;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
 public class PhoneProxyService extends AccessibilityService {
@@ -76,7 +71,7 @@ public class PhoneProxyService extends AccessibilityService {
     private SharedPreferences mEnabledAppListPreferences;
 
     // list of app preference nodes, for each pair, the first is id, the second is rect
-    private LruCache<String, ArrayList<Pair<String, String>>> mAppPreferenceNodesCache =
+    private LruCache<String, ArrayList<Pair<String, Rect>>> mAppPreferenceNodesCache =
             new LruCache<>(RUNNING_APP_CACHE_NO);
 
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
@@ -217,10 +212,10 @@ public class PhoneProxyService extends AccessibilityService {
         // read app preference json file
         readAppPreferenceNodesAsync(appPkgName, new AppNodesReadyCallback() {
             @Override
-            public void onAppNodesReady(ArrayList<Pair<String, String>> nodes) {
+            public void onAppNodesReady(ArrayList<Pair<String, Rect>> nodes) {
                 // TODO: 11/5/16Saturday find right preference before extracting
                 // extract app subview tree and deliver to wear proxy
-                for (Pair<String, String> pair : nodes) {
+                for (Pair<String, Rect> pair : nodes) {
                     Logger.i("id: " + pair.first + " rect: " + pair.second);
                 }
             }
@@ -279,29 +274,12 @@ public class PhoneProxyService extends AccessibilityService {
         mWorkerThread.postTask(new Runnable() {
             @Override
             public void run() {
-                JSONObject root = new JSONObject();
-                // save id, rect pair to json array
-                JSONArray nodeItems = new JSONArray();
-                for (Rect rect : preferredNodes) {
-                    JSONObject item = new JSONObject();
-                    String id = savedMap.get(rect);
-                    String rectString = rect.flattenToString();
-                    try {
-                        item.put(ID_STRING, id);
-                        item.put(RECT_STRING, rectString);
-                    } catch (JSONException e) {
-                        Logger.e(e.getMessage());
-                    }
-                    nodeItems.put(item);
-                }
-
-                // write json array to obb file
-                File preferenceFile = new File(getObbDir(), appPkgName + JSON_EXT);
+                // write xml file to obb file
+                CharSequence date=DateFormat.format("yyyy-MM-dd-hh_mm_ss", new java.util.Date());
+                File preferenceFile = new File(getObbDir(), appPkgName + date + XML_EXT);
                 try {
-                    root.put(appPkgName, nodeItems);
-                    FileUtils.writeFile(preferenceFile.getPath(),
-                            root.toString(JSON_INDENT_SPACES), false);
-                } catch (JSONException e) {
+                    XmlUtils.serializeAppPreference(preferenceFile, preferredNodes, savedMap);
+                } catch (IOException e) {
                     e.printStackTrace();
                     Logger.e(e.getMessage());
                 }
@@ -354,7 +332,7 @@ public class PhoneProxyService extends AccessibilityService {
 
     private void readAppPreferenceNodesAsync(final String appPkgName,
             final AppNodesReadyCallback appNodesReadyCallback) {
-        ArrayList<Pair<String, String>> nodes = mAppPreferenceNodesCache.get(appPkgName);
+        ArrayList<Pair<String, Rect>> nodes = mAppPreferenceNodesCache.get(appPkgName);
 
         // already in cache, no need to read from file
         if (nodes != null) {
@@ -366,26 +344,9 @@ public class PhoneProxyService extends AccessibilityService {
         mWorkerThread.postTask(new Runnable() {
             @Override
             public void run() {
-                ArrayList<Pair<String, String>> nodes = new ArrayList<>();
-                File preferenceFile = new File(getObbDir(), appPkgName + JSON_EXT);
-                StringBuilder sb = FileUtils.readFile(preferenceFile.getPath());
-
-                try {
-                    JSONObject root = new JSONObject(sb.toString());
-                    JSONArray nodeItems = root.getJSONArray(appPkgName);
-                    for (int i = 0; i < nodeItems.length(); i++) {
-                        JSONObject object = nodeItems.getJSONObject(i);
-                        String id = (String) object.get(ID_STRING);
-                        String rect = (String) object.get(RECT_STRING);
-
-                        Pair<String, String> pair = new Pair<>(id, rect);
-                        nodes.add(pair);
-                    }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                    Logger.e(e.getMessage());
-                }
-
+                File preferenceFile = new File(getObbDir(), appPkgName + XML_EXT);
+                ArrayList<Pair<String, Rect>> nodes = XmlUtils.deserializeAppPreference(
+                        preferenceFile);
                 mAppPreferenceNodesCache.put(appPkgName, nodes);
                 appNodesReadyCallback.onAppNodesReady(nodes);
 //                Message nodesMsg = mMainThreadHandler.obtainMessage();

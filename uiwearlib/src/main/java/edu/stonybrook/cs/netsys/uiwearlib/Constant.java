@@ -40,7 +40,7 @@ public class Constant {
     public static final int READ_PREFERENCE_NODES_SUCCESS = 6;
     public static final int RUNNING_APP_CACHE_NO = 10;
 
-    public static final String JSON_EXT = ".json";
+    public static final String XML_EXT = ".xml";
     public static final String ID_STRING = "id";
     public static final String RECT_STRING = "rect";
 

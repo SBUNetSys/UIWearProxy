@@ -36,6 +36,7 @@ public class PreferenceSettingActivity extends Activity {
     private boolean mDoubleBackToExitPressedOnce = false;
 
     // TODO: 11/4/16 render nodes on mSelectPreferenceView if preference file exist
+    // TODO: 11/6/16 the above todo is related to support multi-functionality preferences
     private BroadcastReceiver mAvailableNodesReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {

@@ -1,5 +1,6 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 
+import android.graphics.Rect;
 import android.support.v4.util.Pair;
 
 import java.util.ArrayList;
@@ -10,5 +11,5 @@ import java.util.ArrayList;
  * For app preference nodes ready callback
  */
 interface AppNodesReadyCallback {
-    void onAppNodesReady(ArrayList<Pair<String, String>> nodes);
+    void onAppNodesReady(ArrayList<Pair<String, Rect>> nodes);
 }
