@@ -1,6 +1,5 @@
 package edu.stonybrook.cs.netsys.plugableapp;
 
-
 import android.app.Fragment;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -8,10 +7,9 @@ import android.view.View;
 import android.view.ViewGroup;
 
 /**
- * A simple {@link Fragment} subclass.
+ * A simple {@link Fragment} subclass for UIWear companion app to load layout xml.
  */
 public class UIWearFragment extends Fragment {
-
 
     public UIWearFragment() {
         // Required empty public constructor

@@ -1,45 +1,37 @@
-<android.support.wearable.view.CardFrame android:id="@+id/card"
-    android:layout_gravity="bottom"
-    android:layout_height="wrap_content"
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    android:layout_height="match_parent"
+    android:onClick="onClick"
+    android:orientation="vertical">
 
-    <RelativeLayout
-        android:layout_height="match_parent"
-        android:layout_width="match_parent">
-        <!-- set card title
-        title.setText(text);
-        -->
-        <TextView
-            style="@style/CardTitle"
-            android:ellipsize="end"
-            android:id="@+id/title"
-            android:layout_height="wrap_content"
-            android:layout_width="100dp"
-            android:maxLines="2"
-            android:text="The Ambient White Noise of Nature" />
-        <!--set card icon (e.g., play button):
-        icon.setImageBitmap(ic_media_pause); // bitmap or drawable res
-        -->
-        <ImageView
-            android:background="@drawable/ic_media_play"
-            android:contentDescription="@string/app_name"
-            android:id="@+id/icon"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_toEndOf="@+id/title"
-            android:layout_width="wrap_content" />
-        <!-- set card text
-        text.setText(text);
-        -->
-        <TextView
-            style="@style/CardText"
-            android:id="@+id/text"
-            android:layout_below="@+id/title"
-            android:layout_height="wrap_content"
-            android:layout_width="match_parent"
-            android:text="Quiet Flames in the Dark" />
+    <TextView
+        android:id="@+id/title"
+        style="@style/CardTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawablePadding="20dp"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="2"
+        android:scrollHorizontally="true"
+        android:focusableInTouchMode="true"
+        android:freezesText="true"
+        android:textSize="14sp"
+        android:focusable="false"
+        android:maxLines="1" />
 
-    </RelativeLayout>
-</android.support.wearable.view.CardFrame>
+    <TextView
+        android:id="@+id/text"
+        style="@style/CardText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit="marquee_forever"
+        android:scrollHorizontally="true"
+        android:focusableInTouchMode="true"
+        android:freezesText="true"
+        android:textSize="14sp"
+        android:focusable="false"
+        />
 
+</LinearLayout>
