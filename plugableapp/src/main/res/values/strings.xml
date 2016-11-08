@@ -77,4 +77,7 @@
     <string name="glue_font_circular_p50">CircularSpUIv3p50-Book.otf</string>
     <string name="glue_font_circular_p50_bold">CircularSpUIv3p50-Bold.otf</string>
     <string name="cover">cover</string>
+
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

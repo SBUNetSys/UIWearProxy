@@ -1,0 +1,18 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:onClick="onClick">
+    <TextView android:id="@+id/tv_title" android:layout_width="100dp"
+        android:layout_height="wrap_content" android:ellipsize="end" android:maxLines="2"
+        android:text="The Ambient White Noise of Nature" />
+    <ImageView android:id="@+id/btn_play" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:layout_marginStart="10dp"
+        android:layout_toEndOf="@+id/title" android:contentDescription="@string/btn_play" />
+    <ImageView android:id="@+id/btn_next" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:layout_below="@+id/btn_play"
+        android:layout_marginStart="10dp" android:layout_toEndOf="@+id/title"
+        android:background="@drawable/ic_media_play"
+        android:contentDescription="@string/btn_next" />
+    <TextView android:id="@+id/tv_text" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_below="@+id/title"
+        android:text="Quiet Flames in the Dark" />
+</RelativeLayout>

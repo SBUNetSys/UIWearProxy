@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<Card id="2016-11-07-04_52_10">
+<Card id="2016-11-07-04_52_10" src="default">
+    <!-- 1. id attribute is mandatory and must be the filename of preference
+         2. src attribute is for developer to specify their customized layout xml
+         (relative path to this mapping rule), which is optional.
+         (src use "default" to use UIWear default layout, here refer to Card_Example.xml)
+    -->
+
     <!--Card has at least two elements:
     1. title (textual info)
     2. text (textual info)
@@ -10,7 +16,7 @@
     * image info can be from ImageView (ImageButton is subclass of ImageView)
 
     For each element:
-    src attribute means the id of preference nodes from phone app
+    src attribute means the id of preference UI nodes from phone app
     value contains default info (e.g., text, image path ) for initialization, reset functionality.
     -->
     <Title src="com.spotify.music:id/title">
@@ -19,7 +25,7 @@
     <Text src="com.spotify.music:id/artistAndAlbum">
         Quiet Flames in the Dark
     </Text>
-    <Icon src="com.spotify.music:id/btn_play" >
+    <Icon src="com.spotify.music:id/btn_play">
         ic_media_play.png
     </Icon>
     <Background src="com.spotify.music:id/image">

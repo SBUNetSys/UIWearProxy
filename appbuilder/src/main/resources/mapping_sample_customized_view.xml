@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<RelativeLayout id="11111-11-11-11_11_11">
+    <!-- this an example mapping rule for customized view layout
+    id attribute is mandatory and is the filename of preference file
+    -->
+    <TextView src="com.spotify.music:id/title">
+        The Ambient White Noise of Nature
+    </TextView>
+    <ImageView src="com.spotify.music:id/btn_play">
+        button_play.png
+    </ImageView>
+    <ImageView src="com.spotify.music:id/btn_next">
+        button_next.png
+    </ImageView>
+    <TextView src="com.spotify.music:id/artistAndAlbum">
+        Quiet Flames in the Dark
+    </TextView>
+</RelativeLayout>
