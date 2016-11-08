@@ -71,7 +71,7 @@ public class FileUtils {
 
         FileWriter fileWriter = null;
         try {
-            makeDirs(filePath);
+            makeDirsIfNotExist(filePath);
             fileWriter = new FileWriter(filePath, append);
             fileWriter.write(content);
             return true;
@@ -88,7 +88,7 @@ public class FileUtils {
         }
     }
 
-    private static boolean makeDirs(String filePath) {
+    public static boolean makeDirsIfNotExist(String filePath) {
         String folderName = getFolderName(filePath);
         if (folderName == null || folderName.isEmpty()) {
             return false;
@@ -104,6 +104,21 @@ public class FileUtils {
 
         int filePosi = filePath.lastIndexOf(File.separator);
         return (filePosi == -1) ? "" : filePath.substring(0, filePosi);
+    }
+
+    public static String getBaseName(File fileName) {
+        String fileStr = fileName.getName();
+        int index = fileStr.lastIndexOf('.');
+        if (index == -1) {
+            return fileStr;
+        } else {
+            return fileStr.substring(0, index);
+        }
+    }
+
+    public static String getParentName(File fileName) {
+        File parent = new File(fileName.getParent());
+        return parent.getName();
     }
 
     // imageName does not need a file extension like .png, just the name

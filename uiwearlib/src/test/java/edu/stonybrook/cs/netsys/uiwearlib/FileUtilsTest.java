@@ -51,6 +51,16 @@ public class FileUtilsTest {
     }
 
     @Test
+    public void getBaseName() throws Exception {
+        assertEquals("test_text",FileUtils.getBaseName(new File(testFilePath)));
+    }
+
+    @Test
+    public void getParentName() throws Exception {
+        assertEquals("debug",FileUtils.getParentName(new File(testFilePath)));
+    }
+
+    @Test
     public void readFile() throws Exception {
         assertEquals(FileUtils.readFile(testFilePath).toString(),
                 testFileContent.replaceAll("(\r|\n)", ""));

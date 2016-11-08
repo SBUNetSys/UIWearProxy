@@ -34,6 +34,7 @@ public class XmlUtils {
             ArrayList<Rect> preferredNodes, HashMap<Rect, String> appLeafNodesMap)
             throws IOException {
         XmlSerializer serializer = Xml.newSerializer();
+        FileUtils.makeDirsIfNotExist(preferenceFile.getPath());
         FileWriter preferenceWriter = new FileWriter(preferenceFile);
         serializeAppPreference(serializer, preferenceWriter, preferredNodes, appLeafNodesMap);
     }

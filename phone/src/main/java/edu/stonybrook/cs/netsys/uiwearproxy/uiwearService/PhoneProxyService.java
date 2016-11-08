@@ -15,6 +15,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.READ_PREFERENCE_NODES_SUCCESS;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RUNNING_APP_CACHE_NO;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TIME_FORMAT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.XML_EXT;
 import static edu.stonybrook.cs.netsys.uiwearlib.NodeUtils.getNodePkgName;
 
@@ -43,7 +44,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
+import edu.stonybrook.cs.netsys.uiwearlib.FileUtils;
 import edu.stonybrook.cs.netsys.uiwearlib.NodeUtils;
 import edu.stonybrook.cs.netsys.uiwearlib.WorkerThread;
 import edu.stonybrook.cs.netsys.uiwearlib.XmlUtils;
@@ -73,6 +76,8 @@ public class PhoneProxyService extends AccessibilityService {
     // list of app preference nodes, for each pair, the first is id, the second is rect
     private LruCache<String, ArrayList<Pair<String, Rect>>> mAppPreferenceNodesCache =
             new LruCache<>(RUNNING_APP_CACHE_NO);
+
+    private HashSet<Pair<String, Rect>> mAppNodes = new HashSet<>();
 
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -161,7 +166,7 @@ public class PhoneProxyService extends AccessibilityService {
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
 
-        AccessibilityNodeInfo rootNode = getRootInActiveWindow();
+        final AccessibilityNodeInfo rootNode = getRootInActiveWindow();
 //        NodeUtils.printNodeTree(rootNode);
 
         // skip non app node
@@ -209,17 +214,59 @@ public class PhoneProxyService extends AccessibilityService {
         if (!isAppEnabled) {
             return;
         }
-        // read app preference json file
-        readAppPreferenceNodesAsync(appPkgName, new AppNodesReadyCallback() {
+
+        File preferenceFolder = new File(getFilesDir() + File.separator + appPkgName);
+        if (!preferenceFolder.exists()) {
+            Logger.i("%s pref not exists!", preferenceFolder.getPath());
+            return;
+        }
+
+        mAppNodes.clear();
+        parseAppNodesToSet(rootNode);
+
+        // read app preference xml file
+        readAppPreferenceNodesAsync(preferenceFolder, new AppNodesReadyCallback() {
             @Override
-            public void onAppNodesReady(ArrayList<Pair<String, Rect>> nodes) {
-                // TODO: 11/5/16Saturday find right preference before extracting
-                // extract app subview tree and deliver to wear proxy
+            public void onAppNodesReady(String cacheKey, ArrayList<Pair<String, Rect>> nodes) {
+                // TODO: 11/5/16 find right preference before extracting
+                // decide whether the preference nodes are subset of current app nodes
+
+                HashSet<Pair<String, Rect>> preferenceSet = new HashSet<>(nodes);
+                if (!mAppNodes.containsAll(preferenceSet)) {
+                    // root node from non preference screen, so skip
+//                    Logger.v("node set: " + mAppNodes.toString());
+//                    Logger.v("preferenceSet: " + preferenceSet.toString());
+//                    Logger.v("onAppNodesReady skip");
+                    return;
+                }
+
+                // begin extracting preference view tree info
                 for (Pair<String, Rect> pair : nodes) {
+                    Logger.i("key: " + cacheKey);
                     Logger.i("id: " + pair.first + " rect: " + pair.second);
                 }
+
+                // TODO: 11/7/16 send parsed app view tree content to wearable proxy with cache key
             }
         });
+
+    }
+
+    private void parseAppNodesToSet(AccessibilityNodeInfo rootNode) {
+        if (rootNode == null) {
+            Logger.v("null app root node ");
+            return;
+        }
+
+        String id = rootNode.getViewIdResourceName();
+        Rect rect = new Rect();
+        rootNode.getBoundsInScreen(rect);
+        mAppNodes.add(new Pair<>(id, rect));
+        int count = rootNode.getChildCount();
+
+        for (int i = 0; i < count; i++) {
+            parseAppNodesToSet(rootNode.getChild(i));
+        }
 
     }
 
@@ -264,8 +311,7 @@ public class PhoneProxyService extends AccessibilityService {
     }
 
     // save rect-ID pair of user's selected UI nodes and persist them to app specific xml file
-    // TODO: 10/21/16 save file format to activity granularity,
-    // although currently it support all activities
+    // support multi-screen preference
     private void persistAppPreferenceNodesAsync(final ArrayList<Rect> preferredNodes) {
         // ensure that mAppLeafNodesMap is not cleared
         final HashMap<Rect, String> savedMap = new HashMap<>(mAppLeafNodesMap);
@@ -275,8 +321,9 @@ public class PhoneProxyService extends AccessibilityService {
             @Override
             public void run() {
                 // write xml file to obb file
-                CharSequence date=DateFormat.format("yyyy-MM-dd-hh_mm_ss", new java.util.Date());
-                File preferenceFile = new File(getObbDir(), appPkgName + date + XML_EXT);
+                CharSequence date = DateFormat.format(TIME_FORMAT, new java.util.Date());
+                File preferenceFile = new File(getFilesDir() + File.separator + appPkgName,
+                        date + XML_EXT);
                 try {
                     XmlUtils.serializeAppPreference(preferenceFile, preferredNodes, savedMap);
                 } catch (IOException e) {
@@ -330,25 +377,33 @@ public class PhoneProxyService extends AccessibilityService {
 
     }
 
-    private void readAppPreferenceNodesAsync(final String appPkgName,
+    private void readAppPreferenceNodesAsync(final File preferenceFolder,
             final AppNodesReadyCallback appNodesReadyCallback) {
-        ArrayList<Pair<String, Rect>> nodes = mAppPreferenceNodesCache.get(appPkgName);
-
-        // already in cache, no need to read from file
-        if (nodes != null) {
-            Logger.v("read app: " + appPkgName + " nodes from cache");
-            appNodesReadyCallback.onAppNodesReady(nodes);
-            return;
-        }
 
         mWorkerThread.postTask(new Runnable() {
             @Override
             public void run() {
-                File preferenceFile = new File(getObbDir(), appPkgName + XML_EXT);
-                ArrayList<Pair<String, Rect>> nodes = XmlUtils.deserializeAppPreference(
-                        preferenceFile);
-                mAppPreferenceNodesCache.put(appPkgName, nodes);
-                appNodesReadyCallback.onAppNodesReady(nodes);
+                for (File preferenceFile : preferenceFolder.listFiles()) {
+                    Logger.v("pref path: " + preferenceFile.getPath());
+
+                    String cacheKey = FileUtils.getParentName(preferenceFile) + File.separator
+                            + FileUtils.getBaseName(preferenceFile);
+                    Logger.v("cache key: " + cacheKey);
+
+                    ArrayList<Pair<String, Rect>> nodes = mAppPreferenceNodesCache.get(cacheKey);
+
+                    if (nodes == null) {
+                        nodes = XmlUtils.deserializeAppPreference(
+                                preferenceFile);
+                        mAppPreferenceNodesCache.put(cacheKey, nodes);
+                        Logger.v("from file");
+                    } else {
+                        Logger.v("from cache");
+                    }
+
+                    appNodesReadyCallback.onAppNodesReady(cacheKey, nodes);
+                }
+
 //                Message nodesMsg = mMainThreadHandler.obtainMessage();
 //                nodesMsg.what = READ_PREFERENCE_NODES_SUCCESS;
 //                nodesMsg.obj = new Pair<>(appPkgName, nodes);

@@ -38,10 +38,13 @@ public class Constant {
 
     public static final int PERSIST_PREFERENCE_NODES_SUCCESS = 5;
     public static final int READ_PREFERENCE_NODES_SUCCESS = 6;
-    public static final int RUNNING_APP_CACHE_NO = 10;
+
+    // at most 20 apps running, each app has at most 50 preferences
+    public static final int RUNNING_APP_CACHE_NO = 20 * 50;
 
     public static final String XML_EXT = ".xml";
     public static final String ID_STRING = "id";
     public static final String RECT_STRING = "rect";
+    public static final String TIME_FORMAT = "yyyy-MM-dd-hh_mm_ss";
 
 }

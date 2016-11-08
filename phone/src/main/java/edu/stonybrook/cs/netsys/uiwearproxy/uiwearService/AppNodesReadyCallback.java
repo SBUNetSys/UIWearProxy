@@ -11,5 +11,5 @@ import java.util.ArrayList;
  * For app preference nodes ready callback
  */
 interface AppNodesReadyCallback {
-    void onAppNodesReady(ArrayList<Pair<String, Rect>> nodes);
+    void onAppNodesReady(String cacheKey, ArrayList<Pair<String, Rect>> nodes);
 }
