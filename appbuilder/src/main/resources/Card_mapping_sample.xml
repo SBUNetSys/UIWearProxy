@@ -16,19 +16,19 @@
     * image info can be from ImageView (ImageButton is subclass of ImageView)
 
     For each element:
-    src attribute means the id of preference UI nodes from phone app
+    from attribute means the id of preference UI nodes from phone app
     value contains default info (e.g., text, image path ) for initialization, reset functionality.
     -->
-    <Title src="com.spotify.music:id/title">
+    <Title from="com.spotify.music:id/title">
         The Ambient White Noise of Nature
     </Title>
-    <Text src="com.spotify.music:id/artistAndAlbum">
+    <Text from="com.spotify.music:id/artistAndAlbum">
         Quiet Flames in the Dark
     </Text>
-    <Icon src="com.spotify.music:id/btn_play">
+    <Icon from="com.spotify.music:id/btn_play">
         ic_media_play.png
     </Icon>
-    <Background src="com.spotify.music:id/image">
+    <Background from="com.spotify.music:id/image">
         song.png
     </Background>
 </Card>

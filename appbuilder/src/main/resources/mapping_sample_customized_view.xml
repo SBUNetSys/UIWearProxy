@@ -1,18 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<RelativeLayout id="11111-11-11-11_11_11">
+<RelativeLayout id="2016-11-09-04_35_45">
     <!-- this an example mapping rule for customized view layout
     id attribute is mandatory and is the filename of preference file
     -->
-    <TextView src="com.spotify.music:id/title">
-        The Ambient White Noise of Nature
-    </TextView>
-    <ImageView src="com.spotify.music:id/btn_play">
-        button_play.png
-    </ImageView>
-    <ImageView src="com.spotify.music:id/btn_next">
-        button_next.png
-    </ImageView>
-    <TextView src="com.spotify.music:id/artistAndAlbum">
-        Quiet Flames in the Dark
-    </TextView>
+    <android.support.wearable.view.CircularButton/>
+    <RelativeLayout>
+        <LinearLayout>
+            <TextView from="com.northpark.drinkwater:id/drink_target"/>
+            <ProgressBar from="com.northpark.drinkwater:id/drink_progress"/>
+        </LinearLayout>
+    </RelativeLayout>
 </RelativeLayout>
