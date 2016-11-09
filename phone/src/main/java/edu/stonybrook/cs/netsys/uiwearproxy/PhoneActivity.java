@@ -21,7 +21,7 @@ import android.widget.Toast;
 import com.orhanobut.logger.Logger;
 
 import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.PreferenceSettingActivity;
-import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.SettingEnabledAppsActivity;
+import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.AppSettingActivity;
 import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.NotifyService;
 import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
 
@@ -54,7 +54,7 @@ public class PhoneActivity extends Activity {
     }
 
     public void startSelectingApp(View view) {
-        startActivity(new Intent(this, SettingEnabledAppsActivity.class));
+        startActivity(new Intent(this, AppSettingActivity.class));
     }
 
     @Override

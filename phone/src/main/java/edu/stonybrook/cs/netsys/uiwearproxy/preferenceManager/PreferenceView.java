@@ -17,7 +17,7 @@ import java.util.ArrayList;
  * Customized view to capture user drawing area
  */
 
-public class SelectPreferenceView extends View {
+public class PreferenceView extends View {
     public static final int STROKE_WIDTH = 2;
     public static final int DRAWING_COLOR = Color.RED;
 //    public static final int UNSELECTED_COLOR = Color.TRANSPARENT;
@@ -34,7 +34,7 @@ public class SelectPreferenceView extends View {
 //
     private ArrayList<Rect> mPreferredNodes;
 
-    public SelectPreferenceView(Context context, AttributeSet attrs) {
+    public PreferenceView(Context context, AttributeSet attrs) {
         super(context, attrs);
         setupDrawing();
     }

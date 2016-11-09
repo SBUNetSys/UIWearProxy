@@ -16,7 +16,7 @@ import edu.stonybrook.cs.netsys.uiwearproxy.R;
 /**
  * For selecting apps that use UIWear service
  */
-public class SettingEnabledAppsActivity extends Activity {
+public class AppSettingActivity extends Activity {
 
     private AppAdapter mAdapter;
 

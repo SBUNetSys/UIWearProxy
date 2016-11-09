@@ -32,7 +32,7 @@ import edu.stonybrook.cs.netsys.uiwearproxy.R;
 public class PreferenceSettingActivity extends Activity {
     private ArrayList<Rect> mAvailableNodes; // all available nodes from phone proxy service
     private Toast mHintToast;
-    private SelectPreferenceView mSelectPreferenceView;
+    private PreferenceView mPreferenceView;
     private boolean mDoubleBackToExitPressedOnce = false;
 
     // TODO: 11/4/16 render nodes on mSelectPreferenceView if preference file exist
@@ -62,11 +62,11 @@ public class PreferenceSettingActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_preference_setting);
 
-        mSelectPreferenceView = (SelectPreferenceView) findViewById(R.id.view_drawing);
+        mPreferenceView = (PreferenceView) findViewById(R.id.view_drawing);
         mHintToast = Toast.makeText(getApplicationContext(),
                 R.string.not_ready_for_selection, Toast.LENGTH_SHORT);
 
-        mSelectPreferenceView.setOnTouchListener(new View.OnTouchListener() {
+        mPreferenceView.setOnTouchListener(new View.OnTouchListener() {
             float mStartX;
             float mStartY;
 
@@ -113,14 +113,14 @@ public class PreferenceSettingActivity extends Activity {
     private void selectPreferenceOnClickPoint(int endX, int endY) {
         for (Rect rect : mAvailableNodes) {
             if (rect.contains(endX, endY)) {
-                if (mSelectPreferenceView.hasSelected(rect)) {
+                if (mPreferenceView.hasSelected(rect)) {
                     Logger.i("unselected rect: " + rect);
                     // discard the selected area frame
-                    mSelectPreferenceView.removeNode(rect);
+                    mPreferenceView.removeNode(rect);
                 } else {
                     Logger.i("selected rect: " + rect);
                     // mark the selected area by drawing a slim frame
-                    mSelectPreferenceView.addNode(rect);
+                    mPreferenceView.addNode(rect);
                 }
                 break;
             }
@@ -128,7 +128,7 @@ public class PreferenceSettingActivity extends Activity {
     }
 
     private void resetPreference() {
-        mSelectPreferenceView.removeAllNodes();
+        mPreferenceView.removeAllNodes();
     }
 
     @Override
@@ -150,7 +150,7 @@ public class PreferenceSettingActivity extends Activity {
         } else {
 
             // retrieve all selected nodes
-            ArrayList<Rect> selectedNodes = mSelectPreferenceView.getPreferredNodes();
+            ArrayList<Rect> selectedNodes = mPreferenceView.getPreferredNodes();
             if (selectedNodes.isEmpty()) {
                 mHintToast.setText(R.string.null_back);
                 mHintToast.show();
