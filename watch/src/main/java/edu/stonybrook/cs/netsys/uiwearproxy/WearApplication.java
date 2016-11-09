@@ -1,11 +1,9 @@
 package edu.stonybrook.cs.netsys.uiwearproxy;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.MSG_CAPABILITY;
-
 import android.app.Application;
 import android.content.Context;
 
-import com.cscao.libs.GmsWear.GmsWear;
+import com.cscao.libs.gmswear.GmsWear;
 import com.morgoo.droidplugin.PluginHelper;
 
 /**
@@ -19,7 +17,7 @@ public class WearApplication extends Application {
     public void onCreate() {
         super.onCreate();
         PluginHelper.getInstance().applicationOnCreate(getBaseContext());
-        GmsWear.initialize(this, MSG_CAPABILITY);
+        GmsWear.initialize(this);
     }
 
     @Override

@@ -1,1 +1,1 @@
-include ':phone', ':watch', ':uiwearlib', ':plugableapp', ':DroidPlugin', ':appbuilder'
+include ':phone', ':watch', ':uiwearlib', ':plugableapp', ':appbuilder'
