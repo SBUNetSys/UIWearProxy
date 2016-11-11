@@ -48,17 +48,12 @@ import com.cscao.libs.gmswear.GmsWear;
 import com.cscao.libs.gmswear.connectivity.FileTransfer;
 import com.cscao.libs.gmswear.consumer.AbstractDataConsumer;
 import com.cscao.libs.gmswear.consumer.DataConsumer;
-import com.google.android.gms.wearable.Channel;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.MessageEvent;
-import com.google.android.gms.wearable.WearableStatusCodes;
 import com.orhanobut.logger.Logger;
-
-import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -342,30 +337,17 @@ public class PhoneProxyService extends AccessibilityService {
 
     }
 
-    private void sendDataBundleToWearableAsync(final byte[] data) {
-
-        // send to wearable
-        FileTransfer fileTransferHighLevel = new FileTransfer.Builder()
-                .setOnChannelOutputStreamListener(
-                        new FileTransfer.OnChannelOutputStreamListener() {
-                            @Override
-                            public void onOutputStreamForChannelReady(int statusCode,
-                                    Channel channel,
-                                    final OutputStream outputStream) {
-                                if (statusCode != WearableStatusCodes.SUCCESS) {
-                                    Logger.e("Failed to open a channel, status code: "
-                                            + statusCode);
-                                    return;
-                                }
-                                try {
-                                    IOUtils.write(data, outputStream);
-                                } catch (IOException e) {
-                                    e.printStackTrace();
-                                }
-
-                            }
-                        }).build();
-        fileTransferHighLevel.requestOutputStream();
+    // can transfer apk file
+    private void sendFileToWearableAsync(final File fileName) {
+        mWorkerThread.postTask(new Runnable() {
+            @Override
+            public void run() {
+                // send to wearable
+                FileTransfer fileTransferHighLevel = new FileTransfer.Builder()
+                        .setFile(fileName).build();
+                fileTransferHighLevel.startTransfer();
+            }
+        });
     }
 
     private void parseAppNodesToSet(AccessibilityNodeInfo rootNode) {

@@ -20,20 +20,16 @@ import com.cscao.libs.gmswear.GmsWear;
 import com.cscao.libs.gmswear.consumer.AbstractDataConsumer;
 import com.cscao.libs.gmswear.consumer.DataConsumer;
 import com.google.android.gms.wearable.Asset;
-import com.google.android.gms.wearable.Channel;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataMap;
 import com.google.android.gms.wearable.DataMapItem;
 import com.google.android.gms.wearable.MessageEvent;
-import com.google.android.gms.wearable.WearableStatusCodes;
 import com.morgoo.droidplugin.pm.PluginManager;
 import com.orhanobut.logger.Logger;
 
-import org.apache.commons.io.IOUtils;
-
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 
 import edu.stonybrook.cs.netsys.uiwearlib.AppUtil;
 import edu.stonybrook.cs.netsys.uiwearlib.DataBundle;
@@ -88,26 +84,13 @@ public class WearProxyService extends Service {
             }
 
             @Override
-            public void onInputStreamForChannelOpened(int statusCode, String requestId,
-                    final Channel channel, InputStream inputStream) {
-                if (statusCode != WearableStatusCodes.SUCCESS) {
-                    Logger.e("onInputStreamForChannelOpened(): " + "Failed to get input stream");
-                    return;
-                }
-                Logger.d("Channel opened for path: " + channel.getPath());
-
-                byte[] bytes = new byte[0];
-                try {
-                    bytes = IOUtils.toByteArray(inputStream);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-                Logger.d("bytes: " + bytes.length);
-                DataBundle dataBundle = AppUtil.unmarshall(bytes, DataBundle.CREATOR);
-                Logger.i(dataBundle.toString());
+            public void onFileReceivedResult(int statusCode, String requestId, File savedFile,
+                    String originalName) {
+                Logger.d(
+                        "File Received: status=%d, requestId=%s, savedLocation=%s, originalName=%s",
+                        statusCode, requestId, savedFile.getAbsolutePath(), originalName);
+                // for apk file transfer
             }
-
         };
 
     }
