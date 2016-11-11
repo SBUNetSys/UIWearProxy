@@ -231,14 +231,14 @@ public class PhoneProxyService extends AccessibilityService {
         }
 
         // remove duplicate events
-        if (event.equals(mLastProcessedEvent)) {
-            Logger.v("duplicate events");
-            Logger.v("event : " + event);
-            Logger.v("root node: " + NodeUtils.getBriefNodeInfo(rootNode));
-            Logger.v("source node: " + NodeUtils.getBriefNodeInfo(event.getSource()));
-            return;
-        }
-        mLastProcessedEvent = event;
+//        if (event.equals(mLastProcessedEvent)) {
+//            Logger.v("duplicate events");
+//            Logger.v("event : " + event);
+//            Logger.v("root node: " + NodeUtils.getBriefNodeInfo(rootNode));
+//            Logger.v("source node: " + NodeUtils.getBriefNodeInfo(event.getSource()));
+//            return;
+//        }
+//        mLastProcessedEvent = event;
 
         // TODO: 11/10/16 support notification capture, code below or use NotifyService
 //        if (event.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
@@ -258,11 +258,6 @@ public class PhoneProxyService extends AccessibilityService {
 //            }
 //        }
 
-        // extracting view tree workflow
-        // TODO: 10/21/16 extract view tree and send to wearable side based on app preference
-        // TODO: 10/21/16 migrate previous on demand bitmap extraction
-        // TODO: 10/21/16 possible caching and optimization here, including migrating previous
-        // LRU cache and use worker thread (not AsyncTask, use handler thread)
         /********** Extracting Sub View Tree Based on App Preference  *********/
         String appPkgName = getNodePkgName(rootNode);
         boolean isAppEnabled = mEnabledAppListPreferences.getBoolean(appPkgName, false);
@@ -315,7 +310,7 @@ public class PhoneProxyService extends AccessibilityService {
                         //  accNode.requestSnapshot(bitmapBundle);
                         nodeBitmap = (Bitmap) bitmapBundle.get("bitmap");
                         if (nodeBitmap == null) {
-                            Logger.e("cannot get bitmap");
+                            Logger.w("cannot get bitmap");
                         } else {
                             mBitmapLruCache.put(dataNode.getUniqueId(), nodeBitmap);
                         }

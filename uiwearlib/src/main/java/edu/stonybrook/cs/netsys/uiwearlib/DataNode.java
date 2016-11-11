@@ -12,7 +12,11 @@ import com.orhanobut.logger.Logger;
  * Each node carries the following attributes of AccessibilityNodeInfo:
  *
  * mId (hashcode), viewId (mViewIdResourceName), mText (mText), mImage (bitmap requested using
- * augmented AccessibilityService) and action (support mClickable for now)
+ * augmented AccessibilityService)
+ *
+ * Note: action (e.g. mClickable) is complex, depends on parent nodes and even grandparent nodes.
+ * Currently we support this by setting action listeners on wearable side, and transfer
+ * their id (hashcode) to let phone proxy perform actions.
  *
  * Created by qqcao on 03/12/2016.
  * Modified on 11/10/2016.
@@ -25,7 +29,6 @@ public class DataNode implements Parcelable {
             int id = parcel.readInt();
             String viewId = parcel.readString();
             String text = parcel.readString();
-            boolean clickable = parcel.readByte() != 0;
             Bitmap image = null;
             boolean hasBitmap = parcel.readByte() != 0;
             if (hasBitmap) {
@@ -34,7 +37,7 @@ public class DataNode implements Parcelable {
                 Logger.v("bitmap null");
             }
 
-            return new DataNode(id, viewId, text, clickable, image);
+            return new DataNode(id, viewId, text, image);
         }
 
         @Override
@@ -46,7 +49,6 @@ public class DataNode implements Parcelable {
     private int mId;
     private String mViewId;
     private String mText;
-    private boolean mClickable;
     // FIXME: 11/10/16 possibly need to add bitmap cache
     private Bitmap mImage;
 
@@ -60,15 +62,12 @@ public class DataNode implements Parcelable {
         } else {
             mText = "";
         }
-
-        mClickable = node.isClickable();
     }
 
-    public DataNode(int id, String viewId, String text, boolean clickable, Bitmap image) {
+    public DataNode(int id, String viewId, String text, Bitmap image) {
         mId = id;
         mViewId = viewId;
         mText = text;
-        mClickable = clickable;
         mImage = image;
     }
 
@@ -82,7 +81,6 @@ public class DataNode implements Parcelable {
         dest.writeInt(mId);
         dest.writeString(mViewId);
         dest.writeString(mText);
-        dest.writeByte((byte) (mClickable ? 1 : 0));
         if (mImage != null) {
             dest.writeByte((byte) 1);
             mImage.writeToParcel(dest, flags);
@@ -115,14 +113,6 @@ public class DataNode implements Parcelable {
         mText = text;
     }
 
-    public boolean isClickable() {
-        return mClickable;
-    }
-
-    public void setClickable(boolean clickable) {
-        mClickable = clickable;
-    }
-
     public Bitmap getImage() {
         return mImage;
     }
@@ -141,7 +131,6 @@ public class DataNode implements Parcelable {
                 + "mId=" + Integer.toHexString(mId)
                 + ", mViewId=" + mViewId
                 + ", mText=" + mText
-                + ", mClickable=" + mClickable
                 + ", mImage=" + (mImage == null ? "null" : mImage.getByteCount() + " bytes") + "}";
     }
 
@@ -153,7 +142,6 @@ public class DataNode implements Parcelable {
         DataNode node = (DataNode) o;
 
         return mId == node.mId
-                && mClickable == node.mClickable
                 && (mViewId != null ? mViewId.equals(node.mViewId) : node.mViewId == null
                 && (mText != null ? mText.equals(node.mText) : node.mText == null
                 && (mImage != null ? mImage.equals(node.mImage) : node.mImage == null)));
@@ -165,7 +153,6 @@ public class DataNode implements Parcelable {
         int result = mId;
         result = 31 * result + (mViewId != null ? mViewId.hashCode() : 0);
         result = 31 * result + (mText != null ? mText.hashCode() : 0);
-        result = 31 * result + (mClickable ? 1 : 0);
         result = 31 * result + (mImage != null ? mImage.hashCode() : 0);
         return result;
     }
