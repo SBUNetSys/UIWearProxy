@@ -2,6 +2,9 @@ package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.BITMAP_CACHE_SIZE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_NODES_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_NODES_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ENABLED_APPS_PREF_NAME;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PERSIST_PREFERENCE_NODES_SUCCESS;
@@ -27,7 +30,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.graphics.Rect;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.v4.app.NotificationCompat;
@@ -38,6 +43,7 @@ import android.util.LruCache;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import com.cscao.libs.gmswear.GmsWear;
 import com.orhanobut.logger.Logger;
 
 import java.io.File;
@@ -46,6 +52,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import edu.stonybrook.cs.netsys.uiwearlib.AppUtil;
+import edu.stonybrook.cs.netsys.uiwearlib.DataBundle;
+import edu.stonybrook.cs.netsys.uiwearlib.DataNode;
 import edu.stonybrook.cs.netsys.uiwearlib.FileUtils;
 import edu.stonybrook.cs.netsys.uiwearlib.NodeUtils;
 import edu.stonybrook.cs.netsys.uiwearlib.WorkerThread;
@@ -78,6 +87,16 @@ public class PhoneProxyService extends AccessibilityService {
             new LruCache<>(RUNNING_APP_CACHE_NO);
 
     private HashSet<Pair<String, Rect>> mAppNodes = new HashSet<>();
+    private HashMap<Pair<String, Rect>, AccessibilityNodeInfo> mPairAccessibilityNodeMap =
+            new HashMap<>();
+    private LruCache<String, Bitmap> mBitmapLruCache = new LruCache<String, Bitmap>(
+            BITMAP_CACHE_SIZE) {
+        @Override
+        protected int sizeOf(String key, Bitmap bitmap) {
+            // The cache size will be measured in kilobytes rather than number of items.
+            return bitmap.getByteCount();
+        }
+    };
 
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -175,7 +194,6 @@ public class PhoneProxyService extends AccessibilityService {
         }
 
         /********** Preference Setting Functionality **********/
-        // TODO: 11/5/16Saturday support multiple preferences (functionality)
         if (mIsRunningPreferenceSetting) {
             Logger.v("app node: " + NodeUtils.getBriefNodeInfo(rootNode));
             mAppRootNodePkgName = rootNode.getPackageName().toString();
@@ -222,15 +240,15 @@ public class PhoneProxyService extends AccessibilityService {
         }
 
         mAppNodes.clear();
+        mPairAccessibilityNodeMap.clear();
         parseAppNodesToSet(rootNode);
 
         // read app preference xml file
         readAppPreferenceNodesAsync(preferenceFolder, new AppNodesReadyCallback() {
             @Override
-            public void onAppNodesReady(String cacheKey, ArrayList<Pair<String, Rect>> nodes) {
-                // TODO: 11/5/16 find right preference before extracting
+            public void onAppNodesReady(String prefCacheKey, ArrayList<Pair<String, Rect>> nodes) {
                 // decide whether the preference nodes are subset of current app nodes
-
+                Logger.v("pref cache key: " + prefCacheKey);
                 HashSet<Pair<String, Rect>> preferenceSet = new HashSet<>(nodes);
                 if (!mAppNodes.containsAll(preferenceSet)) {
                     // root node from non preference screen, so skip
@@ -241,12 +259,27 @@ public class PhoneProxyService extends AccessibilityService {
                 }
 
                 // begin extracting preference view tree info
+                DataBundle dataBundle = new DataBundle(prefCacheKey);
+
                 for (Pair<String, Rect> pair : nodes) {
-                    Logger.i("key: " + cacheKey);
                     Logger.i("id: " + pair.first + " rect: " + pair.second);
+                    AccessibilityNodeInfo accNode = mPairAccessibilityNodeMap.get(pair);
+                    DataNode dataNode = new DataNode(accNode);
+                    Bitmap nodeBitmap = mBitmapLruCache.get(dataNode.getUniqueId());
+                    if (nodeBitmap == null) {
+                        Bundle bitmapBundle = new Bundle();
+                        // TODO: 11/10/16 import android.jar to use new API
+                        //  accNode.requestSnapshot(bitmapBundle);
+                        nodeBitmap = (Bitmap) bitmapBundle.get("bitmap");
+                        mBitmapLruCache.put(dataNode.getUniqueId(), nodeBitmap);
+                    }
+                    dataNode.setImage(nodeBitmap);
+                    dataBundle.add(dataNode);
                 }
 
-                // TODO: 11/7/16 send parsed app view tree content to wearable proxy with cache key
+                // send data nodes to wearable proxy with prefCacheKey
+                byte[] data = AppUtil.marshall(dataBundle);
+                GmsWear.getInstance().syncAsset(DATA_NODES_PATH, DATA_NODES_KEY, data, true);
             }
         });
 
@@ -261,7 +294,9 @@ public class PhoneProxyService extends AccessibilityService {
         String id = rootNode.getViewIdResourceName();
         Rect rect = new Rect();
         rootNode.getBoundsInScreen(rect);
-        mAppNodes.add(new Pair<>(id, rect));
+        Pair<String, Rect> pair = new Pair<>(id, rect);
+        mAppNodes.add(pair);
+        mPairAccessibilityNodeMap.put(pair, rootNode);
         int count = rootNode.getChildCount();
 
         for (int i = 0; i < count; i++) {

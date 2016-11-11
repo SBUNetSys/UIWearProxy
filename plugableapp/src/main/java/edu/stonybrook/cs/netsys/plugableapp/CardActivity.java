@@ -9,18 +9,22 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.FrameLayout;
 
 public class CardActivity extends Activity {
+    // resource receiver from wear proxy
     ResReceiver resReceiver;
-    boolean mIsPlaying = false;
+    FrameLayout mRootLayout;
     UIWearCardFragment card = UIWearCardFragment.create("Title", "Description",
             R.drawable.ic_media_play);
     int count = 0;
+    boolean mIsPlaying = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_container);
+        mRootLayout = (FrameLayout) findViewById(R.id.frame_layout_container);
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
 

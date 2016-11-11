@@ -47,4 +47,10 @@ public class Constant {
     public static final String RECT_STRING = "rect";
     public static final String TIME_FORMAT = "yyyy-MM-dd-hh_mm_ss";
 
+    // 10MB bitmap cache
+    public static final int BITMAP_CACHE_SIZE = 10*1024*1024;
+
+    public static final String DATA_NODES_PATH = "DATA_NODES_PATH";
+    public static final String DATA_NODES_KEY = "DATA_NODES_KEY";
+
 }

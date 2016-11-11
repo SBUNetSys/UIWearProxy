@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<RelativeLayout id="2016-11-09-04_35_45">
+<RelativeLayout id="2016-11-09-04_35_45" style="customized_view_sample">
     <!-- this an example mapping rule for customized view layout
     id attribute is mandatory and is the filename of preference file
     -->
-    <android.support.wearable.view.CircularButton/>
+    <android.support.wearable.view.CircularButton from="com.northpark.drinkwater:id/add_cup"/>
     <RelativeLayout>
         <LinearLayout>
-            <TextView from="com.northpark.drinkwater:id/drink_target"/>
-            <ProgressBar from="com.northpark.drinkwater:id/drink_progress"/>
+            <TextView from="com.northpark.drinkwater:id/drink_target">
+                <text>0/100 fl oz</text>
+            </TextView>
+            <ProgressBar from="com.northpark.drinkwater:id/drink_progress">
+                <image>default</image>
+            </ProgressBar>
         </LinearLayout>
     </RelativeLayout>
 </RelativeLayout>
