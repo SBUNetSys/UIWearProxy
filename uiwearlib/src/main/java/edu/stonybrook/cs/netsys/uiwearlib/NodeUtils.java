@@ -4,6 +4,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.SYSTEM_UI_PKG;
 
 import android.content.Context;
 import android.graphics.Rect;
+import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.orhanobut.logger.Logger;
@@ -70,5 +71,18 @@ public class NodeUtils {
         CharSequence nodePkgName = rootNode.getPackageName();
         return !(nodePkgName == null || nodePkgName.length() == 0) && !SYSTEM_UI_PKG.equals(
                 nodePkgName) && !context.getPackageName().equals(nodePkgName);
+    }
+
+    public static String getEvenInfo(AccessibilityEvent source) {
+        if (source == null) {
+            return "null";
+        }
+
+        return "text: " + source.getText() + ","
+                + "packageName: " + source.getPackageName() + ","
+                + "className: " + source.getClassName() + ","
+                + "action: " + source.getAction() + ","
+                + "evenType: " + AccessibilityEvent.eventTypeToString(source.getEventType()) + ","
+                + "contentDescription: " + source.getContentDescription();
     }
 }

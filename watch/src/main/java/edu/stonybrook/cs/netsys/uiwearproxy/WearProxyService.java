@@ -5,6 +5,10 @@ import static com.morgoo.helper.compat.PackageManagerCompat.INSTALL_FAILED_INTER
 import static com.morgoo.helper.compat.PackageManagerCompat.INSTALL_FAILED_INVALID_APK;
 import static com.morgoo.helper.compat.PackageManagerCompat.INSTALL_SUCCEEDED;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CLICK_PATH;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
+
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
@@ -12,32 +16,131 @@ import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.widget.Toast;
 
+import com.cscao.libs.gmswear.GmsWear;
+import com.cscao.libs.gmswear.consumer.AbstractDataConsumer;
+import com.cscao.libs.gmswear.consumer.DataConsumer;
+import com.google.android.gms.wearable.Asset;
+import com.google.android.gms.wearable.Channel;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataItem;
+import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.WearableStatusCodes;
 import com.morgoo.droidplugin.pm.PluginManager;
 import com.orhanobut.logger.Logger;
 
+import org.apache.commons.io.IOUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+
+import edu.stonybrook.cs.netsys.uiwearlib.AppUtil;
+import edu.stonybrook.cs.netsys.uiwearlib.DataBundle;
+import edu.stonybrook.cs.netsys.uiwearlib.WorkerThread;
+
 /**
- *  UIWear wear side proxy service, handling sub view tree info received from phone
+ * UIWear wear side proxy service, handling sub view tree info received from phone
  */
 public class WearProxyService extends Service {
+
+    private GmsWear mGmsWear;
+    private DataConsumer mDataConsumer;
+    private WorkerThread mWorkerThread;
 
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
+        Logger.v("");
         return null;
     }
 
     @Override
     public void onCreate() {
-        super.onCreate();
+        Logger.i("create");
+        mWorkerThread = new WorkerThread("worker-thread");
+        mWorkerThread.start();
+
+        mGmsWear = GmsWear.getInstance();
+        mDataConsumer = new AbstractDataConsumer() {
+            @Override
+            public void onMessageReceived(MessageEvent messageEvent) {
+                Logger.i("onMessageReceived");
+                String msg = new String(messageEvent.getData());
+                if (messageEvent.getPath().equals(CLICK_PATH)) {
+                    Logger.d(msg);
+                }
+            }
+
+            @Override
+            public void onDataChanged(DataEvent event) {
+                Logger.i("onDataChanged");
+                if (event.getType() == DataEvent.TYPE_CHANGED) {
+                    // DataItem changed
+                    DataItem item = event.getDataItem();
+                    Logger.i(item.getUri().getPath());
+                    if (item.getUri().getPath().equals(DATA_BUNDLE_PATH)) {
+                        DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
+                        Asset asset = dataMap.getAsset(DATA_BUNDLE_KEY);
+                        parseDataBundleAsync(asset);
+                    }
+                }
+            }
+
+            @Override
+            public void onInputStreamForChannelOpened(int statusCode, String requestId,
+                    final Channel channel, InputStream inputStream) {
+                if (statusCode != WearableStatusCodes.SUCCESS) {
+                    Logger.e("onInputStreamForChannelOpened(): " + "Failed to get input stream");
+                    return;
+                }
+                Logger.d("Channel opened for path: " + channel.getPath());
+
+                byte[] bytes = new byte[0];
+                try {
+                    bytes = IOUtils.toByteArray(inputStream);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+                Logger.d("bytes: " + bytes.length);
+                DataBundle dataBundle = AppUtil.unmarshall(bytes, DataBundle.CREATOR);
+                Logger.i(dataBundle.toString());
+            }
+
+        };
+
+    }
+
+    private void parseDataBundleAsync(final Asset asset) {
+        mWorkerThread.postTask(new Runnable() {
+            @Override
+            public void run() {
+                Logger.d("parseDataBundleAsync");
+                byte[] data = new byte[0];
+                try {
+                    data = mGmsWear.loadAssetSynchronous(asset);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                Logger.d("bytes: " + data.length);
+                DataBundle dataBundle = AppUtil.unmarshall(data, DataBundle.CREATOR);
+                Logger.i(dataBundle.toString());
+            }
+        });
+
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        return super.onStartCommand(intent, flags, startId);
+        mGmsWear.addWearConsumer(mDataConsumer);
+        Logger.i("start");
+        return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
+        mGmsWear.removeWearConsumer(mDataConsumer);
         super.onDestroy();
     }
 
@@ -60,7 +163,8 @@ public class WearProxyService extends Service {
 //            InstallResult res = VirtualCore.get().installApp(apkFile,
 //                    InstallStrategy.UPDATE_IF_EXIST);
 //            if (!res.isSuccess) {
-//                VLog.e(getClass().getSimpleName(), "Warning: Unable to install app %s: %s.",apkFile, res.error);
+//                VLog.e(getClass().getSimpleName(), "Warning: Unable to install app %s: %s.",
+// apkFile, res.error);
 //            } else {
 //                Toast.makeText(this, "Install success", Toast.LENGTH_SHORT).show();
 //            }

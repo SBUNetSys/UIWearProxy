@@ -33,14 +33,14 @@ public class Constant {
     public static final String WEAR_HOST_ACTION_MAIN = "host_action_main";
     public static final String WEAR_HOST_KEY = "WEAR_HOST_KEY";
 
-    public static final String MSG_CAPABILITY = "msg_capability";
+    public static final String CAPABILITY = "UIWear_Capability";
     public static final int JSON_INDENT_SPACES = 4;
 
     public static final int PERSIST_PREFERENCE_NODES_SUCCESS = 5;
     public static final int READ_PREFERENCE_NODES_SUCCESS = 6;
 
     // at most 20 apps running, each app has at most 50 preferences
-    public static final int RUNNING_APP_CACHE_NO = 20 * 50;
+    public static final int RUNNING_APP_PREF_CACHE_SIZE = 20 * 50;
 
     public static final String XML_EXT = ".xml";
     public static final String ID_STRING = "id";
@@ -48,9 +48,12 @@ public class Constant {
     public static final String TIME_FORMAT = "yyyy-MM-dd-hh_mm_ss";
 
     // 10MB bitmap cache
-    public static final int BITMAP_CACHE_SIZE = 10*1024*1024;
+    public static final int BITMAP_CACHE_SIZE = 10 * 1024 * 1024;
 
-    public static final String DATA_NODES_PATH = "DATA_NODES_PATH";
-    public static final String DATA_NODES_KEY = "DATA_NODES_KEY";
+    public static final String DATA_BUNDLE_PATH = "/DATA_BUNDLE_PATH";
+    public static final String DATA_BUNDLE_KEY = "/DATA_BUNDLE_KEY";
 
+    public static final int DATA_BUNDLE_CACHE_SIZE = 50;
+
+    public static final String CLICK_PATH = "/CLICK_PATH";
 }

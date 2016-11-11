@@ -1,5 +1,7 @@
 package edu.stonybrook.cs.netsys.uiwearproxy;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CAPABILITY;
+
 import android.app.Application;
 
 import com.cscao.libs.gmswear.GmsWear;
@@ -14,6 +16,6 @@ public class PhoneApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        GmsWear.initialize(this);
+        GmsWear.initialize(this, CAPABILITY);
     }
 }

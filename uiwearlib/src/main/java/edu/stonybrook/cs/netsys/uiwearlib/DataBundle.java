@@ -19,14 +19,6 @@ import java.util.ArrayList;
  */
 
 public class DataBundle implements Parcelable {
-    private String mKey;
-    private ArrayList<DataNode> mDataNodes;
-
-    public DataBundle(String key) {
-        mKey = key;
-        mDataNodes = new ArrayList<>();
-    }
-
     public static final Creator<DataBundle> CREATOR = new Creator<DataBundle>() {
         @Override
         public DataBundle createFromParcel(Parcel parcel) {
@@ -45,6 +37,13 @@ public class DataBundle implements Parcelable {
             return new DataBundle[size];
         }
     };
+    private String mKey;
+    private ArrayList<DataNode> mDataNodes;
+
+    public DataBundle(String key) {
+        mKey = key;
+        mDataNodes = new ArrayList<>();
+    }
 
     public void add(DataNode node) {
         mDataNodes.add(node);
@@ -67,6 +66,32 @@ public class DataBundle implements Parcelable {
 
     @Override
     public String toString() {
-        return "DataBundle{" + "mKey=" + mKey + ", mDataNodes=" + mDataNodes.size() + "}";
+        StringBuilder sb = new StringBuilder();
+        for (DataNode node : mDataNodes) {
+            sb.append(node.toString());
+            sb.append("; ");
+        }
+        return "DataBundle{" + "mKey=" + mKey
+                + ", Size=" + mDataNodes.size()
+                + ", mDataNodes=" + sb.toString()
+                + "}";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DataBundle)) return false;
+
+        DataBundle that = (DataBundle) o;
+
+        return mKey.equals(that.mKey) && mDataNodes.equals(that.mDataNodes);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = mKey.hashCode();
+        result = 31 * result + mDataNodes.hashCode();
+        return result;
     }
 }

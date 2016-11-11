@@ -80,7 +80,7 @@ public class PhoneActivity extends Activity {
         try {
             accessibilityEnabled = Settings.Secure.getInt(this.getContentResolver(),
                     android.provider.Settings.Secure.ACCESSIBILITY_ENABLED);
-            Logger.i("Accessibility code: " + accessibilityEnabled);
+            Logger.v("Accessibility code: " + accessibilityEnabled);
         } catch (Settings.SettingNotFoundException e) {
             Logger.e(
                     "Error finding setting, default accessibility to not found: " + e.getMessage());
@@ -89,10 +89,10 @@ public class PhoneActivity extends Activity {
         if (accessibilityEnabled == 1) {
             String settingValue = Settings.Secure.getString(getContentResolver(),
                     Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES);
-            Logger.i("Setting: " + settingValue);
-            Logger.i("accessibilityServiceName: " + accessibilityServiceName);
+            Logger.v("Setting: " + settingValue);
+            Logger.v("accessibilityServiceName: " + accessibilityServiceName);
             if (accessibilityServiceName.equalsIgnoreCase(settingValue)) {
-                Logger.i("We've found the correct setting - accessibility is switched on!");
+                Logger.v("We've found the correct setting - accessibility is switched on!");
                 return true;
             }
 
@@ -130,48 +130,48 @@ public class PhoneActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-//        Logger.i("");
+//        Logger.v("");
     }
 
     @Override
     protected void onResume() {
-//        Logger.i("");
+//        Logger.v("");
         super.onResume();
     }
 
     @Override
     protected void onPause() {
-//        Logger.i("");
+//        Logger.v("");
         super.onPause();
     }
 
     @Override
     protected void onStop() {
-//        Logger.i("");
+//        Logger.v("");
         super.onStop();
     }
 
     @Override
     protected void onDestroy() {
-//        Logger.i("onDestroy");
+//        Logger.v("onDestroy");
         super.onDestroy();
     }
 
 //    @Override
 //    protected void onUserLeaveHint() {
-//        Logger.i("onUserLeaveHint");
+//        Logger.v("onUserLeaveHint");
 //        super.onUserLeaveHint();
 //    }
 
 //    @Override
 //    public void onAttachedToWindow() {
-//        Logger.i("");
+//        Logger.v("");
 //        super.onAttachedToWindow();
 //    }
 //
 //    @Override
 //    public void onDetachedFromWindow() {
-//        Logger.i("");
+//        Logger.v("");
 //        super.onDetachedFromWindow();
 //    }
 }

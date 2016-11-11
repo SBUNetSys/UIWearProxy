@@ -3,8 +3,9 @@ package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.BITMAP_CACHE_SIZE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_NODES_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_NODES_PATH;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CLICK_PATH;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ENABLED_APPS_PREF_NAME;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PERSIST_PREFERENCE_NODES_SUCCESS;
@@ -17,7 +18,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STA
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.READ_PREFERENCE_NODES_SUCCESS;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RUNNING_APP_CACHE_NO;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RUNNING_APP_PREF_CACHE_SIZE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TIME_FORMAT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.XML_EXT;
 import static edu.stonybrook.cs.netsys.uiwearlib.NodeUtils.getNodePkgName;
@@ -44,10 +45,20 @@ import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.cscao.libs.gmswear.GmsWear;
+import com.cscao.libs.gmswear.connectivity.FileTransfer;
+import com.cscao.libs.gmswear.consumer.AbstractDataConsumer;
+import com.cscao.libs.gmswear.consumer.DataConsumer;
+import com.google.android.gms.wearable.Channel;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.WearableStatusCodes;
 import com.orhanobut.logger.Logger;
+
+import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -84,7 +95,7 @@ public class PhoneProxyService extends AccessibilityService {
 
     // list of app preference nodes, for each pair, the first is id, the second is rect
     private LruCache<String, ArrayList<Pair<String, Rect>>> mAppPreferenceNodesCache =
-            new LruCache<>(RUNNING_APP_CACHE_NO);
+            new LruCache<>(RUNNING_APP_PREF_CACHE_SIZE);
 
     private HashSet<Pair<String, Rect>> mAppNodes = new HashSet<>();
     private HashMap<Pair<String, Rect>, AccessibilityNodeInfo> mPairAccessibilityNodeMap =
@@ -97,6 +108,9 @@ public class PhoneProxyService extends AccessibilityService {
             return bitmap.getByteCount();
         }
     };
+
+    // for removing multiple duplicate accessibility events
+    private AccessibilityEvent mLastProcessedEvent;
 
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -123,6 +137,9 @@ public class PhoneProxyService extends AccessibilityService {
             }
         }
     };
+
+    private GmsWear mGmsWear;
+    private DataConsumer mDataConsumer;
 
     @Override
     public void onCreate() {
@@ -160,6 +177,20 @@ public class PhoneProxyService extends AccessibilityService {
         mWorkerThread.start();
         mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         raiseRunningNotification();
+
+        mGmsWear = GmsWear.getInstance();
+        mDataConsumer = new AbstractDataConsumer() {
+            @Override
+            public void onMessageReceived(MessageEvent messageEvent) {
+                Logger.i("onMessageReceived");
+            }
+
+            @Override
+            public void onDataChanged(DataEvent event) {
+                Logger.i("onDataChanged");
+            }
+        };
+
     }
 
     @Override
@@ -179,6 +210,7 @@ public class PhoneProxyService extends AccessibilityService {
             }
 
         }
+        mGmsWear.addWearConsumer(mDataConsumer);
         return START_STICKY;
     }
 
@@ -203,7 +235,17 @@ public class PhoneProxyService extends AccessibilityService {
             // TODO: 11/5/16 extract preference related sub view tree here for app building
         }
 
-        // or use NotifyService
+        // remove duplicate events
+        if (event.equals(mLastProcessedEvent)) {
+            Logger.v("duplicate events");
+            Logger.v("event : " + event);
+            Logger.v("root node: " + NodeUtils.getBriefNodeInfo(rootNode));
+            Logger.v("source node: " + NodeUtils.getBriefNodeInfo(event.getSource()));
+            return;
+        }
+        mLastProcessedEvent = event;
+
+        // TODO: 11/10/16 support notification capture, code below or use NotifyService
 //        if (event.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
 //            final String packageName = String.valueOf(event.getPackageName());
 //            if ("com.spotify.music".equals(packageName)) {
@@ -239,9 +281,15 @@ public class PhoneProxyService extends AccessibilityService {
             return;
         }
 
-        mAppNodes.clear();
-        mPairAccessibilityNodeMap.clear();
-        parseAppNodesToSet(rootNode);
+        mWorkerThread.postTask(new Runnable() {
+            @Override
+            public void run() {
+                mAppNodes.clear();
+                mPairAccessibilityNodeMap.clear();
+                parseAppNodesToSet(rootNode);
+            }
+        });
+
 
         // read app preference xml file
         readAppPreferenceNodesAsync(preferenceFolder, new AppNodesReadyCallback() {
@@ -271,18 +319,53 @@ public class PhoneProxyService extends AccessibilityService {
                         // TODO: 11/10/16 import android.jar to use new API
                         //  accNode.requestSnapshot(bitmapBundle);
                         nodeBitmap = (Bitmap) bitmapBundle.get("bitmap");
-                        mBitmapLruCache.put(dataNode.getUniqueId(), nodeBitmap);
+                        if (nodeBitmap == null) {
+                            Logger.e("cannot get bitmap");
+                        } else {
+                            mBitmapLruCache.put(dataNode.getUniqueId(), nodeBitmap);
+                        }
                     }
                     dataNode.setImage(nodeBitmap);
+                    Logger.i(dataNode.toString());
                     dataBundle.add(dataNode);
                 }
 
+                Logger.i(dataBundle.toString());
+                GmsWear.getInstance().sendMessage(CLICK_PATH, "test msg".getBytes());
                 // send data nodes to wearable proxy with prefCacheKey
                 byte[] data = AppUtil.marshall(dataBundle);
-                GmsWear.getInstance().syncAsset(DATA_NODES_PATH, DATA_NODES_KEY, data, true);
+                Logger.i("data: " + data.length);
+                mGmsWear.syncAsset(DATA_BUNDLE_PATH, DATA_BUNDLE_KEY, data, true);
+//                sendDataBundleToWearableAsync(data);
             }
         });
 
+    }
+
+    private void sendDataBundleToWearableAsync(final byte[] data) {
+
+        // send to wearable
+        FileTransfer fileTransferHighLevel = new FileTransfer.Builder()
+                .setOnChannelOutputStreamListener(
+                        new FileTransfer.OnChannelOutputStreamListener() {
+                            @Override
+                            public void onOutputStreamForChannelReady(int statusCode,
+                                    Channel channel,
+                                    final OutputStream outputStream) {
+                                if (statusCode != WearableStatusCodes.SUCCESS) {
+                                    Logger.e("Failed to open a channel, status code: "
+                                            + statusCode);
+                                    return;
+                                }
+                                try {
+                                    IOUtils.write(data, outputStream);
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+
+                            }
+                        }).build();
+        fileTransferHighLevel.requestOutputStream();
     }
 
     private void parseAppNodesToSet(AccessibilityNodeInfo rootNode) {

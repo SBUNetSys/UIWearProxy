@@ -48,7 +48,7 @@
         <!--<action android:name="android.service.notification.NotificationListenerService" />-->
         <!--</intent-filter>-->
         <!--</service>-->
-        <service android:name="com.cscao.libs.GmsWear.GmsWearService">
+        <service android:name="com.cscao.libs.gmswear.GmsWearService">
             <intent-filter>
                 <!-- listeners receive events that match the action and data filters -->
                 <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
@@ -58,7 +58,7 @@
 
                 <data
                     android:host="*"
-                    android:pathPrefix="/com.cscao.libs.gmswear/"
+                    android:pathPrefix="/"
                     android:scheme="wear" />
             </intent-filter>
         </service>
