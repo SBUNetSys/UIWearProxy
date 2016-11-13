@@ -8,6 +8,8 @@ import static com.morgoo.helper.compat.PackageManagerCompat.INSTALL_SUCCEEDED;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CLICK_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_APK_REQUEST;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_MAPPING_RULES_REQUEST;
 
 import android.app.Service;
 import android.content.Intent;
@@ -90,8 +92,23 @@ public class WearProxyService extends Service {
                         "File Received: status=%d, requestId=%s, savedLocation=%s, originalName=%s",
                         statusCode, requestId, savedFile.getAbsolutePath(), originalName);
                 // for apk file transfer
+                if (TRANSFER_APK_REQUEST.equals(requestId)) {
+                    processApk(savedFile);
+                }
+
+                if (TRANSFER_MAPPING_RULES_REQUEST.equals(requestId)) {
+                    processMappingRule(savedFile);
+                }
             }
         };
+
+    }
+
+    private void processMappingRule(File mappingRuleFile) {
+
+    }
+
+    private void processApk(File apkFile) {
 
     }
 

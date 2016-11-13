@@ -1,11 +1,15 @@
 package edu.stonybrook.cs.netsys.uiwearlib;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.AppUtil.getBitmapBytes;
+
 import android.graphics.Bitmap;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.orhanobut.logger.Logger;
+
+import java.util.Arrays;
 
 /**
  * Data Node is the our UIWear data protocol for phone proxy to communicate with wear proxy
@@ -29,10 +33,10 @@ public class DataNode implements Parcelable {
             int id = parcel.readInt();
             String viewId = parcel.readString();
             String text = parcel.readString();
-            Bitmap image = null;
+            byte[] image = null;
             boolean hasBitmap = parcel.readByte() != 0;
             if (hasBitmap) {
-                image = Bitmap.CREATOR.createFromParcel(parcel);
+                parcel.readByteArray(image);
             } else {
                 Logger.v("bitmap null");
             }
@@ -49,8 +53,7 @@ public class DataNode implements Parcelable {
     private int mId;
     private String mViewId;
     private String mText;
-    // FIXME: 11/10/16 possibly need to add bitmap cache
-    private Bitmap mImage;
+    private byte[] mImage;
 
     public DataNode(AccessibilityNodeInfo node) {
         mId = node.hashCode();
@@ -65,6 +68,13 @@ public class DataNode implements Parcelable {
     }
 
     public DataNode(int id, String viewId, String text, Bitmap image) {
+        mId = id;
+        mViewId = viewId;
+        mText = text;
+        mImage = getBitmapBytes(image);
+    }
+
+    public DataNode(int id, String viewId, String text, byte[] image) {
         mId = id;
         mViewId = viewId;
         mText = text;
@@ -83,7 +93,7 @@ public class DataNode implements Parcelable {
         dest.writeString(mText);
         if (mImage != null) {
             dest.writeByte((byte) 1);
-            mImage.writeToParcel(dest, flags);
+            dest.writeByteArray(mImage);
         } else {
             dest.writeByte((byte) 0);
         }
@@ -113,16 +123,25 @@ public class DataNode implements Parcelable {
         mText = text;
     }
 
-    public Bitmap getImage() {
+    public byte[] getImageBytes() {
         return mImage;
     }
 
-    public void setImage(Bitmap image) {
+    public void setImage(byte[] image) {
         mImage = image;
+    }
+
+    public void setImage(Bitmap image) {
+        mImage = getBitmapBytes(image);
     }
 
     public String getUniqueId() {
         return mViewId + mId;
+    }
+
+    public String getFriendlyName(Bitmap bitmap) {
+        return (mViewId).replaceAll("[^a-zA-Z0-9.-]", "_")
+                + Arrays.hashCode(getBitmapBytes(bitmap));
     }
 
     @Override
@@ -131,7 +150,7 @@ public class DataNode implements Parcelable {
                 + "mId=" + Integer.toHexString(mId)
                 + ", mViewId=" + mViewId
                 + ", mText=" + mText
-                + ", mImage=" + (mImage == null ? "null" : mImage.getByteCount() + " bytes") + "}";
+                + ", mImage=" + (mImage == null ? "null" : mImage.length + " bytes") + "}";
     }
 
     @Override
@@ -141,19 +160,17 @@ public class DataNode implements Parcelable {
 
         DataNode node = (DataNode) o;
 
-        return mId == node.mId
-                && (mViewId != null ? mViewId.equals(node.mViewId) : node.mViewId == null
-                && (mText != null ? mText.equals(node.mText) : node.mText == null
-                && (mImage != null ? mImage.equals(node.mImage) : node.mImage == null)));
+        return mViewId.equals(node.mViewId)
+                && mText.equals(node.mText)
+                && Arrays.equals(mImage, node.mImage);
 
     }
 
     @Override
     public int hashCode() {
-        int result = mId;
-        result = 31 * result + (mViewId != null ? mViewId.hashCode() : 0);
-        result = 31 * result + (mText != null ? mText.hashCode() : 0);
-        result = 31 * result + (mImage != null ? mImage.hashCode() : 0);
+        int result = mViewId.hashCode();
+        result = 31 * result + mText.hashCode();
+        result = 31 * result + Arrays.hashCode(mImage);
         return result;
     }
 }

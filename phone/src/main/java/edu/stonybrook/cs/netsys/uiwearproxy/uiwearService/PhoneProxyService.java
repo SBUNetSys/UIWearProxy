@@ -104,8 +104,8 @@ public class PhoneProxyService extends AccessibilityService {
         }
     };
 
-    // for removing multiple duplicate accessibility events
-    private AccessibilityEvent mLastProcessedEvent;
+    // to avoid same data retransmission due to duplicate accessibility events
+    private DataBundle mLastSentDataBundle;
 
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -206,7 +206,19 @@ public class PhoneProxyService extends AccessibilityService {
 
         }
         mGmsWear.addWearConsumer(mDataConsumer);
+        // reset all cache here
+        resetAllCacheHere();
         return START_STICKY;
+    }
+
+    private void resetAllCacheHere() {
+        Logger.v("reset cache");
+        mBitmapLruCache.evictAll();
+        mAppPreferenceNodesCache.evictAll();
+        mLastSentDataBundle = null;
+        mAppRootNodePkgName = null;
+        mAppLeafNodesMap.clear();
+        mPairAccessibilityNodeMap.clear();
     }
 
     @Override
@@ -303,22 +315,42 @@ public class PhoneProxyService extends AccessibilityService {
                     Logger.i("id: " + pair.first + " rect: " + pair.second);
                     AccessibilityNodeInfo accNode = mPairAccessibilityNodeMap.get(pair);
                     DataNode dataNode = new DataNode(accNode);
-                    Bitmap nodeBitmap = mBitmapLruCache.get(dataNode.getUniqueId());
+                    String uniqueId = dataNode.getUniqueId();
+                    Logger.v("unique id: " + uniqueId);
+                    Bitmap nodeBitmap = mBitmapLruCache.get(uniqueId);
                     if (nodeBitmap == null) {
-                        Bundle bitmapBundle = new Bundle();
-                        // TODO: 11/10/16 import android.jar to use new API
-                        //  accNode.requestSnapshot(bitmapBundle);
-                        nodeBitmap = (Bitmap) bitmapBundle.get("bitmap");
-                        if (nodeBitmap == null) {
-                            Logger.w("cannot get bitmap");
+                        // FIXME: 11/12/16 based on mapping rule, not all nodes need image/bitmap
+                        if (!"android.widget.TextView".equals(accNode.getClassName())) {
+                            Bundle bitmapBundle = new Bundle();
+                            accNode.requestSnapshot(bitmapBundle);
+                            nodeBitmap = (Bitmap) bitmapBundle.get("bitmap");
+                            if (nodeBitmap == null) {
+                                Logger.w("cannot get bitmap");
+                            } else {
+                                AppUtil.storeBitmapAsync(nodeBitmap, getObbDir().getPath(),
+                                        dataNode.getFriendlyName(nodeBitmap));
+                                mBitmapLruCache.put(uniqueId, nodeBitmap);
+                            }
                         } else {
-                            mBitmapLruCache.put(dataNode.getUniqueId(), nodeBitmap);
+                            Logger.v("text view");
                         }
+                    } else {
+                        Logger.v("bitmap from cache: " + nodeBitmap.getByteCount() + " bytes");
                     }
                     dataNode.setImage(nodeBitmap);
                     Logger.i(dataNode.toString());
                     dataBundle.add(dataNode);
                 }
+
+                if (dataBundle.equals(mLastSentDataBundle)) {
+                    Logger.v("repeat data bundle" + dataBundle);
+                    return;
+                } else {
+                    // TODO: 11/12/16 possible optimization: we can send only the nodes diff
+                    Logger.v("new data bundle" + dataBundle);
+                }
+
+                mLastSentDataBundle = dataBundle;
 
                 Logger.i(dataBundle.toString());
                 GmsWear.getInstance().sendMessage(CLICK_PATH, "test msg".getBytes());
@@ -332,14 +364,19 @@ public class PhoneProxyService extends AccessibilityService {
 
     }
 
-    // can transfer apk file
-    private void sendFileToWearableAsync(final File fileName) {
+    @Override
+    public void onAccessibilityEventForBackground(String s, AccessibilityEvent accessibilityEvent) {
+
+    }
+
+    // transfer apk file, mapping rules to wearable
+    private void sendFileToWearableAsync(final File fileName, final String requestId) {
         mWorkerThread.postTask(new Runnable() {
             @Override
             public void run() {
                 // send to wearable
                 FileTransfer fileTransferHighLevel = new FileTransfer.Builder()
-                        .setFile(fileName).build();
+                        .setFile(fileName).setRequestId(requestId).build();
                 fileTransferHighLevel.startTransfer();
             }
         });

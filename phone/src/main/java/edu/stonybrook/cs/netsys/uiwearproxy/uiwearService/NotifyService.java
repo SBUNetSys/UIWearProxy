@@ -86,7 +86,7 @@ public class NotifyService extends NotificationListenerService {
 //                            Bitmap bmp = ((BitmapDrawable) drawable).getBitmap();
 //                            if (bmp != null) {
 //                                Logger.i("bitmap size" + bmp.getByteCount() / 1024);
-//                                FileUtils.storeBitmap(bmp, "UIWearNotify",
+//                                FileUtils.storeBitmapAsync(bmp, "UIWearNotify",
 //                                        packageName + SystemClock.currentThreadTimeMillis());
 //                            } else {
 //                                Logger.e("bitmap null");

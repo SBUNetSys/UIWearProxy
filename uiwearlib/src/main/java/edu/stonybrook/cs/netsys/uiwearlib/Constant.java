@@ -56,4 +56,8 @@ public class Constant {
     public static final int DATA_BUNDLE_CACHE_SIZE = 50;
 
     public static final String CLICK_PATH = "/CLICK_PATH";
+
+    public static final String TRANSFER_APK_REQUEST = "/TRANSFER_APK_REQUEST";
+    public static final String TRANSFER_MAPPING_RULES_REQUEST = "/TRANSFER_MAPPING_RULES_REQUEST";
+
 }

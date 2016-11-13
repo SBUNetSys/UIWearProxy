@@ -6,10 +6,17 @@ import android.content.pm.ActivityInfo;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
+import android.os.Environment;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import com.orhanobut.logger.Logger;
+
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -117,5 +124,53 @@ public class AppUtil {
         T result = creator.createFromParcel(parcel);
         parcel.recycle();
         return result;
+    }
+
+    // pay attention to permission
+    public static void storeBitmapAsync(Bitmap bitmap, String imageName) {
+        File sdcard = Environment.getExternalStorageDirectory();
+        storeBitmapAsync(bitmap, sdcard.getPath() + File.separator + "UIWear", imageName);
+    }
+
+    public static void storeBitmapAsync(final Bitmap bitmap, final String folder,
+            final String imageName) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    File dir = new File(folder);
+                    File imageFile = new File(dir.getPath()
+                            + File.separator
+                            + imageName
+                            + ".png");
+                    boolean isDirCreated = dir.exists() || dir.mkdirs();
+
+                    if (!isDirCreated) {
+                        Logger.e("dir failed to create" + dir.getPath());
+                    }
+
+                    FileOutputStream outputStream = new FileOutputStream(imageFile);
+//            bitmap.compress(Bitmap.CompressFormat.JPEG, 50, outputStream);
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
+                    outputStream.flush();
+                    outputStream.close();
+                    Logger.v("image saved:" + imageFile);
+                } catch (Throwable e) {
+                    // Several error may come out with file handling or OOM
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+
+    }
+
+    public static byte[] getBitmapBytes(Bitmap bitmap) {
+        if (bitmap == null) {
+            return null;
+        }
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+//        bitmap.compress(Bitmap.CompressFormat.JPEG, 50, stream);
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        return stream.toByteArray();
     }
 }
