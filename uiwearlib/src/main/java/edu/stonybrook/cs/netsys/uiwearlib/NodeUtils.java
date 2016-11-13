@@ -41,6 +41,7 @@ public class NodeUtils {
         source.getBoundsInScreen(rectScreen);
 
         return "rect: " + rectScreen.toString() + "; "
+                + "packageName: " + source.getPackageName() + ";"
                 + "viewID: " + source.getViewIdResourceName() + "; "
                 + "class: " + source.getClassName() + "; "
                 + "id: " + Integer.toHexString(source.hashCode()) + "; "

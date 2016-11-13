@@ -7,6 +7,7 @@ import android.content.Context;
 
 import com.cscao.libs.gmswear.GmsWear;
 import com.morgoo.droidplugin.PluginHelper;
+import com.orhanobut.logger.Logger;
 
 /**
  * Created by qqcao on 10/27/16 Thursday.
@@ -20,6 +21,7 @@ public class WearApplication extends Application {
         super.onCreate();
         PluginHelper.getInstance().applicationOnCreate(getBaseContext());
         GmsWear.initialize(this, CAPABILITY);
+        Logger.init("UIWearWatch");
     }
 
     @Override

@@ -23,7 +23,8 @@ public class DataBundle implements Parcelable {
         @Override
         public DataBundle createFromParcel(Parcel parcel) {
             String key = parcel.readString();
-            DataBundle dataBundle = new DataBundle(key);
+            String preferenceId = parcel.readString();
+            DataBundle dataBundle = new DataBundle(key, preferenceId);
             int count = parcel.readInt();
             for (int i = 0; i < count; i++) {
                 DataNode node = DataNode.CREATOR.createFromParcel(parcel);
@@ -37,11 +38,16 @@ public class DataBundle implements Parcelable {
             return new DataBundle[size];
         }
     };
-    private String mKey;
+
+    private String mAppPkgName;
+
+    private String mPreferenceId;
+
     private ArrayList<DataNode> mDataNodes;
 
-    public DataBundle(String key) {
-        mKey = key;
+    public DataBundle(String appPkgName, String preferenceId) {
+        mAppPkgName = appPkgName;
+        mPreferenceId = preferenceId;
         mDataNodes = new ArrayList<>();
     }
 
@@ -56,7 +62,8 @@ public class DataBundle implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(mKey);
+        dest.writeString(mAppPkgName);
+        dest.writeString(mPreferenceId);
         int count = mDataNodes.size();
         dest.writeInt(count);
         for (int i = 0; i < count; i++) {
@@ -71,7 +78,8 @@ public class DataBundle implements Parcelable {
             sb.append(node.toString());
             sb.append("; ");
         }
-        return "DataBundle{" + "mKey=" + mKey
+        return "DataBundle{" + "mAppPkgName=" + mAppPkgName
+                + ", mPreferenceId=" + mPreferenceId
                 + ", Size=" + mDataNodes.size()
                 + ", mDataNodes=" + sb.toString()
                 + "}";
@@ -84,14 +92,27 @@ public class DataBundle implements Parcelable {
 
         DataBundle that = (DataBundle) o;
 
-        return mKey.equals(that.mKey) && mDataNodes.equals(that.mDataNodes);
+        return mAppPkgName.equals(that.mAppPkgName) && mDataNodes.equals(that.mDataNodes);
 
     }
 
     @Override
     public int hashCode() {
-        int result = mKey.hashCode();
+        int result = mAppPkgName.hashCode();
         result = 31 * result + mDataNodes.hashCode();
         return result;
+    }
+
+
+    public String getAppPkgName() {
+        return mAppPkgName;
+    }
+
+    public String getPreferenceId() {
+        return mPreferenceId;
+    }
+
+    public ArrayList<DataNode> getDataNodes() {
+        return mDataNodes;
     }
 }

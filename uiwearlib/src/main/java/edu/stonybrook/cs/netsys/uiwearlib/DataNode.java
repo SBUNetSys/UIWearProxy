@@ -33,11 +33,12 @@ public class DataNode implements Parcelable {
             int id = parcel.readInt();
             String viewId = parcel.readString();
             String text = parcel.readString();
-            byte[] image = null;
-            boolean hasBitmap = parcel.readByte() != 0;
-            if (hasBitmap) {
+            int length = parcel.readInt();
+            byte[] image = new byte[length];
+            if (length > 0) {
                 parcel.readByteArray(image);
             } else {
+                image = null;
                 Logger.v("bitmap null");
             }
 
@@ -92,10 +93,10 @@ public class DataNode implements Parcelable {
         dest.writeString(mViewId);
         dest.writeString(mText);
         if (mImage != null) {
-            dest.writeByte((byte) 1);
+            dest.writeInt(mImage.length);
             dest.writeByteArray(mImage);
         } else {
-            dest.writeByte((byte) 0);
+            dest.writeInt(0);
         }
     }
 
@@ -133,10 +134,6 @@ public class DataNode implements Parcelable {
 
     public void setImage(Bitmap image) {
         mImage = getBitmapBytes(image);
-    }
-
-    public String getUniqueId() {
-        return mViewId + mId;
     }
 
     public String getFriendlyName(Bitmap bitmap) {

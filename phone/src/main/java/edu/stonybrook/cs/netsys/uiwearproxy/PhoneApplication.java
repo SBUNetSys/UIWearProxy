@@ -5,6 +5,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CAPABILITY;
 import android.app.Application;
 
 import com.cscao.libs.gmswear.GmsWear;
+import com.orhanobut.logger.Logger;
 
 /**
  * Created by qqcao on 11/03/16 Thursday.
@@ -17,5 +18,6 @@ public class PhoneApplication extends Application {
     public void onCreate() {
         super.onCreate();
         GmsWear.initialize(this, CAPABILITY);
+        Logger.init("UIWearPhone");
     }
 }

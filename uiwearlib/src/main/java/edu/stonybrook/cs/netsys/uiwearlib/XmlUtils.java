@@ -133,4 +133,7 @@ public class XmlUtils {
         return nodes;
     }
 
+    public static void parseMappingRule(File mappingRuleFile) {
+
+    }
 }

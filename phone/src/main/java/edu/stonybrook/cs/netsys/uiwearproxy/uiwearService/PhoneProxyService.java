@@ -49,6 +49,7 @@ import com.cscao.libs.gmswear.connectivity.FileTransfer;
 import com.cscao.libs.gmswear.consumer.AbstractDataConsumer;
 import com.cscao.libs.gmswear.consumer.DataConsumer;
 import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.MessageEvent;
 import com.orhanobut.logger.Logger;
 
@@ -77,28 +78,29 @@ public class PhoneProxyService extends AccessibilityService {
     // either region or id alone is not enough for detecting the specific UI elements
     // so combined them and can cover most cases
     // must use region as key, since id can be the same
-    private HashMap<Rect, String> mAppLeafNodesMap = new HashMap<>();
+    private HashMap<Rect, String> mAppLeafNodesMapForPreferenceSetting = new HashMap<>();
     private String mAppRootNodePkgName;
 
     // for bitmap extracting and other heavy work
+    // TODO: 11/13/16 refactor this use RxJava or EventBus
     private WorkerThread mWorkerThread;
 
     // main thread handler
     private Handler mMainThreadHandler;
 
-    private SharedPreferences mEnabledAppListPreferences;
+    private SharedPreferences mEnabledAppsSharePref;
 
-    // list of app preference nodes, for each pair, the first is id, the second is rect
+    // list of app preference mNodes, for each pair, the first is id, the second is rect
     private LruCache<String, ArrayList<Pair<String, Rect>>> mAppPreferenceNodesCache =
             new LruCache<>(RUNNING_APP_PREF_CACHE_SIZE);
 
     private HashSet<Pair<String, Rect>> mAppNodes = new HashSet<>();
     private HashMap<Pair<String, Rect>, AccessibilityNodeInfo> mPairAccessibilityNodeMap =
             new HashMap<>();
-    private LruCache<String, Bitmap> mBitmapLruCache = new LruCache<String, Bitmap>(
+    private LruCache<Integer, Bitmap> mBitmapLruCache = new LruCache<Integer, Bitmap>(
             BITMAP_CACHE_SIZE) {
         @Override
-        protected int sizeOf(String key, Bitmap bitmap) {
+        protected int sizeOf(Integer key, Bitmap bitmap) {
             // The cache size will be measured in kilobytes rather than number of items.
             return bitmap.getByteCount();
         }
@@ -112,7 +114,7 @@ public class PhoneProxyService extends AccessibilityService {
         public void onReceive(Context context, Intent intent) {
             switch (intent.getAction()) {
                 case PREFERENCE_SETTING_STARTED:
-                    Logger.v("preference activity started");
+                    Logger.t("pref").v("preference activity started");
                     sendLeafNodesToPreferenceSetting();
                     break;
 
@@ -121,12 +123,12 @@ public class PhoneProxyService extends AccessibilityService {
                             intent.getParcelableArrayListExtra(PREFERENCE_NODES_KEY);
                     persistAppPreferenceNodesAsync(preferredRect);
                     // TODO: 11/5/16  read mapping rule and start build app process
-                    Logger.v("received preferredRect");
+                    Logger.t("pref").v("received preferredRect");
                     break;
 
                 case PREFERENCE_SETTING_EXIT:
 
-                    Logger.v("setting exit ");
+                    Logger.t("pref").v("setting exit ");
                     break;
                 default:
             }
@@ -150,14 +152,10 @@ public class PhoneProxyService extends AccessibilityService {
             public void handleMessage(Message msg) {
                 switch (msg.what) {
                     case PERSIST_PREFERENCE_NODES_SUCCESS:
-                        Logger.d(msg.obj + " json preference saved");
+                        Logger.t("pref").v(msg.obj + "preference saved");
                         break;
                     case READ_PREFERENCE_NODES_SUCCESS:
-                        Logger.d("json preference read");
-//                        Pair<String,ArrayList<Pair<String, String>>> appPkgNodeMap =
-//                        ArrayList<Pair<String, String>> preferredNodes =
-//                                (ArrayList<Pair<String, String>>) msg.obj;
-//                        mAppPreferenceNodesCache.get()
+                        Logger.t("pref").v("preference read");
 
                     default:
                         Logger.e("unknown msg");
@@ -165,7 +163,7 @@ public class PhoneProxyService extends AccessibilityService {
             }
         };
 
-        mEnabledAppListPreferences = getSharedPreferences(ENABLED_APPS_PREF_NAME,
+        mEnabledAppsSharePref = getSharedPreferences(ENABLED_APPS_PREF_NAME,
                 Context.MODE_PRIVATE);
 
         mWorkerThread = new WorkerThread("worker-thread");
@@ -183,6 +181,14 @@ public class PhoneProxyService extends AccessibilityService {
             @Override
             public void onDataChanged(DataEvent event) {
                 Logger.i("onDataChanged");
+                if (event.getType() == DataEvent.TYPE_CHANGED) {
+                    // DataItem changed
+                    DataItem item = event.getDataItem();
+                    Logger.i(item.getUri().getPath());
+                    if (item.getUri().getPath().equals(DATA_BUNDLE_PATH)) {
+                        Logger.i("DATA_BUNDLE_PATH");
+                    }
+                }
             }
         };
 
@@ -194,20 +200,21 @@ public class PhoneProxyService extends AccessibilityService {
             int startCode = intent.getIntExtra(PREFERENCE_SETTING_KEY, 0);
             if (startCode == PREFERENCE_SETTING_CODE) {
                 mIsRunningPreferenceSetting = true;
-                Logger.v("start preference setting");
+                Logger.t("pref").v("start preference setting");
             }
 
             int stopCode = intent.getIntExtra(PREFERENCE_STOP_KEY, 0);
             if (stopCode == PREFERENCE_STOP_CODE) {
                 mIsRunningPreferenceSetting = false;
-                mAppLeafNodesMap.clear();
-                Logger.v("stop preference setting");
+                mAppLeafNodesMapForPreferenceSetting.clear();
+                Logger.t("pref").v("stop preference setting");
             }
 
         }
         mGmsWear.addWearConsumer(mDataConsumer);
         // reset all cache here
         resetAllCacheHere();
+
         return START_STICKY;
     }
 
@@ -217,7 +224,7 @@ public class PhoneProxyService extends AccessibilityService {
         mAppPreferenceNodesCache.evictAll();
         mLastSentDataBundle = null;
         mAppRootNodePkgName = null;
-        mAppLeafNodesMap.clear();
+        mAppLeafNodesMapForPreferenceSetting.clear();
         mPairAccessibilityNodeMap.clear();
     }
 
@@ -232,25 +239,26 @@ public class PhoneProxyService extends AccessibilityService {
             return;
         }
 
-        /********** Preference Setting Functionality **********/
-        if (mIsRunningPreferenceSetting) {
-            Logger.v("app node: " + NodeUtils.getBriefNodeInfo(rootNode));
-            mAppRootNodePkgName = rootNode.getPackageName().toString();
-            mAppLeafNodesMap.clear();
-            parseLeafNodes(rootNode);
-
-            // TODO: 11/5/16 extract preference related sub view tree here for app building
+        AccessibilityNodeInfo sourceNode = event.getSource();
+        Logger.t("event").v("event : " + event);
+        Logger.t("event").v("root node: " + NodeUtils.getBriefNodeInfo(rootNode));
+        Logger.t("event").v("source node: " + NodeUtils.getBriefNodeInfo(sourceNode));
+        if (sourceNode == null) {
+            return;
         }
 
-        // remove duplicate events
-//        if (event.equals(mLastProcessedEvent)) {
-//            Logger.v("duplicate events");
-//            Logger.v("event : " + event);
-//            Logger.v("root node: " + NodeUtils.getBriefNodeInfo(rootNode));
-//            Logger.v("source node: " + NodeUtils.getBriefNodeInfo(event.getSource()));
-//            return;
-//        }
-//        mLastProcessedEvent = event;
+        /********** Preference Setting Functionality **********/
+        if (mIsRunningPreferenceSetting) {
+            Logger.t("pref").v("app node: " + NodeUtils.getBriefNodeInfo(rootNode));
+            mAppRootNodePkgName = rootNode.getPackageName().toString();
+            mAppLeafNodesMapForPreferenceSetting.clear();
+            parseLeafNodesForPreferenceSetting(rootNode);
+
+            // TODO: 11/5/16 extract preference related sub view tree here for app building
+
+            // when setting preference, won't extract sub view tree content
+            return;
+        }
 
         // TODO: 11/10/16 support notification capture, code below or use NotifyService
 //        if (event.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
@@ -271,15 +279,21 @@ public class PhoneProxyService extends AccessibilityService {
 //        }
 
         /********** Extracting Sub View Tree Based on App Preference  *********/
-        String appPkgName = getNodePkgName(rootNode);
-        boolean isAppEnabled = mEnabledAppListPreferences.getBoolean(appPkgName, false);
+        final String appPkgName = getNodePkgName(rootNode);
+
+        // even root node is app, if accessibility event is from non app node, then skip
+        if (!appPkgName.equals(sourceNode.getPackageName())) {
+            return;
+        }
+
+        boolean isAppEnabled = mEnabledAppsSharePref.getBoolean(appPkgName, false);
         if (!isAppEnabled) {
             return;
         }
 
         File preferenceFolder = new File(getFilesDir() + File.separator + appPkgName);
         if (!preferenceFolder.exists()) {
-            Logger.i("%s pref not exists!", preferenceFolder.getPath());
+            Logger.t("pref").v("%s pref not exists!", preferenceFolder.getPath());
             return;
         }
 
@@ -292,61 +306,46 @@ public class PhoneProxyService extends AccessibilityService {
             }
         });
 
-
         // read app preference xml file
         readAppPreferenceNodesAsync(preferenceFolder, new AppNodesReadyCallback() {
             @Override
-            public void onAppNodesReady(String prefCacheKey, ArrayList<Pair<String, Rect>> nodes) {
-                // decide whether the preference nodes are subset of current app nodes
-                Logger.v("pref cache key: " + prefCacheKey);
+            public void onAppNodesReady(String preferenceId, ArrayList<Pair<String, Rect>> nodes) {
+                // decide whether the preference mNodes are subset of current app mNodes
+                Logger.v("pref id: " + preferenceId);
                 HashSet<Pair<String, Rect>> preferenceSet = new HashSet<>(nodes);
                 if (!mAppNodes.containsAll(preferenceSet)) {
-                    // root node from non preference screen, so skip
-//                    Logger.v("node set: " + mAppNodes.toString());
-//                    Logger.v("preferenceSet: " + preferenceSet.toString());
-//                    Logger.v("onAppNodesReady skip");
+//                     root node from non preference screen, so skip
+                    Logger.v("node set: " + mAppNodes.toString());
+                    Logger.v("pref set: " + preferenceSet.toString());
+                    Logger.v("onAppNodesReady skip");
                     return;
                 }
-
                 // begin extracting preference view tree info
-                DataBundle dataBundle = new DataBundle(prefCacheKey);
+                DataBundle dataBundle = new DataBundle(appPkgName, preferenceId);
 
                 for (Pair<String, Rect> pair : nodes) {
                     Logger.i("id: " + pair.first + " rect: " + pair.second);
                     AccessibilityNodeInfo accNode = mPairAccessibilityNodeMap.get(pair);
                     DataNode dataNode = new DataNode(accNode);
-                    String uniqueId = dataNode.getUniqueId();
+                    int uniqueId = dataNode.hashCode();
                     Logger.v("unique id: " + uniqueId);
-                    Bitmap nodeBitmap = mBitmapLruCache.get(uniqueId);
-                    if (nodeBitmap == null) {
-                        // FIXME: 11/12/16 based on mapping rule, not all nodes need image/bitmap
-                        if (!"android.widget.TextView".equals(accNode.getClassName())) {
-                            Bundle bitmapBundle = new Bundle();
-                            accNode.requestSnapshot(bitmapBundle);
-                            nodeBitmap = (Bitmap) bitmapBundle.get("bitmap");
-                            if (nodeBitmap == null) {
-                                Logger.w("cannot get bitmap");
-                            } else {
-                                AppUtil.storeBitmapAsync(nodeBitmap, getObbDir().getPath(),
-                                        dataNode.getFriendlyName(nodeBitmap));
-                                mBitmapLruCache.put(uniqueId, nodeBitmap);
-                            }
-                        } else {
-                            Logger.v("text view");
-                        }
-                    } else {
-                        Logger.v("bitmap from cache: " + nodeBitmap.getByteCount() + " bytes");
-                    }
+                    Bitmap nodeBitmap = getNodeBitmap(accNode, dataNode, uniqueId);
                     dataNode.setImage(nodeBitmap);
                     Logger.i(dataNode.toString());
                     dataBundle.add(dataNode);
                 }
-
                 if (dataBundle.equals(mLastSentDataBundle)) {
                     Logger.v("repeat data bundle" + dataBundle);
                     return;
                 } else {
-                    // TODO: 11/12/16 possible optimization: we can send only the nodes diff
+                    // TODO: 11/12/16 possible optimization: we can send only the mNodes diff
+                    // possible solution here:
+                    // 1. cache data nodes on phone, if data node in the data bundle hit
+                    // cache, then send the node hash instead of real data node to wear
+                    // 2. cache data nodes on wear, if receives node hash, find data node in cache,
+                    // if not hit cache, request real data node
+                    // not work on this, probably after finish all integrations and if bad
+                    // experimental result happen, like latency or oom, energy etc.
                     Logger.v("new data bundle" + dataBundle);
                 }
 
@@ -354,14 +353,45 @@ public class PhoneProxyService extends AccessibilityService {
 
                 Logger.i(dataBundle.toString());
                 GmsWear.getInstance().sendMessage(CLICK_PATH, "test msg".getBytes());
-                // send data nodes to wearable proxy with prefCacheKey
+                // send data mNodes to wearable proxy with prefCacheKey
                 byte[] data = AppUtil.marshall(dataBundle);
                 Logger.i("data: " + data.length);
                 mGmsWear.syncAsset(DATA_BUNDLE_PATH, DATA_BUNDLE_KEY, data, true);
-//                sendDataBundleToWearableAsync(data);
             }
         });
 
+    }
+
+    private Bitmap getNodeBitmap(AccessibilityNodeInfo accNode, DataNode dataNode,
+            int uniqueId) {
+        Bitmap nodeBitmap = mBitmapLruCache.get(uniqueId);
+        if (nodeBitmap == null) {
+            // FIXME: 11/12/16 based on mapping rule, not all mNodes need image/bitmap
+            if (!"android.widget.TextView".equals(accNode.getClassName())) {
+                nodeBitmap = requestBitmap(accNode, dataNode, uniqueId);
+            } else {
+                Logger.v("text view");
+            }
+        } else {
+            Logger.v("bitmap from cache: " + nodeBitmap.getByteCount() + " bytes");
+        }
+        return nodeBitmap;
+    }
+
+    private Bitmap requestBitmap(AccessibilityNodeInfo accNode, DataNode dataNode,
+            int uniqueId) {
+        Bitmap nodeBitmap;
+        Bundle bitmapBundle = new Bundle();
+        accNode.requestSnapshot(bitmapBundle);
+        nodeBitmap = (Bitmap) bitmapBundle.get("bitmap");
+        if (nodeBitmap == null) {
+            Logger.w("cannot get bitmap");
+        } else {
+            AppUtil.storeBitmapAsync(nodeBitmap, getObbDir().getPath(),
+                    dataNode.getFriendlyName(nodeBitmap));
+            mBitmapLruCache.put(uniqueId, nodeBitmap);
+        }
+        return nodeBitmap;
     }
 
     @Override
@@ -402,10 +432,10 @@ public class PhoneProxyService extends AccessibilityService {
 
     }
 
-    // parse all UI leaf nodes and save them to list mAppLeafNodesMap
-    private void parseLeafNodes(AccessibilityNodeInfo rootNode) {
+    // parse all UI leaf mNodes and save them to list mAppLeafNodesMapForPreferenceSetting
+    private void parseLeafNodesForPreferenceSetting(AccessibilityNodeInfo rootNode) {
         if (rootNode == null) {
-            Logger.v("null root node ");
+            Logger.t("pref").v("null root node ");
             return;
         }
 
@@ -417,36 +447,36 @@ public class PhoneProxyService extends AccessibilityService {
                 rootNode.getBoundsInScreen(region);
                 String id = rootNode.getViewIdResourceName();
                 if (!region.isEmpty() && id != null) {
-                    Logger.v("add: " + NodeUtils.getBriefNodeInfo(rootNode));
-                    mAppLeafNodesMap.put(region, id);
+                    Logger.t("pref").v("add: " + NodeUtils.getBriefNodeInfo(rootNode));
+                    mAppLeafNodesMapForPreferenceSetting.put(region, id);
                 }
             }
             rootNode.recycle();
         } else {
             for (int i = 0; i < count; i++) {
-                parseLeafNodes(rootNode.getChild(i));
+                parseLeafNodesForPreferenceSetting(rootNode.getChild(i));
             }
         }
     }
 
-    // send prepared leaf nodes to PreferenceSettingActivity
+    // send prepared leaf mNodes to PreferenceSettingActivity
     private void sendLeafNodesToPreferenceSetting() {
-        if (mAppLeafNodesMap.size() > 0) {
+        if (mAppLeafNodesMapForPreferenceSetting.size() > 0) {
             Intent nodesIntent = new Intent(NODES_AVAILABLE);
-            ArrayList<Rect> nodes = new ArrayList<>(mAppLeafNodesMap.keySet());
+            ArrayList<Rect> nodes = new ArrayList<>(mAppLeafNodesMapForPreferenceSetting.keySet());
             nodesIntent.putParcelableArrayListExtra(AVAILABLE_NODES_PREFERENCE_SETTING_KEY,
                     nodes);
             LocalBroadcastManager.getInstance(this).sendBroadcast(nodesIntent);
         } else {
-            Logger.v("no available nodes to send!");
+            Logger.t("pref").v("no available mNodes to send!");
         }
     }
 
-    // save rect-ID pair of user's selected UI nodes and persist them to app specific xml file
+    // save rect-ID pair of user's selected UI mNodes and persist them to app specific xml file
     // support multi-screen preference
     private void persistAppPreferenceNodesAsync(final ArrayList<Rect> preferredNodes) {
-        // ensure that mAppLeafNodesMap is not cleared
-        final HashMap<Rect, String> savedMap = new HashMap<>(mAppLeafNodesMap);
+        // ensure that mAppLeafNodesMapForPreferenceSetting is not cleared
+        final HashMap<Rect, String> savedMap = new HashMap<>(mAppLeafNodesMapForPreferenceSetting);
         final String appPkgName = mAppRootNodePkgName;
 
         mWorkerThread.postTask(new Runnable() {
@@ -460,7 +490,7 @@ public class PhoneProxyService extends AccessibilityService {
                     XmlUtils.serializeAppPreference(preferenceFile, preferredNodes, savedMap);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    Logger.e(e.getMessage());
+                    Logger.t("pref").e(e.getMessage());
                 }
 
                 Message successMsg = mMainThreadHandler.obtainMessage();
@@ -469,7 +499,7 @@ public class PhoneProxyService extends AccessibilityService {
                 mMainThreadHandler.sendMessage(successMsg);
             }
         });
-//        Logger.v();("mapped nodes: " + mAppLeafNodesMap.keySet().toString());
+//        Logger.v();("mapped mNodes: " + mAppLeafNodesMapForPreferenceSetting.keySet().toString());
 //        SharedPreferences sharedPref = getSharedPreferences(mAppRootNodePkgName, MODE_APPEND);
 //        SharedPreferences.Editor editor = sharedPref.edit();
 //        for (Rect rect : preferredNodes) {
@@ -516,11 +546,12 @@ public class PhoneProxyService extends AccessibilityService {
             @Override
             public void run() {
                 for (File preferenceFile : preferenceFolder.listFiles()) {
-                    Logger.v("pref path: " + preferenceFile.getPath());
+                    Logger.t("pref").v("path: " + preferenceFile.getPath() + " name: "
+                            + preferenceFile.getName());
 
                     String cacheKey = FileUtils.getParentName(preferenceFile) + File.separator
                             + FileUtils.getBaseName(preferenceFile);
-                    Logger.v("cache key: " + cacheKey);
+                    Logger.t("pref").v("cache key: " + cacheKey);
 
                     ArrayList<Pair<String, Rect>> nodes = mAppPreferenceNodesCache.get(cacheKey);
 
@@ -528,17 +559,18 @@ public class PhoneProxyService extends AccessibilityService {
                         nodes = XmlUtils.deserializeAppPreference(
                                 preferenceFile);
                         mAppPreferenceNodesCache.put(cacheKey, nodes);
-                        Logger.v("from file");
+                        Logger.t("pref").v("from file");
                     } else {
-                        Logger.v("from cache");
+                        Logger.t("pref").v("from cache");
                     }
 
-                    appNodesReadyCallback.onAppNodesReady(cacheKey, nodes);
+                    appNodesReadyCallback.onAppNodesReady(FileUtils.getBaseName(preferenceFile),
+                            nodes);
                 }
 
 //                Message nodesMsg = mMainThreadHandler.obtainMessage();
 //                nodesMsg.what = READ_PREFERENCE_NODES_SUCCESS;
-//                nodesMsg.obj = new Pair<>(appPkgName, nodes);
+//                nodesMsg.obj = new Pair<>(appPkgName, mNodes);
 //                mMainThreadHandler.sendMessage(nodesMsg);
             }
         });

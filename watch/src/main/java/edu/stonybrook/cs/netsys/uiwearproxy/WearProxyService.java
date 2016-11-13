@@ -32,9 +32,11 @@ import com.orhanobut.logger.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 
 import edu.stonybrook.cs.netsys.uiwearlib.AppUtil;
 import edu.stonybrook.cs.netsys.uiwearlib.DataBundle;
+import edu.stonybrook.cs.netsys.uiwearlib.DataNode;
 import edu.stonybrook.cs.netsys.uiwearlib.WorkerThread;
 
 /**
@@ -125,6 +127,11 @@ public class WearProxyService extends Service {
                 }
                 Logger.d("bytes: " + data.length);
                 DataBundle dataBundle = AppUtil.unmarshall(data, DataBundle.CREATOR);
+
+                String appPkgName = dataBundle.getAppPkgName();
+                String preferenceId = dataBundle.getPreferenceId();
+                ArrayList<DataNode> nodes = dataBundle.getDataNodes();
+
                 Logger.i(dataBundle.toString());
             }
         });
