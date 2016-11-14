@@ -118,21 +118,22 @@ public class WearProxyService extends Service {
         mWorkerThread.postTask(new Runnable() {
             @Override
             public void run() {
-                Logger.d("parseDataBundleAsync");
+                Logger.t("data").d("parseDataBundleAsync");
                 byte[] data = new byte[0];
                 try {
                     data = mGmsWear.loadAssetSynchronous(asset);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                Logger.d("bytes: " + data.length);
+                Logger.t("data").d("bytes: " + data.length);
                 DataBundle dataBundle = AppUtil.unmarshall(data, DataBundle.CREATOR);
 
                 String appPkgName = dataBundle.getAppPkgName();
                 String preferenceId = dataBundle.getPreferenceId();
                 ArrayList<DataNode> nodes = dataBundle.getDataNodes();
 
-                Logger.i(dataBundle.toString());
+
+                Logger.t("data").i(dataBundle.toString());
             }
         });
 

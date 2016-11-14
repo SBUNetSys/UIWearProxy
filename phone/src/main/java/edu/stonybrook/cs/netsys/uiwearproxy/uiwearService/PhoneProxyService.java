@@ -1,6 +1,7 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 
 import static edu.stonybrook.cs.netsys.uiwearlib.AppUtil.BITMAP_DIR;
+import static edu.stonybrook.cs.netsys.uiwearlib.AppUtil.MAPPING_RULE_DIR;
 import static edu.stonybrook.cs.netsys.uiwearlib.AppUtil.PREFERENCE_DIR;
 import static edu.stonybrook.cs.netsys.uiwearlib.AppUtil.getResDir;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
@@ -300,6 +301,12 @@ public class PhoneProxyService extends AccessibilityService {
             return;
         }
 
+        File mappingRuleFolder = new File(getResDir(this, MAPPING_RULE_DIR, appPkgName));
+        if (!mappingRuleFolder.exists()) {
+            Logger.t("mapping").v("%s mapping rule not exists!", mappingRuleFolder.getPath());
+            return;
+        }
+
         mWorkerThread.postTask(new Runnable() {
             @Override
             public void run() {
@@ -422,6 +429,7 @@ public class PhoneProxyService extends AccessibilityService {
         Bundle bitmapBundle = new Bundle();
         accNode.requestSnapshot(bitmapBundle);
         nodeBitmap = (Bitmap) bitmapBundle.get("bitmap");
+        // FIXME: 11/13/16 compress and scale bitmap before sending to wear
         return nodeBitmap;
     }
 

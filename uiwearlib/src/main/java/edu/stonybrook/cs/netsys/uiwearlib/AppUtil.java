@@ -177,6 +177,7 @@ public class AppUtil {
     public static final int BITMAP_DIR = 1;
     public static final int PREFERENCE_DIR = 2;
     public static final int MAPPING_RULE_DIR = 3;
+    public static final int RESOURCE_DIR = 4;
 
     public static String getResDir(Context context, int dirType, String appPkgName) {
         String dirName;
@@ -190,9 +191,12 @@ public class AppUtil {
             case MAPPING_RULE_DIR:
                 dirName = "MappingRules";
                 break;
+            case RESOURCE_DIR:
+                dirName = "Resources";
+                break;
             default:
                 dirName = "temp";
         }
-        return context.getObbDir() + File.separator + dirName + File.separator + appPkgName;
+        return context.getObbDir() + File.separator + appPkgName + File.separator + dirName;
     }
 }

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<Card id="2016-11-07-04_52_10" style="default">
-    <!-- 1. id attribute is mandatory and must be the filename of preference
+<Card style="default">
+    <!-- 1. file name must be the same filename of preference
          2. src attribute is for developer to specify their customized layout xml
          (relative path to this mapping rule), which is optional.
-         (src use "default" to use UIWear default layout, here refer to Card_Example.xml)
+         (if not specified, src use "default" to use UIWear provided layout)
     -->
 
     <!--Card has at least two elements:
@@ -18,6 +18,7 @@
     For each element:
     from attribute means the id of preference UI nodes from phone app
     value contains default info (e.g., text, image path ) for initialization, reset functionality.
+    for image value, the location is under Resources folder
     -->
     <Title from="com.spotify.music:id/title">
         <text>The Ambient White Noise of Nature</text>

@@ -15,12 +15,12 @@ import java.util.Arrays;
  * Data Node is the our UIWear data protocol for phone proxy to communicate with wear proxy
  * Each node carries the following attributes of AccessibilityNodeInfo:
  *
- * mId (hashcode), viewId (mViewIdResourceName), mText (mText), mImage (bitmap requested using
+ * mClickId (hashcode), viewId (mViewIdResourceName), mText (mText), mImage (bitmap requested using
  * augmented AccessibilityService)
  *
  * Note: action (e.g. mClickable) is complex, depends on parent nodes and even grandparent nodes.
  * Currently we support this by setting action listeners on wearable side, and transfer
- * their id (hashcode) to let phone proxy perform actions.
+ * their mClickId (hashcode) to let phone proxy perform actions.
  *
  * Created by qqcao on 03/12/2016.
  * Modified on 11/10/2016.

@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<nodes>
+  <node>
+    <id>android:id/text1</id>
+    <rect>228 1069 869 1130</rect>
+  </node>
+  <node>
+    <id>android:id/text2</id>
+    <rect>228 1138 566 1187</rect>
+  </node>
+  <node>
+    <id>android:id/icon</id>
+    <rect>48 1056 192 1200</rect>
+  </node>
+  <node>
+    <id>android:id/icon</id>
+    <rect>48 1248 192 1392</rect>
+  </node>
+  <node>
+    <id>android:id/text1</id>
+    <rect>228 1261 816 1322</rect>
+  </node>
+  <node>
+    <id>android:id/text2</id>
+    <rect>228 1330 624 1379</rect>
+  </node>
+  <node>
+    <id>android:id/text1</id>
+    <rect>228 1453 550 1514</rect>
+  </node>
+  <node>
+    <id>android:id/text2</id>
+    <rect>228 1522 326 1571</rect>
+  </node>
+  <node>
+    <id>android:id/icon</id>
+    <rect>48 1440 192 1584</rect>
+  </node>
+</nodes>
