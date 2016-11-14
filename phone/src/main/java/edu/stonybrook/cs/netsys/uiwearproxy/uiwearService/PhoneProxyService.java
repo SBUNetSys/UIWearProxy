@@ -1,5 +1,8 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.AppUtil.BITMAP_DIR;
+import static edu.stonybrook.cs.netsys.uiwearlib.AppUtil.PREFERENCE_DIR;
+import static edu.stonybrook.cs.netsys.uiwearlib.AppUtil.getResDir;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.BITMAP_CACHE_SIZE;
@@ -95,7 +98,7 @@ public class PhoneProxyService extends AccessibilityService {
             new LruCache<>(RUNNING_APP_PREF_CACHE_SIZE);
 
     private HashSet<Pair<String, Rect>> mAppNodes = new HashSet<>();
-    private HashMap<Pair<String, Rect>, AccessibilityNodeInfo> mPairAccessibilityNodeMap =
+    private HashMap<String, AccessibilityNodeInfo> mPairAccessibilityNodeMap =
             new HashMap<>();
     private LruCache<Integer, Bitmap> mBitmapLruCache = new LruCache<Integer, Bitmap>(
             BITMAP_CACHE_SIZE) {
@@ -291,7 +294,7 @@ public class PhoneProxyService extends AccessibilityService {
             return;
         }
 
-        File preferenceFolder = new File(getFilesDir() + File.separator + appPkgName);
+        File preferenceFolder = new File(getResDir(this, PREFERENCE_DIR, appPkgName));
         if (!preferenceFolder.exists()) {
             Logger.t("pref").v("%s pref not exists!", preferenceFolder.getPath());
             return;
@@ -312,30 +315,18 @@ public class PhoneProxyService extends AccessibilityService {
             public void onAppNodesReady(String preferenceId, ArrayList<Pair<String, Rect>> nodes) {
                 // decide whether the preference mNodes are subset of current app mNodes
                 Logger.v("pref id: " + preferenceId);
-                HashSet<Pair<String, Rect>> preferenceSet = new HashSet<>(nodes);
-                if (!mAppNodes.containsAll(preferenceSet)) {
+                if (!appNodesContainPreferenceNodes(nodes)) {
 //                     root node from non preference screen, so skip
-                    Logger.v("node set: " + mAppNodes.toString());
-                    Logger.v("pref set: " + preferenceSet.toString());
-                    Logger.v("onAppNodesReady skip");
+                    Logger.v("not contain preference nodes, skip");
                     return;
                 }
                 // begin extracting preference view tree info
                 DataBundle dataBundle = new DataBundle(appPkgName, preferenceId);
+                parseNodeData(nodes, dataBundle);
 
-                for (Pair<String, Rect> pair : nodes) {
-                    Logger.i("id: " + pair.first + " rect: " + pair.second);
-                    AccessibilityNodeInfo accNode = mPairAccessibilityNodeMap.get(pair);
-                    DataNode dataNode = new DataNode(accNode);
-                    int uniqueId = dataNode.hashCode();
-                    Logger.v("unique id: " + uniqueId);
-                    Bitmap nodeBitmap = getNodeBitmap(accNode, dataNode, uniqueId);
-                    dataNode.setImage(nodeBitmap);
-                    Logger.i(dataNode.toString());
-                    dataBundle.add(dataNode);
-                }
                 if (dataBundle.equals(mLastSentDataBundle)) {
-                    Logger.v("repeat data bundle" + dataBundle);
+                    Logger.v("repeat curr bundle" + dataBundle);
+                    Logger.v("repeat last bundle" + mLastSentDataBundle);
                     return;
                 } else {
                     // TODO: 11/12/16 possible optimization: we can send only the mNodes diff
@@ -362,35 +353,75 @@ public class PhoneProxyService extends AccessibilityService {
 
     }
 
-    private Bitmap getNodeBitmap(AccessibilityNodeInfo accNode, DataNode dataNode,
-            int uniqueId) {
-        Bitmap nodeBitmap = mBitmapLruCache.get(uniqueId);
-        if (nodeBitmap == null) {
-            // FIXME: 11/12/16 based on mapping rule, not all mNodes need image/bitmap
-            if (!"android.widget.TextView".equals(accNode.getClassName())) {
-                nodeBitmap = requestBitmap(accNode, dataNode, uniqueId);
-            } else {
-                Logger.v("text view");
-            }
-        } else {
-            Logger.v("bitmap from cache: " + nodeBitmap.getByteCount() + " bytes");
+    private boolean appNodesContainPreferenceNodes(ArrayList<Pair<String, Rect>> preferenceNodes) {
+        /** for strict matching of both id and rect ***/
+        //HashSet<Pair<String, Rect>> preferenceSet = new HashSet<>(nodes);
+        //Logger.v("node set: " + mAppNodes.toString());
+        //Logger.v("pref set: " + nodes.toString());
+        //return mAppNodes.containsAll(preferenceSet);
+
+        /*** only compare viewId, (change pair.first to pair.second to only compare rect) ***/
+        ArrayList<String> preferenceNodeIdList = new ArrayList<>();
+        ArrayList<String> appNodeIdList = new ArrayList<>();
+
+        ArrayList<Pair<String, Rect>> appNodes = new ArrayList<>(mAppNodes);
+        for (Pair<String, Rect> pair : appNodes) {
+            appNodeIdList.add(pair.first);
         }
+
+        for (Pair<String, Rect> pair : preferenceNodes) {
+            preferenceNodeIdList.add(pair.first);
+        }
+
+        return appNodeIdList.containsAll(preferenceNodeIdList);
+    }
+
+    private void parseNodeData(ArrayList<Pair<String, Rect>> nodes, DataBundle dataBundle) {
+        // currently only use id to extract preference nodes info
+        for (Pair<String, Rect> pair : nodes) {
+            Logger.i("id: " + pair.first + " rect: " + pair.second);
+            AccessibilityNodeInfo accNode = mPairAccessibilityNodeMap.get(pair.first);
+            DataNode dataNode = new DataNode(accNode);
+            int uniqueId = dataNode.getUniqueId();
+            Logger.v("unique id: " + uniqueId);
+            Bitmap nodeBitmap = getNodeBitmap(accNode, dataNode);
+            dataNode.setImage(nodeBitmap);
+            Logger.i(dataNode.toString());
+            dataBundle.add(dataNode);
+        }
+    }
+
+    private Bitmap getNodeBitmap(AccessibilityNodeInfo accNode, DataNode dataNode) {
+        // FIXME: 11/12/16 based on mapping rule, not all mNodes need image/bitmap
+        if ("android.widget.TextView".equals(accNode.getClassName())) {
+            Logger.v("text view");
+            return null;
+        }
+
+        Bitmap nodeBitmap = mBitmapLruCache.get(dataNode.getUniqueId());
+        if (nodeBitmap != null) {
+            Logger.v("bitmap from cache: " + nodeBitmap.getByteCount() + " bytes");
+            return nodeBitmap;
+        }
+
+        nodeBitmap = requestBitmap(accNode);
+        if (nodeBitmap == null) {
+            Logger.w("cannot get bitmap");
+            return null;
+        }
+
+        String bitmapPath = getResDir(this, BITMAP_DIR, accNode.getPackageName().toString());
+        AppUtil.storeBitmapAsync(nodeBitmap, bitmapPath, dataNode.getFriendlyName(nodeBitmap));
+        mBitmapLruCache.put(dataNode.getUniqueId(), nodeBitmap);
+
         return nodeBitmap;
     }
 
-    private Bitmap requestBitmap(AccessibilityNodeInfo accNode, DataNode dataNode,
-            int uniqueId) {
+    private Bitmap requestBitmap(AccessibilityNodeInfo accNode) {
         Bitmap nodeBitmap;
         Bundle bitmapBundle = new Bundle();
         accNode.requestSnapshot(bitmapBundle);
         nodeBitmap = (Bitmap) bitmapBundle.get("bitmap");
-        if (nodeBitmap == null) {
-            Logger.w("cannot get bitmap");
-        } else {
-            AppUtil.storeBitmapAsync(nodeBitmap, getObbDir().getPath(),
-                    dataNode.getFriendlyName(nodeBitmap));
-            mBitmapLruCache.put(uniqueId, nodeBitmap);
-        }
         return nodeBitmap;
     }
 
@@ -423,7 +454,7 @@ public class PhoneProxyService extends AccessibilityService {
         rootNode.getBoundsInScreen(rect);
         Pair<String, Rect> pair = new Pair<>(id, rect);
         mAppNodes.add(pair);
-        mPairAccessibilityNodeMap.put(pair, rootNode);
+        mPairAccessibilityNodeMap.put(id, rootNode);
         int count = rootNode.getChildCount();
 
         for (int i = 0; i < count; i++) {
@@ -484,7 +515,8 @@ public class PhoneProxyService extends AccessibilityService {
             public void run() {
                 // write xml file to obb file
                 CharSequence date = DateFormat.format(TIME_FORMAT, new java.util.Date());
-                File preferenceFile = new File(getFilesDir() + File.separator + appPkgName,
+                File preferenceFile = new File(
+                        getResDir(getApplicationContext(), PREFERENCE_DIR, appPkgName),
                         date + XML_EXT);
                 try {
                     XmlUtils.serializeAppPreference(preferenceFile, preferredNodes, savedMap);

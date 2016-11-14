@@ -173,4 +173,26 @@ public class AppUtil {
         bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
         return stream.toByteArray();
     }
+
+    public static final int BITMAP_DIR = 1;
+    public static final int PREFERENCE_DIR = 2;
+    public static final int MAPPING_RULE_DIR = 3;
+
+    public static String getResDir(Context context, int dirType, String appPkgName) {
+        String dirName;
+        switch (dirType) {
+            case BITMAP_DIR:
+                dirName = "SavedImages";
+                break;
+            case PREFERENCE_DIR:
+                dirName = "Preferences";
+                break;
+            case MAPPING_RULE_DIR:
+                dirName = "MappingRules";
+                break;
+            default:
+                dirName = "temp";
+        }
+        return context.getObbDir() + File.separator + dirName + File.separator + appPkgName;
+    }
 }

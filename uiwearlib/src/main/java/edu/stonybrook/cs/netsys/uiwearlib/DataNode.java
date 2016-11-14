@@ -51,13 +51,13 @@ public class DataNode implements Parcelable {
         }
     };
 
-    private int mId;
+    private int mClickId;
     private String mViewId;
     private String mText;
     private byte[] mImage;
 
     public DataNode(AccessibilityNodeInfo node) {
-        mId = node.hashCode();
+        mClickId = node.hashCode();
         mViewId = node.getViewIdResourceName();
         if (node.getText() != null) {
             mText = node.getText().toString();
@@ -69,14 +69,14 @@ public class DataNode implements Parcelable {
     }
 
     public DataNode(int id, String viewId, String text, Bitmap image) {
-        mId = id;
+        mClickId = id;
         mViewId = viewId;
         mText = text;
         mImage = getBitmapBytes(image);
     }
 
     public DataNode(int id, String viewId, String text, byte[] image) {
-        mId = id;
+        mClickId = id;
         mViewId = viewId;
         mText = text;
         mImage = image;
@@ -89,7 +89,7 @@ public class DataNode implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeInt(mId);
+        dest.writeInt(mClickId);
         dest.writeString(mViewId);
         dest.writeString(mText);
         if (mImage != null) {
@@ -100,12 +100,12 @@ public class DataNode implements Parcelable {
         }
     }
 
-    public int getID() {
-        return mId;
+    public int getClickId() {
+        return mClickId;
     }
 
-    public void setId(int id) {
-        mId = id;
+    public void setClickId(int id) {
+        mClickId = id;
     }
 
     public String getViewId() {
@@ -136,6 +136,10 @@ public class DataNode implements Parcelable {
         mImage = getBitmapBytes(image);
     }
 
+    public int getUniqueId() {
+        return (mViewId + mText + mClickId).hashCode();
+    }
+
     public String getFriendlyName(Bitmap bitmap) {
         return (mViewId).replaceAll("[^a-zA-Z0-9.-]", "_")
                 + Arrays.hashCode(getBitmapBytes(bitmap));
@@ -144,7 +148,7 @@ public class DataNode implements Parcelable {
     @Override
     public String toString() {
         return "DataNode{"
-                + "mId=" + Integer.toHexString(mId)
+                + "mClickId=" + Integer.toHexString(mClickId)
                 + ", mViewId=" + mViewId
                 + ", mText=" + mText
                 + ", mImage=" + (mImage == null ? "null" : mImage.length + " bytes") + "}";
@@ -157,7 +161,8 @@ public class DataNode implements Parcelable {
 
         DataNode node = (DataNode) o;
 
-        return mViewId.equals(node.mViewId)
+        return mClickId == node.mClickId
+                && mViewId.equals(node.mViewId)
                 && mText.equals(node.mText)
                 && Arrays.equals(mImage, node.mImage);
 
@@ -165,7 +170,8 @@ public class DataNode implements Parcelable {
 
     @Override
     public int hashCode() {
-        int result = mViewId.hashCode();
+        int result = mClickId;
+        result = 31 * result + mViewId.hashCode();
         result = 31 * result + mText.hashCode();
         result = 31 * result + Arrays.hashCode(mImage);
         return result;

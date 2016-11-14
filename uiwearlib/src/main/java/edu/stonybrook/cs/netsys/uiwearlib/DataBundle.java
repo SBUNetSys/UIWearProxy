@@ -92,17 +92,19 @@ public class DataBundle implements Parcelable {
 
         DataBundle that = (DataBundle) o;
 
-        return mAppPkgName.equals(that.mAppPkgName) && mDataNodes.equals(that.mDataNodes);
+        return mAppPkgName.equals(that.mAppPkgName)
+                && mPreferenceId.equals(that.mPreferenceId)
+                && mDataNodes.equals(that.mDataNodes);
 
     }
 
     @Override
     public int hashCode() {
         int result = mAppPkgName.hashCode();
+        result = 31 * result + mPreferenceId.hashCode();
         result = 31 * result + mDataNodes.hashCode();
         return result;
     }
-
 
     public String getAppPkgName() {
         return mAppPkgName;
