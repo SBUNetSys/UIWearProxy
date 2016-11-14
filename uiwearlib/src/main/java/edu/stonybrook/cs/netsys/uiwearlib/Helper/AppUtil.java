@@ -8,7 +8,6 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
-import android.os.Environment;
 
 import com.orhanobut.logger.Logger;
 
@@ -100,12 +99,6 @@ public class AppUtil {
     public static boolean isActionAvailable(Context context, String action) {
         Intent intent = new Intent(action);
         return context.getPackageManager().resolveActivity(intent, 0) != null;
-    }
-
-    // pay attention to permission
-    public static void storeBitmapAsync(Bitmap bitmap, String imageName) {
-        File sdcard = Environment.getExternalStorageDirectory();
-        storeBitmapAsync(bitmap, sdcard.getPath() + File.separator + "UIWear", imageName);
     }
 
     public static void storeBitmapAsync(final Bitmap bitmap, final String folder,

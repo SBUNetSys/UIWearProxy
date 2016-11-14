@@ -1,6 +1,12 @@
 package edu.stonybrook.cs.netsys.uiwearlib.dataProtocol;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.IMAGE_DIR_NAME;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.PREF_DIR_NAME;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.RES_DIR_NAME;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.RULE_DIR_NAME;
+
 import android.content.Context;
+import android.os.Environment;
 import android.os.Parcel;
 import android.os.Parcelable;
 
@@ -19,24 +25,37 @@ public class DataUtil {
     public static final int RESOURCE_DIR = 4;
 
     public static String getResDir(Context context, int dirType, String appPkgName) {
+        String dirName = getDirName(dirType);
+        return context.getObbDir() + File.separator + appPkgName + File.separator + dirName;
+    }
+
+    public static String getResDir(int dirType, String appPkgName) {
+        String dirName = getDirName(dirType);
+        File sdcard = Environment.getExternalStorageDirectory();
+        return sdcard.getPath() + File.separator + "UIWear" + File.separator + appPkgName
+                + File.separator
+                + dirName;
+    }
+
+    private static String getDirName(int dirType) {
         String dirName;
         switch (dirType) {
             case BITMAP_DIR:
-                dirName = "SavedImages";
+                dirName = IMAGE_DIR_NAME;
                 break;
             case PREFERENCE_DIR:
-                dirName = "Preferences";
+                dirName = PREF_DIR_NAME;
                 break;
             case MAPPING_RULE_DIR:
-                dirName = "MappingRules";
+                dirName = RULE_DIR_NAME;
                 break;
             case RESOURCE_DIR:
-                dirName = "Resources";
+                dirName = RES_DIR_NAME;
                 break;
             default:
                 dirName = "temp";
         }
-        return context.getObbDir() + File.separator + appPkgName + File.separator + dirName;
+        return dirName;
     }
 
     public static byte[] marshall(Parcelable parcelable) {

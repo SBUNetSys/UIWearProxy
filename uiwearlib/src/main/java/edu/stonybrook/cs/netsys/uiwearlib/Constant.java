@@ -49,4 +49,5 @@ public class Constant {
     public static final String TRANSFER_APK_REQUEST = "/TRANSFER_APK_REQUEST";
     public static final String TRANSFER_MAPPING_RULES_REQUEST = "/TRANSFER_MAPPING_RULES_REQUEST";
 
+    public static final int PERMISSIONS_REQUEST_CODE = 7;
 }

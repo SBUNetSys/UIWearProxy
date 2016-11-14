@@ -296,13 +296,13 @@ public class PhoneProxyService extends AccessibilityService {
             return;
         }
 
-        File preferenceFolder = new File(getResDir(this, PREFERENCE_DIR, appPkgName));
+        File preferenceFolder = new File(getResDir(PREFERENCE_DIR, appPkgName));
         if (!preferenceFolder.exists()) {
             Logger.t("pref").v("%s pref not exists!", preferenceFolder.getPath());
             return;
         }
 
-        File mappingRuleFolder = new File(getResDir(this, MAPPING_RULE_DIR, appPkgName));
+        File mappingRuleFolder = new File(getResDir(MAPPING_RULE_DIR, appPkgName));
         if (!mappingRuleFolder.exists()) {
             Logger.t("mapping").v("%s mapping rule not exists!", mappingRuleFolder.getPath());
             return;
@@ -418,7 +418,7 @@ public class PhoneProxyService extends AccessibilityService {
             return null;
         }
 
-        String bitmapPath = getResDir(this, BITMAP_DIR, accNode.getPackageName().toString());
+        String bitmapPath = getResDir(BITMAP_DIR, accNode.getPackageName().toString());
         AppUtil.storeBitmapAsync(nodeBitmap, bitmapPath, dataNode.getFriendlyName(nodeBitmap));
         mBitmapLruCache.put(dataNode.getUniqueId(), nodeBitmap);
 
@@ -525,7 +525,7 @@ public class PhoneProxyService extends AccessibilityService {
                 // write xml file to obb file
                 CharSequence date = DateFormat.format(TIME_FORMAT, new java.util.Date());
                 File preferenceFile = new File(
-                        getResDir(getApplicationContext(), PREFERENCE_DIR, appPkgName),
+                        getResDir(PREFERENCE_DIR, appPkgName),
                         date + XML_EXT);
                 try {
                     XmlUtil.serializeAppPreference(preferenceFile, preferredNodes, savedMap);
