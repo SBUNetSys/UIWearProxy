@@ -1,7 +1,0 @@
-<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
-<map>
-    <string name="com.spotify.music:id/artistAndAlbum">168 1259 912 1312</string>
-    <string name="com.spotify.music:id/btn_play">420 1485 660 1725</string>
-    <string name="com.spotify.music:id/title">168 1192 912 1253</string>
-    <string name="com.spotify.music:id/image">96 254 984 1142</string>
-</map>

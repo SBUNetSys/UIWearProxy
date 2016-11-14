@@ -21,6 +21,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import edu.stonybrook.cs.netsys.uiwearlib.helper.FileUtil;
+import edu.stonybrook.cs.netsys.uiwearlib.helper.XmlUtil;
+
 /**
  * Created by qqcao on 11/6/16.
  *
@@ -29,7 +32,7 @@ import java.util.HashMap;
 
 @RunWith(RobolectricTestRunner.class)
 @Config(manifest = Config.NONE)
-public class XmlUtilsTest {
+public class XmlUtilTest {
 
     private XmlSerializer mXmlSerializer;
 
@@ -92,11 +95,11 @@ public class XmlUtilsTest {
 
     @Test
     public void serializeAppPreference() throws Exception {
-        XmlUtils.serializeAppPreference(mXmlSerializer, mFileWriter, mPreferenceNodes,
+        XmlUtil.serializeAppPreference(mXmlSerializer, mFileWriter, mPreferenceNodes,
                 mAppLeafNodesMap);
-        assertEquals(FileUtils.readFile(testPrefFile.getPath()).toString().
+        assertEquals(FileUtil.readFile(testPrefFile.getPath()).toString().
                         replaceAll("(\r|\n| )", ""),
-                FileUtils.readFile(inputPrefFile.getPath()).toString().
+                FileUtil.readFile(inputPrefFile.getPath()).toString().
                         replaceAll("(\r|\n| )", ""));
 
     }
@@ -105,8 +108,8 @@ public class XmlUtilsTest {
     @Test
     public void deserializeAppPreference() throws Exception {
 
-        ArrayList<Pair<String, Rect>> preferenceNodesIdPairs = XmlUtils.deserializeAppPreference(
-                FileUtils.readFile(inputPrefFile.getPath()).toString());
+        ArrayList<Pair<String, Rect>> preferenceNodesIdPairs = XmlUtil.deserializeAppPreference(
+                FileUtil.readFile(inputPrefFile.getPath()).toString());
         assertTrue(mPreferenceNodesIdPairs.equals(preferenceNodesIdPairs));
 
     }

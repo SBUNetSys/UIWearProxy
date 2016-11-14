@@ -1,4 +1,4 @@
-package edu.stonybrook.cs.netsys.uiwearlib;
+package edu.stonybrook.cs.netsys.uiwearlib.helper;
 
 import android.graphics.Bitmap;
 import android.os.Environment;
@@ -20,9 +20,9 @@ import java.io.IOException;
  * <li>{@link #writeFile(String, String, boolean)} write file from String</li>
  * </ul>
  */
-public class FileUtils {
+public class FileUtil {
 
-    private FileUtils() {
+    private FileUtil() {
         throw new AssertionError();
     }
 

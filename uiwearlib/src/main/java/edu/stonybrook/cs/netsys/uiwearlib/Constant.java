@@ -27,14 +27,7 @@ public class Constant {
 
     public static final float CLICK_SPAN_THRESHOLD = 5.0f;
 
-    public static final String WEAR_PLUGIN_ACTION_MAIN = "plugin_action_main";
-    public static final String WEAR_PLUGIN_KEY = "WEAR_PLUGIN_KEY";
-
-    public static final String WEAR_HOST_ACTION_MAIN = "host_action_main";
-    public static final String WEAR_HOST_KEY = "WEAR_HOST_KEY";
-
     public static final String CAPABILITY = "UIWear_Capability";
-    public static final int JSON_INDENT_SPACES = 4;
 
     public static final int PERSIST_PREFERENCE_NODES_SUCCESS = 5;
     public static final int READ_PREFERENCE_NODES_SUCCESS = 6;
@@ -43,8 +36,6 @@ public class Constant {
     public static final int RUNNING_APP_PREF_CACHE_SIZE = 20 * 50;
 
     public static final String XML_EXT = ".xml";
-    public static final String ID_STRING = "id";
-    public static final String RECT_STRING = "rect";
     public static final String TIME_FORMAT = "yyyy-MM-dd-hh_mm_ss";
 
     // 10MB bitmap cache
@@ -52,8 +43,6 @@ public class Constant {
 
     public static final String DATA_BUNDLE_PATH = "/DATA_BUNDLE_PATH";
     public static final String DATA_BUNDLE_KEY = "/DATA_BUNDLE_KEY";
-
-    public static final int DATA_BUNDLE_CACHE_SIZE = 50;
 
     public static final String CLICK_PATH = "/CLICK_PATH";
 

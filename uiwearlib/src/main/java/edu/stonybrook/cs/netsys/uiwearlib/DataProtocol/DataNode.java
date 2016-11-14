@@ -1,6 +1,6 @@
-package edu.stonybrook.cs.netsys.uiwearlib;
+package edu.stonybrook.cs.netsys.uiwearlib.dataProtocol;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.AppUtil.getBitmapBytes;
+import static edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil.getBitmapBytes;
 
 import android.graphics.Bitmap;
 import android.os.Parcel;
@@ -151,7 +151,8 @@ public class DataNode implements Parcelable {
                 + "mClickId=" + Integer.toHexString(mClickId)
                 + ", mViewId=" + mViewId
                 + ", mText=" + mText
-                + ", mImage=" + (mImage == null ? "null" : mImage.length + " bytes") + "}";
+                + ", mImage=" + (mImage == null ? "null" : mImage.length + " bytes")
+                + ", hash=" + Integer.toHexString(hashCode()) + "}";
     }
 
     @Override

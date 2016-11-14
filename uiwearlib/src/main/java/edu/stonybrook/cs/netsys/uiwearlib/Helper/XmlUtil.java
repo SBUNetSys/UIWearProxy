@@ -1,4 +1,4 @@
-package edu.stonybrook.cs.netsys.uiwearlib;
+package edu.stonybrook.cs.netsys.uiwearlib.helper;
 
 import android.graphics.Rect;
 import android.support.v4.util.Pair;
@@ -23,7 +23,7 @@ import java.util.HashMap;
  * XML utils for parsing and serialization
  */
 
-public class XmlUtils {
+public class XmlUtil {
 
     private static final String ROOT_TAG = "nodes";
     private static final String NODE_TAG = "node";
@@ -34,7 +34,7 @@ public class XmlUtils {
             ArrayList<Rect> preferredNodes, HashMap<Rect, String> appLeafNodesMap)
             throws IOException {
         XmlSerializer serializer = Xml.newSerializer();
-        FileUtils.makeDirsIfNotExist(preferenceFile.getPath());
+        FileUtil.makeDirsIfNotExist(preferenceFile.getPath());
         FileWriter preferenceWriter = new FileWriter(preferenceFile);
         serializeAppPreference(serializer, preferenceWriter, preferredNodes, appLeafNodesMap);
     }
@@ -80,7 +80,7 @@ public class XmlUtils {
     }
 
     public static ArrayList<Pair<String, Rect>> deserializeAppPreference(File preferenceFile) {
-        String preferenceString = FileUtils.readFile(preferenceFile.getPath()).toString();
+        String preferenceString = FileUtil.readFile(preferenceFile.getPath()).toString();
         return deserializeAppPreference(preferenceString);
     }
 

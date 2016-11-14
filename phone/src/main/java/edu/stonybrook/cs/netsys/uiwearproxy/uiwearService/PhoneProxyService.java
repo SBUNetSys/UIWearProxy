@@ -1,9 +1,5 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.AppUtil.BITMAP_DIR;
-import static edu.stonybrook.cs.netsys.uiwearlib.AppUtil.MAPPING_RULE_DIR;
-import static edu.stonybrook.cs.netsys.uiwearlib.AppUtil.PREFERENCE_DIR;
-import static edu.stonybrook.cs.netsys.uiwearlib.AppUtil.getResDir;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.BITMAP_CACHE_SIZE;
@@ -25,7 +21,12 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.READ_PREFERENCE_NODES_
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RUNNING_APP_PREF_CACHE_SIZE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TIME_FORMAT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.XML_EXT;
-import static edu.stonybrook.cs.netsys.uiwearlib.NodeUtils.getNodePkgName;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.BITMAP_DIR;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.MAPPING_RULE_DIR;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.PREFERENCE_DIR;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.getResDir;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.marshall;
+import static edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil.getNodePkgName;
 
 import android.accessibilityservice.AccessibilityService;
 import android.app.NotificationManager;
@@ -63,13 +64,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
-import edu.stonybrook.cs.netsys.uiwearlib.AppUtil;
-import edu.stonybrook.cs.netsys.uiwearlib.DataBundle;
-import edu.stonybrook.cs.netsys.uiwearlib.DataNode;
-import edu.stonybrook.cs.netsys.uiwearlib.FileUtils;
-import edu.stonybrook.cs.netsys.uiwearlib.NodeUtils;
+import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataBundle;
+import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataNode;
+import edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil;
+import edu.stonybrook.cs.netsys.uiwearlib.helper.FileUtil;
+import edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil;
+import edu.stonybrook.cs.netsys.uiwearlib.helper.XmlUtil;
 import edu.stonybrook.cs.netsys.uiwearlib.WorkerThread;
-import edu.stonybrook.cs.netsys.uiwearlib.XmlUtils;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
 public class PhoneProxyService extends AccessibilityService {
@@ -236,24 +237,24 @@ public class PhoneProxyService extends AccessibilityService {
     public void onAccessibilityEvent(AccessibilityEvent event) {
 
         final AccessibilityNodeInfo rootNode = getRootInActiveWindow();
-//        NodeUtils.printNodeTree(rootNode);
+//        NodeUtil.printNodeTree(rootNode);
 
         // skip non app node
-        if (!NodeUtils.isAppRootNode(this, rootNode)) {
+        if (!NodeUtil.isAppRootNode(this, rootNode)) {
             return;
         }
 
         AccessibilityNodeInfo sourceNode = event.getSource();
         Logger.t("event").v("event : " + event);
-        Logger.t("event").v("root node: " + NodeUtils.getBriefNodeInfo(rootNode));
-        Logger.t("event").v("source node: " + NodeUtils.getBriefNodeInfo(sourceNode));
+        Logger.t("event").v("root node: " + NodeUtil.getBriefNodeInfo(rootNode));
+        Logger.t("event").v("source node: " + NodeUtil.getBriefNodeInfo(sourceNode));
         if (sourceNode == null) {
             return;
         }
 
         /********** Preference Setting Functionality **********/
         if (mIsRunningPreferenceSetting) {
-            Logger.t("pref").v("app node: " + NodeUtils.getBriefNodeInfo(rootNode));
+            Logger.t("pref").v("app node: " + NodeUtil.getBriefNodeInfo(rootNode));
             mAppRootNodePkgName = rootNode.getPackageName().toString();
             mAppLeafNodesMapForPreferenceSetting.clear();
             parseLeafNodesForPreferenceSetting(rootNode);
@@ -352,7 +353,7 @@ public class PhoneProxyService extends AccessibilityService {
                 Logger.i(dataBundle.toString());
                 GmsWear.getInstance().sendMessage(CLICK_PATH, "test msg".getBytes());
                 // send data mNodes to wearable proxy with prefCacheKey
-                byte[] data = AppUtil.marshall(dataBundle);
+                byte[] data = marshall(dataBundle);
                 Logger.i("data: " + data.length);
                 mGmsWear.syncAsset(DATA_BUNDLE_PATH, DATA_BUNDLE_KEY, data, true);
             }
@@ -486,7 +487,7 @@ public class PhoneProxyService extends AccessibilityService {
                 rootNode.getBoundsInScreen(region);
                 String id = rootNode.getViewIdResourceName();
                 if (!region.isEmpty() && id != null) {
-                    Logger.t("pref").v("add: " + NodeUtils.getBriefNodeInfo(rootNode));
+                    Logger.t("pref").v("add: " + NodeUtil.getBriefNodeInfo(rootNode));
                     mAppLeafNodesMapForPreferenceSetting.put(region, id);
                 }
             }
@@ -527,7 +528,7 @@ public class PhoneProxyService extends AccessibilityService {
                         getResDir(getApplicationContext(), PREFERENCE_DIR, appPkgName),
                         date + XML_EXT);
                 try {
-                    XmlUtils.serializeAppPreference(preferenceFile, preferredNodes, savedMap);
+                    XmlUtil.serializeAppPreference(preferenceFile, preferredNodes, savedMap);
                 } catch (IOException e) {
                     e.printStackTrace();
                     Logger.t("pref").e(e.getMessage());
@@ -589,14 +590,14 @@ public class PhoneProxyService extends AccessibilityService {
                     Logger.t("pref").v("path: " + preferenceFile.getPath() + " name: "
                             + preferenceFile.getName());
 
-                    String cacheKey = FileUtils.getParentName(preferenceFile) + File.separator
-                            + FileUtils.getBaseName(preferenceFile);
+                    String cacheKey = FileUtil.getParentName(preferenceFile) + File.separator
+                            + FileUtil.getBaseName(preferenceFile);
                     Logger.t("pref").v("cache key: " + cacheKey);
 
                     ArrayList<Pair<String, Rect>> nodes = mAppPreferenceNodesCache.get(cacheKey);
 
                     if (nodes == null) {
-                        nodes = XmlUtils.deserializeAppPreference(
+                        nodes = XmlUtil.deserializeAppPreference(
                                 preferenceFile);
                         mAppPreferenceNodesCache.put(cacheKey, nodes);
                         Logger.t("pref").v("from file");
@@ -604,7 +605,7 @@ public class PhoneProxyService extends AccessibilityService {
                         Logger.t("pref").v("from cache");
                     }
 
-                    appNodesReadyCallback.onAppNodesReady(FileUtils.getBaseName(preferenceFile),
+                    appNodesReadyCallback.onAppNodesReady(FileUtil.getBaseName(preferenceFile),
                             nodes);
                 }
 

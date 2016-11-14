@@ -18,7 +18,7 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.List;
 
-import edu.stonybrook.cs.netsys.uiwearlib.AppUtil;
+import edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
 class AppAdapter extends RecyclerView.Adapter<AppAdapter.ViewHolder> {

@@ -10,7 +10,7 @@ import android.view.MenuItem;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 
-import edu.stonybrook.cs.netsys.uiwearlib.AppUtil;
+import edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
 /**

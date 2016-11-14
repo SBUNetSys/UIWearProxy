@@ -1,4 +1,4 @@
-package edu.stonybrook.cs.netsys.uiwearlib;
+package edu.stonybrook.cs.netsys.uiwearlib.helper;
 
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.SYSTEM_UI_PKG;
 
@@ -15,7 +15,7 @@ import com.orhanobut.logger.Logger;
  * AccessibilityNodeInfo utils
  */
 
-public class NodeUtils {
+public class NodeUtil {
     public static void printNodeTree(AccessibilityNodeInfo node) {
         if (node == null) {
             Logger.v("printing null");

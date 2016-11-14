@@ -10,6 +10,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_APK_REQUEST;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_MAPPING_RULES_REQUEST;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.unmarshall;
 
 import android.app.Service;
 import android.content.Intent;
@@ -34,10 +35,9 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import edu.stonybrook.cs.netsys.uiwearlib.AppUtil;
-import edu.stonybrook.cs.netsys.uiwearlib.DataBundle;
-import edu.stonybrook.cs.netsys.uiwearlib.DataNode;
 import edu.stonybrook.cs.netsys.uiwearlib.WorkerThread;
+import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataBundle;
+import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataNode;
 
 /**
  * UIWear wear side proxy service, handling sub view tree info received from phone
@@ -126,7 +126,7 @@ public class WearProxyService extends Service {
                     e.printStackTrace();
                 }
                 Logger.t("data").d("bytes: " + data.length);
-                DataBundle dataBundle = AppUtil.unmarshall(data, DataBundle.CREATOR);
+                DataBundle dataBundle = unmarshall(data, DataBundle.CREATOR);
 
                 String appPkgName = dataBundle.getAppPkgName();
                 String preferenceId = dataBundle.getPreferenceId();

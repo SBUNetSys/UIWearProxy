@@ -1,4 +1,4 @@
-package edu.stonybrook.cs.netsys.uiwearlib;
+package edu.stonybrook.cs.netsys.uiwearlib.dataProtocol;
 
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -80,6 +80,7 @@ public class DataBundle implements Parcelable {
         }
         return "DataBundle{" + "mAppPkgName=" + mAppPkgName
                 + ", mPreferenceId=" + mPreferenceId
+                + ", hash=" + Integer.toHexString(hashCode())
                 + ", Size=" + mDataNodes.size()
                 + ", mDataNodes=" + sb.toString()
                 + "}";

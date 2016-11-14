@@ -10,12 +10,14 @@ import org.junit.Test;
 import java.io.File;
 import java.io.IOException;
 
+import edu.stonybrook.cs.netsys.uiwearlib.helper.FileUtil;
+
 /**
  * Created by qqcao on 11/6/16.
  *
- * Test for FileUtils
+ * Test for FileUtil
  */
-public class FileUtilsTest {
+public class FileUtilTest {
 
     private String testFilePath;
     public static final String testFileContent = "Lorem ipsum dolor sit amet, consectetur "
@@ -52,35 +54,35 @@ public class FileUtilsTest {
 
     @Test
     public void getBaseName() throws Exception {
-        assertEquals("test_text",FileUtils.getBaseName(new File(testFilePath)));
+        assertEquals("test_text", FileUtil.getBaseName(new File(testFilePath)));
     }
 
     @Test
     public void getParentName() throws Exception {
-        assertEquals("debug",FileUtils.getParentName(new File(testFilePath)));
+        assertEquals("debug", FileUtil.getParentName(new File(testFilePath)));
     }
 
     @Test
     public void readFile() throws Exception {
-        assertEquals(FileUtils.readFile(testFilePath).toString(),
+        assertEquals(FileUtil.readFile(testFilePath).toString(),
                 testFileContent.replaceAll("(\r|\n)", ""));
     }
 
     @Test
     public void writeFile() throws Exception {
-        FileUtils.writeFile(outFile.getPath(), testFileContent, false);
+        FileUtil.writeFile(outFile.getPath(), testFileContent, false);
         assertTrue(outFile.exists());
-        assertEquals(FileUtils.readFile(testFilePath).toString(),
+        assertEquals(FileUtil.readFile(testFilePath).toString(),
                 testFileContent.replaceAll("(\r|\n)", ""));
     }
 
     @Test
     public void writeFileAppend() throws Exception {
-        FileUtils.writeFile(outFile.getPath(), testFileContent, false);
+        FileUtil.writeFile(outFile.getPath(), testFileContent, false);
         // append text to the end of file
-        FileUtils.writeFile(outFile.getPath(), testFileContent, true);
+        FileUtil.writeFile(outFile.getPath(), testFileContent, true);
         assertTrue(outFile.exists());
-        assertEquals(FileUtils.readFile(outFile.getPath()).toString(),
+        assertEquals(FileUtil.readFile(outFile.getPath()).toString(),
                 (testFileContent + testFileContent).replaceAll("(\r|\n)", ""));
     }
 
