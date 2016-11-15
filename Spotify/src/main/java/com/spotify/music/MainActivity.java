@@ -27,9 +27,8 @@ import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataNode;
 public class MainActivity extends Activity {
     // resource receiver from wear proxy
     private ResReceiver mResReceiver;
-    private ArrayList<String> mPrefIdList = new ArrayList<>();
     private GridViewPager mPager;
-    private String[] mPrefIdArray;
+    private String[] mPreferenceIdArray;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,7 +37,7 @@ public class MainActivity extends Activity {
         mPager = (GridViewPager) findViewById(R.id.gridViewPager);
         mPager.setAdapter(new LayoutAdapter(getFragmentManager()));
 
-        mPrefIdArray = getResources().getStringArray(R.array.prefs);
+        mPreferenceIdArray = getResources().getStringArray(R.array.prefs);
     }
 
     private class LayoutAdapter extends FragmentGridPagerAdapter {
@@ -95,7 +94,7 @@ public class MainActivity extends Activity {
         mResReceiver = new ResReceiver();
         IntentFilter intentFilter = new IntentFilter();
 
-        Logger.i("filter : " + getPackageName() + INTENT_SUFFIX);
+        Logger.v("filter : " + getPackageName() + INTENT_SUFFIX);
         intentFilter.addAction(getPackageName() + INTENT_SUFFIX);
         registerReceiver(mResReceiver, intentFilter);
         super.onStart();
@@ -119,7 +118,7 @@ public class MainActivity extends Activity {
                 // each node contains clickId, viewId, text, image bytes
                 ArrayList<DataNode> dataNodes = intent.getParcelableArrayListExtra(DATA_NODES_KEY);
 
-                int pageIndex = Arrays.asList(mPrefIdArray).indexOf(prefId);
+                int pageIndex = Arrays.asList(mPreferenceIdArray).indexOf(prefId);
                 Logger.i("prefId index : " + pageIndex);
 
                 mPager.setCurrentItem(pageIndex, 0, false);
