@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="prefs">
+        <item>play_song_pref</item>
+        <item>drink_water_main_pref</item>
+    </string-array>
+    <array name="layouts">
+        <item>@layout/layout_card</item>
+        <item>@layout/layout_water_drink</item>
+    </array>
+</resources>

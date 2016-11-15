@@ -10,6 +10,10 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_APK_REQUEST;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_MAPPING_RULES_REQUEST;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.DATA_NODES_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.INTENT_PREFIX;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.INTENT_SUFFIX;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.PREF_ID_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.unmarshall;
 
 import android.app.Service;
@@ -132,6 +136,14 @@ public class WearProxyService extends Service {
                 String preferenceId = dataBundle.getPreferenceId();
                 ArrayList<DataNode> nodes = dataBundle.getDataNodes();
 
+                Intent appIntent = new Intent(INTENT_PREFIX + appPkgName + INTENT_SUFFIX);
+                Logger.i("filter : " + INTENT_PREFIX + appPkgName + INTENT_SUFFIX);
+
+                appIntent.putExtra(PREF_ID_KEY, preferenceId);
+                appIntent.putParcelableArrayListExtra(DATA_NODES_KEY, nodes);
+
+                // FIXME: 11/15/16 if not compress bitmap, cannot send large intent (1MB)
+                sendBroadcast(appIntent);
 
                 Logger.t("data").i(dataBundle.toString());
             }

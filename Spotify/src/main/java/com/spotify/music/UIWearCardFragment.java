@@ -1,4 +1,4 @@
-package edu.stonybrook.cs.netsys.plugableapp;
+package com.spotify.music;
 
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -55,7 +55,7 @@ public class UIWearCardFragment extends CardFragment {
     @Override
     public View onCreateContentView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
-        View root = inflater.inflate(R.layout.card, container, false);
+        View root = inflater.inflate(R.layout.default_card, container, false);
         mTitleTextView = (TextView) root.findViewById(R.id.title);
         mDescriptionTextView = (TextView) root.findViewById(R.id.text);
         Bundle args = this.getArguments();

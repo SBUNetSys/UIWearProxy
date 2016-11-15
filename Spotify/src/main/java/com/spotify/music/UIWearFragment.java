@@ -1,4 +1,4 @@
-package edu.stonybrook.cs.netsys.plugableapp;
+package com.spotify.music;
 
 import android.app.Fragment;
 import android.os.Bundle;
@@ -11,14 +11,15 @@ import android.view.ViewGroup;
  */
 public class UIWearFragment extends Fragment {
 
+    public static final String ARG_LAYOUT = "layoutID";
     public UIWearFragment() {
         // Required empty public constructor
     }
 
     public static UIWearFragment create(int layoutID) {
-        Bundle args = new Bundle();
-        args.putInt("layoutID", layoutID);
         UIWearFragment fragment = new UIWearFragment();
+        Bundle args = new Bundle();
+        args.putInt(ARG_LAYOUT, layoutID);
         fragment.setArguments(args);
         return fragment;
     }
@@ -28,12 +29,12 @@ public class UIWearFragment extends Fragment {
             Bundle savedInstanceState) {
         Bundle args = getArguments();
         if (args != null) {
-            int layoutID = args.getInt("layoutID", 0);
+            int layoutID = args.getInt(ARG_LAYOUT);
             if (layoutID != 0) {
                 return inflater.inflate(layoutID, container, false);
             }
         }
-        return inflater.inflate(R.layout.activity_container, container, false);
+        return inflater.inflate(R.layout.default_layout, container, false);
     }
 
 }
