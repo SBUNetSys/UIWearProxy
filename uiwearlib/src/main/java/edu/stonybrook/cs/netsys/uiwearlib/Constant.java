@@ -48,4 +48,10 @@ public class Constant {
     public static final String TRANSFER_MAPPING_RULES_REQUEST = "/TRANSFER_MAPPING_RULES_REQUEST";
 
     public static final int PERMISSIONS_REQUEST_CODE = 7;
+
+    public static final String WATCH_RESOLUTION_PATH = "/WATCH_RESOLUTION_PATH";
+    public static final String WATCH_PHONE_RESOLUTION_RATIO_PREF_NAME =
+            "WATCH_PHONE_RESOLUTION_RATIO_PREF_NAME";
+    public static final String WATCH_PHONE_RESOLUTION_RATIO_KEY =
+            "WATCH_PHONE_RESOLUTION_RATIO_KEY";
 }

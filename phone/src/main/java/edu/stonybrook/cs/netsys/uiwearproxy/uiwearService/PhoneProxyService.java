@@ -19,6 +19,9 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.READ_PREFERENCE_NODES_SUCCESS;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RUNNING_APP_PREF_CACHE_SIZE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TIME_FORMAT;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_PHONE_RESOLUTION_RATIO_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_PHONE_RESOLUTION_RATIO_PREF_NAME;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.XML_EXT;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.BITMAP_DIR;
@@ -39,7 +42,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
+import android.graphics.Point;
 import android.graphics.Rect;
+import android.media.ThumbnailUtils;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -48,6 +53,7 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.util.Pair;
 import android.text.format.DateFormat;
 import android.util.LruCache;
+import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
@@ -97,7 +103,8 @@ public class PhoneProxyService extends AccessibilityService {
     // main thread handler
     private Handler mMainThreadHandler;
 
-    private SharedPreferences mEnabledAppsSharePref;
+    private SharedPreferences mEnabledAppsSharedPref;
+    private SharedPreferences mWatchPhoneResolutionRatioSharedPref;
 
     // list of app preference mNodes, for each pair, the first is id, the second is rect
     private LruCache<String, ArrayList<Pair<String, Rect>>> mAppPreferenceNodesCache =
@@ -147,6 +154,9 @@ public class PhoneProxyService extends AccessibilityService {
     private GmsWear mGmsWear;
     private DataConsumer mDataConsumer;
 
+    private int mPhoneWidth;
+    private int mPhoneHeight;
+
     @Override
     public void onCreate() {
         IntentFilter filter = new IntentFilter(PREFERENCE_SETTING_SAVE);
@@ -172,7 +182,10 @@ public class PhoneProxyService extends AccessibilityService {
             }
         };
 
-        mEnabledAppsSharePref = getSharedPreferences(ENABLED_APPS_PREF_NAME,
+        mEnabledAppsSharedPref = getSharedPreferences(ENABLED_APPS_PREF_NAME,
+                Context.MODE_PRIVATE);
+        mWatchPhoneResolutionRatioSharedPref = getSharedPreferences(
+                WATCH_PHONE_RESOLUTION_RATIO_PREF_NAME,
                 Context.MODE_PRIVATE);
 
         mWorkerThread = new WorkerThread("worker-thread");
@@ -184,12 +197,29 @@ public class PhoneProxyService extends AccessibilityService {
         mDataConsumer = new AbstractDataConsumer() {
             @Override
             public void onMessageReceived(MessageEvent messageEvent) {
-                Logger.i("onMessageReceived");
-                if (messageEvent.getPath().equals(CLICK_PATH)) {
-                    byte[] actionData = messageEvent.getData();
-                    DataAction dataAction = unmarshall(actionData, DataAction.CREATOR);
-                    Logger.d(dataAction);
-                    performActionOnPhone(dataAction);
+                switch (messageEvent.getPath()) {
+                    case CLICK_PATH:
+                        Logger.i("CLICK_PATH");
+                        byte[] actionData = messageEvent.getData();
+                        DataAction dataAction = unmarshall(actionData, DataAction.CREATOR);
+                        Logger.d(dataAction);
+                        performActionOnPhone(dataAction);
+                        break;
+                    case WATCH_RESOLUTION_PATH:
+                        Logger.i("WATCH_RESOLUTION_PATH");
+                        byte[] watchResolution = messageEvent.getData();
+                        Point size = unmarshall(watchResolution, Point.CREATOR);
+                        SharedPreferences.Editor editor =
+                                mWatchPhoneResolutionRatioSharedPref.edit();
+                        int phoneSize = Math.max(mPhoneHeight, mPhoneWidth);
+                        int watchSize = Math.min(size.x, size.y);
+                        int ratio = phoneSize / watchSize;
+                        editor.putInt(WATCH_PHONE_RESOLUTION_RATIO_KEY, ratio);
+                        editor.apply();
+
+                        break;
+                    default:
+                        Logger.w("unknown msg");
                 }
             }
 
@@ -207,6 +237,11 @@ public class PhoneProxyService extends AccessibilityService {
             }
         };
 
+        Point size = new Point();
+        ((WindowManager) getSystemService(Context.WINDOW_SERVICE))
+                .getDefaultDisplay().getSize(size);
+        mPhoneWidth = size.x;
+        mPhoneHeight = size.y;
     }
 
     private void performActionOnPhone(DataAction dataAction) {
@@ -374,7 +409,7 @@ public class PhoneProxyService extends AccessibilityService {
             return;
         }
 
-        boolean isAppEnabled = mEnabledAppsSharePref.getBoolean(appPkgName, false);
+        boolean isAppEnabled = mEnabledAppsSharedPref.getBoolean(appPkgName, false);
         if (!isAppEnabled) {
             return;
         }
@@ -503,8 +538,25 @@ public class PhoneProxyService extends AccessibilityService {
 
         String bitmapPath = getResDir(BITMAP_DIR, accNode.getPackageName().toString());
         AppUtil.storeBitmapAsync(nodeBitmap, bitmapPath, dataNode.getFriendlyName(nodeBitmap));
+
+        nodeBitmap = getScaledBitmap(nodeBitmap);
         mBitmapLruCache.put(dataNode.getUniqueId(), nodeBitmap);
 
+        return nodeBitmap;
+    }
+
+    private Bitmap getScaledBitmap(Bitmap nodeBitmap) {
+        int width = nodeBitmap.getWidth();
+        int height = nodeBitmap.getHeight();
+        Logger.d("ScaledBitmap width: " + width + " height: " + height);
+
+        int ratio = mWatchPhoneResolutionRatioSharedPref
+                .getInt(WATCH_PHONE_RESOLUTION_RATIO_KEY, 1);
+        Logger.d("ScaledBitmap ratio " + ratio);
+
+        Logger.d("ScaledBitmap scaled width: " + (width / ratio) + " height: " + (height / ratio));
+//        nodeBitmap = Bitmap.createScaledBitmap(nodeBitmap, width / ratio, height / ratio, true);
+        nodeBitmap = ThumbnailUtils.extractThumbnail(nodeBitmap, width / ratio, height / ratio);
         return nodeBitmap;
     }
 
