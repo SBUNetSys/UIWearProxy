@@ -130,6 +130,12 @@ public class MainActivity extends Activity {
                 Logger.i("prefId: " + prefId);
                 int pageIndex = Arrays.asList(mPreferenceIdArray).indexOf(prefId);
                 Logger.i("prefId index : " + pageIndex);
+                if (pageIndex == -1) {
+                    // no suitable preference id for rendering layout
+                    Logger.w("no preference layout found!");
+                    return;
+                }
+
                 mPager.setCurrentItem(pageIndex, 0, false);
                 // each node contains clickId, phoneViewId, text, image bytes
                 ArrayList<DataNode> dataNodes = intent.getParcelableArrayListExtra(DATA_NODES_KEY);

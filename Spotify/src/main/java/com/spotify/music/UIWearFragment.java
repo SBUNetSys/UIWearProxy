@@ -12,6 +12,7 @@ import android.view.ViewGroup;
 public class UIWearFragment extends Fragment {
 
     public static final String ARG_LAYOUT = "layoutID";
+
     public UIWearFragment() {
         // Required empty public constructor
     }
@@ -27,14 +28,7 @@ public class UIWearFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
-        Bundle args = getArguments();
-        if (args != null) {
-            int layoutID = args.getInt(ARG_LAYOUT);
-            if (layoutID != 0) {
-                return inflater.inflate(layoutID, container, false);
-            }
-        }
-        return inflater.inflate(R.layout.default_layout, container, false);
+        return inflater.inflate(getArguments().getInt(ARG_LAYOUT), container, false);
     }
 
 }

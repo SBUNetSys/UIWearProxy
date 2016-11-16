@@ -106,7 +106,7 @@ public class DataNode implements Parcelable {
 
     public String getFriendlyName(Bitmap bitmap) {
         return (mViewId).replaceAll("[^a-zA-Z0-9.-]", "_")
-                + Arrays.hashCode(getBitmapBytes(bitmap));
+                + Integer.toHexString(Arrays.hashCode(getBitmapBytes(bitmap)));
     }
 
     @Override

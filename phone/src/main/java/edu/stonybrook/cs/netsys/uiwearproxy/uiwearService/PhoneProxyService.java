@@ -104,7 +104,7 @@ public class PhoneProxyService extends AccessibilityService {
             new LruCache<>(RUNNING_APP_PREF_CACHE_SIZE);
 
     private HashSet<Pair<String, Rect>> mAppNodes = new HashSet<>();
-    private HashMap<String, AccessibilityNodeInfo> mPairAccessibilityNodeMap =
+    private HashMap<Pair<String, Rect>, AccessibilityNodeInfo> mPairAccessibilityNodeMap =
             new HashMap<>();
     private LruCache<Integer, Bitmap> mBitmapLruCache = new LruCache<Integer, Bitmap>(
             BITMAP_CACHE_SIZE) {
@@ -321,7 +321,6 @@ public class PhoneProxyService extends AccessibilityService {
     public void onAccessibilityEvent(AccessibilityEvent event) {
 
         final AccessibilityNodeInfo rootNode = getRootInActiveWindow();
-//        NodeUtil.printNodeTree(rootNode);
 
         // skip non app node
         if (!NodeUtil.isAppRootNode(this, rootNode)) {
@@ -397,6 +396,7 @@ public class PhoneProxyService extends AccessibilityService {
             public void run() {
                 mAppNodes.clear();
                 mPairAccessibilityNodeMap.clear();
+                NodeUtil.printNodeTree(rootNode);
                 parseAppNodes(rootNode);
             }
         });
@@ -446,32 +446,32 @@ public class PhoneProxyService extends AccessibilityService {
 
     private boolean appNodesContainPreferenceNodes(ArrayList<Pair<String, Rect>> preferenceNodes) {
         /** for strict matching of both id and rect ***/
-        //HashSet<Pair<String, Rect>> preferenceSet = new HashSet<>(nodes);
-        //Logger.v("node set: " + mAppNodes.toString());
-        //Logger.v("pref set: " + nodes.toString());
-        //return mAppNodes.containsAll(preferenceSet);
+        HashSet<Pair<String, Rect>> preferenceSet = new HashSet<>(preferenceNodes);
+        Logger.v("node set: " + mAppNodes.toString());
+        Logger.v("pref set: " + preferenceNodes.toString());
+        return mAppNodes.containsAll(preferenceSet);
 
         /*** only compare viewId, (change pair.first to pair.second to only compare rect) ***/
-        ArrayList<String> preferenceNodeIdList = new ArrayList<>();
-        ArrayList<String> appNodeIdList = new ArrayList<>();
-
-        ArrayList<Pair<String, Rect>> appNodes = new ArrayList<>(mAppNodes);
-        for (Pair<String, Rect> pair : appNodes) {
-            appNodeIdList.add(pair.first);
-        }
-
-        for (Pair<String, Rect> pair : preferenceNodes) {
-            preferenceNodeIdList.add(pair.first);
-        }
-
-        return appNodeIdList.containsAll(preferenceNodeIdList);
+//        ArrayList<String> preferenceNodeIdList = new ArrayList<>();
+//        ArrayList<String> appNodeIdList = new ArrayList<>();
+//
+//        ArrayList<Pair<String, Rect>> appNodes = new ArrayList<>(mAppNodes);
+//        for (Pair<String, Rect> pair : appNodes) {
+//            appNodeIdList.add(pair.first);
+//        }
+//
+//        for (Pair<String, Rect> pair : preferenceNodes) {
+//            preferenceNodeIdList.add(pair.first);
+//        }
+//
+//        return appNodeIdList.containsAll(preferenceNodeIdList);
     }
 
     private void parseNodeData(ArrayList<Pair<String, Rect>> nodes, DataBundle dataBundle) {
         // currently only use id to extract preference nodes info
         for (Pair<String, Rect> pair : nodes) {
             Logger.i("id: " + pair.first + " rect: " + pair.second);
-            AccessibilityNodeInfo accNode = mPairAccessibilityNodeMap.get(pair.first);
+            AccessibilityNodeInfo accNode = mPairAccessibilityNodeMap.get(pair);
             DataNode dataNode = new DataNode(accNode);
             int uniqueId = dataNode.getUniqueId();
             Logger.v("unique id: " + uniqueId);
@@ -547,8 +547,8 @@ public class PhoneProxyService extends AccessibilityService {
         Pair<String, Rect> pair = new Pair<>(viewId, rect);
         // for preference comparison
         mAppNodes.add(pair);
-        // for finding the node based on viewId
-        mPairAccessibilityNodeMap.put(viewId, rootNode);
+        // for finding the node based on pair
+        mPairAccessibilityNodeMap.put(pair, rootNode);
 
 
         int count = rootNode.getChildCount();
