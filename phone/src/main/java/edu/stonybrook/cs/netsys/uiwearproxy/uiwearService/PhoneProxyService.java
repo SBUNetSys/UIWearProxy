@@ -3,7 +3,6 @@ package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.BITMAP_CACHE_SIZE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CLICK_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ENABLED_APPS_PREF_NAME;
@@ -21,11 +20,14 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.READ_PREFERENCE_NODES_
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RUNNING_APP_PREF_CACHE_SIZE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TIME_FORMAT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.XML_EXT;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.BITMAP_DIR;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.MAPPING_RULE_DIR;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.PREFERENCE_DIR;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.getResDir;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.marshall;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.unmarshall;
+import static edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil.getBriefNodeInfo;
 import static edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil.getNodePkgName;
 
 import android.accessibilityservice.AccessibilityService;
@@ -64,13 +66,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
+import edu.stonybrook.cs.netsys.uiwearlib.WorkerThread;
+import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataAction;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataBundle;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataNode;
 import edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil;
 import edu.stonybrook.cs.netsys.uiwearlib.helper.FileUtil;
 import edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil;
+import edu.stonybrook.cs.netsys.uiwearlib.helper.Shell;
 import edu.stonybrook.cs.netsys.uiwearlib.helper.XmlUtil;
-import edu.stonybrook.cs.netsys.uiwearlib.WorkerThread;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
 public class PhoneProxyService extends AccessibilityService {
@@ -181,6 +185,12 @@ public class PhoneProxyService extends AccessibilityService {
             @Override
             public void onMessageReceived(MessageEvent messageEvent) {
                 Logger.i("onMessageReceived");
+                if (messageEvent.getPath().equals(CLICK_PATH)) {
+                    byte[] actionData = messageEvent.getData();
+                    DataAction dataAction = unmarshall(actionData, DataAction.CREATOR);
+                    Logger.d(dataAction);
+                    performActionOnPhone(dataAction);
+                }
             }
 
             @Override
@@ -197,6 +207,80 @@ public class PhoneProxyService extends AccessibilityService {
             }
         };
 
+    }
+
+    private void performActionOnPhone(DataAction dataAction) {
+        // FIXME: 11/15/16 how to use this?
+        String pkgName = dataAction.getPkgName();
+
+        int actionId = dataAction.getActionId();
+        AccessibilityNodeInfo node = findNodeOnCurrentWindowById(actionId);
+        boolean hasPerformed = performActionUseAccessibility(node);
+        if (hasPerformed) {
+            Logger.i("performed success use acc");
+        } else {
+            if (performActionUseAdbShel(node)) {
+                Logger.i("performed success use adb");
+            } else {
+                Logger.w("performed failed");
+            }
+        }
+    }
+
+    private AccessibilityNodeInfo findNodeOnCurrentWindowById(int id) {
+        AccessibilityNodeInfo root = getRootInActiveWindow();
+        return findNodeById(root, id);
+    }
+
+    private AccessibilityNodeInfo findNodeById(AccessibilityNodeInfo root, int id) {
+        AccessibilityNodeInfo node = null;
+        if (root == null) {
+            return null;
+        }
+
+        if (root.hashCode() == id) {
+            return root;
+        }
+
+        int count = root.getChildCount();
+        for (int i = 0; i < count; i++) {
+            if (node == null) {
+                node = findNodeById(root.getChild(i), id);
+            } else {
+                return node;
+            }
+        }
+
+        return node;
+    }
+
+    private boolean performActionUseAdbShel(AccessibilityNodeInfo node) {
+        if (node != null) {
+            Rect rect = new Rect();
+            node.getBoundsInScreen(rect);
+            Logger.i("perform adb: " + getBriefNodeInfo(node));
+            String cmd = "input tap " + rect.centerX() + " " + rect.centerY();
+            Logger.d("cmd is: " + cmd);
+            if (Shell.isSuAvailable()) {
+                return Shell.runCommand(cmd);
+            }
+        }
+        return false;
+    }
+
+    private boolean performActionUseAccessibility(AccessibilityNodeInfo node) {
+        if (node != null) {
+            AccessibilityNodeInfo parent = node;
+            while (parent != null && !parent.isClickable()) {
+                parent = parent.getParent();
+            }
+            if (parent != null) {
+                Logger.i("perform acc: " + getBriefNodeInfo(parent));
+                return parent.performAction(AccessibilityNodeInfo.ACTION_CLICK);
+            }
+
+        }
+        return false;
     }
 
     @Override
@@ -313,7 +397,7 @@ public class PhoneProxyService extends AccessibilityService {
             public void run() {
                 mAppNodes.clear();
                 mPairAccessibilityNodeMap.clear();
-                parseAppNodesToSet(rootNode);
+                parseAppNodes(rootNode);
             }
         });
 
@@ -351,7 +435,6 @@ public class PhoneProxyService extends AccessibilityService {
                 mLastSentDataBundle = dataBundle;
 
                 Logger.i(dataBundle.toString());
-                GmsWear.getInstance().sendMessage(CLICK_PATH, "test msg".getBytes());
                 // send data mNodes to wearable proxy with prefCacheKey
                 byte[] data = marshall(dataBundle);
                 Logger.i("data: " + data.length);
@@ -452,22 +535,26 @@ public class PhoneProxyService extends AccessibilityService {
         });
     }
 
-    private void parseAppNodesToSet(AccessibilityNodeInfo rootNode) {
+    private void parseAppNodes(AccessibilityNodeInfo rootNode) {
         if (rootNode == null) {
             Logger.v("null app root node ");
             return;
         }
 
-        String id = rootNode.getViewIdResourceName();
+        String viewId = rootNode.getViewIdResourceName();
         Rect rect = new Rect();
         rootNode.getBoundsInScreen(rect);
-        Pair<String, Rect> pair = new Pair<>(id, rect);
+        Pair<String, Rect> pair = new Pair<>(viewId, rect);
+        // for preference comparison
         mAppNodes.add(pair);
-        mPairAccessibilityNodeMap.put(id, rootNode);
+        // for finding the node based on viewId
+        mPairAccessibilityNodeMap.put(viewId, rootNode);
+
+
         int count = rootNode.getChildCount();
 
         for (int i = 0; i < count; i++) {
-            parseAppNodesToSet(rootNode.getChild(i));
+            parseAppNodes(rootNode.getChild(i));
         }
 
     }

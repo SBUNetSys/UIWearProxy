@@ -20,4 +20,9 @@ public class DataConstant {
     public static final String INTENT_SUFFIX = ".data.intent";
     public static final String PREF_ID_KEY = "PREF_ID_KEY";
     public static final String DATA_NODES_KEY = "DATA_NODES_KEY";
+
+    public static final String CLICK_PATH = "/CLICK_PATH";
+    public static final String CLICK_ID_KEY = "CLICK_ID_KEY";
+    public static final String PKG_KEY = "PKG_KEY";
+
 }

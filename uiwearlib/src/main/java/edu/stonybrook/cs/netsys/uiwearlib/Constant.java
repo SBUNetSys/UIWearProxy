@@ -44,8 +44,6 @@ public class Constant {
     public static final String DATA_BUNDLE_PATH = "/DATA_BUNDLE_PATH";
     public static final String DATA_BUNDLE_KEY = "/DATA_BUNDLE_KEY";
 
-    public static final String CLICK_PATH = "/CLICK_PATH";
-
     public static final String TRANSFER_APK_REQUEST = "/TRANSFER_APK_REQUEST";
     public static final String TRANSFER_MAPPING_RULES_REQUEST = "/TRANSFER_MAPPING_RULES_REQUEST";
 

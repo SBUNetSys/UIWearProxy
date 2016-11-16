@@ -3,7 +3,7 @@
     package="edu.stonybrook.cs.netsys.uiwearproxy">
 
     <uses-feature android:name="android.hardware.type.watch" />
-
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application

@@ -7,7 +7,7 @@
 -->
 <android.support.wearable.view.CardScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/card_scroll_view"
+    android:id="@+id/card"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@drawable/song"
@@ -37,10 +37,11 @@
             -->
             <ImageView
                 android:id="@+id/icon"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:layout_marginStart="10dp"
                 android:layout_toEndOf="@+id/title"
+                android:backgroundTint="#297BDE"
                 android:background="@drawable/ic_media_play"
                 android:contentDescription="@string/app_name" />
             <!-- set card text

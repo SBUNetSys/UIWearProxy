@@ -7,8 +7,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-import com.orhanobut.logger.Logger;
-
 import java.util.Arrays;
 
 /**
@@ -27,34 +25,14 @@ import java.util.Arrays;
  */
 
 public class DataNode implements Parcelable {
-    public static final Creator<DataNode> CREATOR = new Creator<DataNode>() {
-        @Override
-        public DataNode createFromParcel(Parcel parcel) {
-            int id = parcel.readInt();
-            String viewId = parcel.readString();
-            String text = parcel.readString();
-            int length = parcel.readInt();
-            byte[] image = new byte[length];
-            if (length > 0) {
-                parcel.readByteArray(image);
-            } else {
-                image = null;
-                Logger.v("bitmap null");
-            }
-
-            return new DataNode(id, viewId, text, image);
-        }
-
-        @Override
-        public DataNode[] newArray(int size) {
-            return new DataNode[size];
-        }
-    };
 
     private int mClickId;
     private String mViewId;
     private String mText;
     private byte[] mImage;
+
+    // only for wear side use
+    private String mImageFile;
 
     public DataNode(AccessibilityNodeInfo node) {
         mClickId = node.hashCode();
@@ -66,6 +44,8 @@ public class DataNode implements Parcelable {
         } else {
             mText = "";
         }
+        mImageFile = "";
+        mImage = new byte[0];
     }
 
     public DataNode(int id, String viewId, String text, Bitmap image) {
@@ -75,29 +55,13 @@ public class DataNode implements Parcelable {
         mImage = getBitmapBytes(image);
     }
 
-    public DataNode(int id, String viewId, String text, byte[] image) {
+    public DataNode(int id, String viewId, String text, String imageFile, byte[] image) {
         mClickId = id;
         mViewId = viewId;
         mText = text;
+        mImageFile = imageFile;
         mImage = image;
-    }
 
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeInt(mClickId);
-        dest.writeString(mViewId);
-        dest.writeString(mText);
-        if (mImage != null) {
-            dest.writeInt(mImage.length);
-            dest.writeByteArray(mImage);
-        } else {
-            dest.writeInt(0);
-        }
     }
 
     public int getClickId() {
@@ -152,6 +116,7 @@ public class DataNode implements Parcelable {
                 + ", mViewId=" + mViewId
                 + ", mText=" + mText
                 + ", mImage=" + (mImage == null ? "null" : mImage.length + " bytes")
+                + ", mImageFile=" + mImageFile
                 + ", hash=" + Integer.toHexString(hashCode()) + "}";
     }
 
@@ -177,4 +142,46 @@ public class DataNode implements Parcelable {
         result = 31 * result + Arrays.hashCode(mImage);
         return result;
     }
+
+    public void setImageFile(String imageFile) {
+        mImageFile = imageFile;
+    }
+
+    public String getImageFile() {
+        return mImageFile;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeInt(this.mClickId);
+        dest.writeString(this.mViewId);
+        dest.writeString(this.mText);
+        dest.writeByteArray(this.mImage);
+        dest.writeString(this.mImageFile);
+    }
+
+    private DataNode(Parcel in) {
+        this.mClickId = in.readInt();
+        this.mViewId = in.readString();
+        this.mText = in.readString();
+        this.mImage = in.createByteArray();
+        this.mImageFile = in.readString();
+    }
+
+    public static final Creator<DataNode> CREATOR = new Creator<DataNode>() {
+        @Override
+        public DataNode createFromParcel(Parcel source) {
+            return new DataNode(source);
+        }
+
+        @Override
+        public DataNode[] newArray(int size) {
+            return new DataNode[size];
+        }
+    };
 }

@@ -5,19 +5,26 @@ import static com.morgoo.helper.compat.PackageManagerCompat.INSTALL_FAILED_INTER
 import static com.morgoo.helper.compat.PackageManagerCompat.INSTALL_FAILED_INVALID_APK;
 import static com.morgoo.helper.compat.PackageManagerCompat.INSTALL_SUCCEEDED;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CLICK_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_APK_REQUEST;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_MAPPING_RULES_REQUEST;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_ID_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.DATA_NODES_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.IMAGE_DIR_NAME;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.INTENT_PREFIX;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.INTENT_SUFFIX;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.PKG_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.PREF_ID_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.marshall;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.unmarshall;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
@@ -35,11 +42,15 @@ import com.google.android.gms.wearable.MessageEvent;
 import com.morgoo.droidplugin.pm.PluginManager;
 import com.orhanobut.logger.Logger;
 
+import org.apache.commons.io.FileUtils;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import edu.stonybrook.cs.netsys.uiwearlib.WorkerThread;
+import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataAction;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataBundle;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataNode;
 
@@ -51,6 +62,20 @@ public class WearProxyService extends Service {
     private GmsWear mGmsWear;
     private DataConsumer mDataConsumer;
     private WorkerThread mWorkerThread;
+    private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            switch (intent.getAction()) {
+                case CLICK_PATH:
+                    String pkgName = intent.getStringExtra(PKG_KEY);
+                    int clickId = intent.getIntExtra(CLICK_ID_KEY, 0);
+                    byte[] clickData = marshall(new DataAction(pkgName, clickId));
+                    mGmsWear.sendMessage(CLICK_PATH, clickData);
+                    break;
+                default:
+            }
+        }
+    };
 
     @Nullable
     @Override
@@ -70,15 +95,12 @@ public class WearProxyService extends Service {
             @Override
             public void onMessageReceived(MessageEvent messageEvent) {
                 Logger.i("onMessageReceived");
-                String msg = new String(messageEvent.getData());
-                if (messageEvent.getPath().equals(CLICK_PATH)) {
-                    Logger.d(msg);
-                }
+
             }
 
             @Override
             public void onDataChanged(DataEvent event) {
-                Logger.i("onDataChanged");
+                Logger.i("data:");
                 if (event.getType() == DataEvent.TYPE_CHANGED) {
                     // DataItem changed
                     DataItem item = event.getDataItem();
@@ -108,14 +130,8 @@ public class WearProxyService extends Service {
             }
         };
 
-    }
-
-    private void processMappingRule(File mappingRuleFile) {
-
-    }
-
-    private void processApk(File apkFile) {
-
+        IntentFilter intentFilter = new IntentFilter(CLICK_PATH);
+        registerReceiver(mBroadcastReceiver, intentFilter);
     }
 
     private void parseDataBundleAsync(final Asset asset) {
@@ -136,19 +152,44 @@ public class WearProxyService extends Service {
                 String preferenceId = dataBundle.getPreferenceId();
                 ArrayList<DataNode> nodes = dataBundle.getDataNodes();
 
+                // save image from bytes and return Uri to avoid large intent data
+                for (DataNode node : nodes) {
+                    byte[] image = node.getImageBytes();
+                    if (image != null && image.length > 0) {
+                        String imageFile = convertImageBytesToUri(appPkgName, image);
+                        node.setImageFile(imageFile);
+                    }
+                    // clear image bytes in original data node
+                    image = new byte[0];
+                    node.setImage(image);
+                }
+
                 Intent appIntent = new Intent(INTENT_PREFIX + appPkgName + INTENT_SUFFIX);
                 Logger.i("filter : " + INTENT_PREFIX + appPkgName + INTENT_SUFFIX);
 
                 appIntent.putExtra(PREF_ID_KEY, preferenceId);
                 appIntent.putParcelableArrayListExtra(DATA_NODES_KEY, nodes);
-
-                // FIXME: 11/15/16 if not compress bitmap, cannot send large intent (1MB)
                 sendBroadcast(appIntent);
 
                 Logger.t("data").i(dataBundle.toString());
             }
         });
 
+    }
+
+    private String convertImageBytesToUri(String appPkgName, byte[] image) {
+        File imageFile = new File(getObbDir().getPath() + File.separator
+                + appPkgName + File.separator + IMAGE_DIR_NAME + File.separator
+                + Integer.toHexString(Arrays.hashCode(image)));
+
+        Logger.v("image path: " + imageFile.getPath());
+
+        try {
+            FileUtils.writeByteArrayToFile(imageFile, image);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return imageFile.getPath();
     }
 
     @Override
@@ -161,12 +202,21 @@ public class WearProxyService extends Service {
     @Override
     public void onDestroy() {
         mGmsWear.removeWearConsumer(mDataConsumer);
+        unregisterReceiver(mBroadcastReceiver);
         super.onDestroy();
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
         return super.onUnbind(intent);
+    }
+
+    private void processMappingRule(File mappingRuleFile) {
+
+    }
+
+    private void processApk(File apkFile) {
+
     }
 
     // install app from apk

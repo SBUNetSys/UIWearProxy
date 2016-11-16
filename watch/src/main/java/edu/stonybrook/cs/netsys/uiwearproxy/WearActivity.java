@@ -16,6 +16,7 @@ public class WearActivity extends Activity {
         setContentView(R.layout.activity_main);
         Logger.i("on create");
         proxyServiceIntent = new Intent(this, WearProxyService.class);
+        startService(proxyServiceIntent);
     }
 
     public void startProxyService(View view) {
