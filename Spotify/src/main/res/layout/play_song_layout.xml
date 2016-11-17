@@ -1,61 +1,61 @@
-<android.support.wearable.view.BoxInsetLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent"
-    android:layout_height="match_parent">
-<!--set card background image:
-        cardScrollView.setBackground(drawable);// drawable from bitmap/res etc.
--->
-<android.support.wearable.view.CardScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.wearable.view.BoxInsetLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:id="@+id/card"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    android:background="@drawable/song"
-    app:layout_box="bottom">
-
-    <android.support.wearable.view.CardFrame
+    android:layout_height="match_parent">
+    <!--set card background image:
+            cardScrollView.setBackground(drawable);// drawable from bitmap/res etc.
+    -->
+    <android.support.wearable.view.CardScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/card"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom">
+        android:background="@drawable/song"
+        app:layout_box="bottom">
 
-        <RelativeLayout
+        <android.support.wearable.view.CardFrame
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
-            <!-- set card title
-            title.setText(text);
-            -->
-            <TextView
-                android:id="@+id/title"
-                style="@style/CardTitle"
-                android:layout_width="100dp"
-                android:layout_height="wrap_content"
-                android:ellipsize="end"
-                android:maxLines="2"
-                android:text="The Ambient White Noise of Nature" />
-            <!--set card icon (e.g., play button):
-            icon.setImageBitmap(ic_media_pause); // bitmap or drawable res
-            -->
-            <ImageView
-                android:id="@+id/icon"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_marginStart="10dp"
-                android:layout_toEndOf="@+id/title"
-                android:backgroundTint="#297BDE"
-                android:background="@drawable/ic_media_play"
-                android:contentDescription="@string/app_name" />
-            <!-- set card text
-            text.setText(text);
-            -->
-            <TextView
-                android:id="@+id/text"
-                style="@style/CardText"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_below="@+id/title"
-                android:text="Quiet Flames in the Dark" />
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom">
 
-        </RelativeLayout>
-    </android.support.wearable.view.CardFrame>
-</android.support.wearable.view.CardScrollView>
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+                <!-- set card text
+                text.setText(text);
+                -->
+                <TextView
+                    android:id="@+id/title"
+                    style="@style/CardTitle"
+                    android:layout_width="100dp"
+                    android:layout_height="wrap_content"
+                    android:maxLines="2"
+                    android:text="The Ambient White Noise of Nature" />
+                <!--set card icon (e.g., play button):
+                icon.setImageBitmap(ic_media_pause); // bitmap or drawable res
+                -->
+                <ImageView
+                    android:id="@+id/icon"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
+                    android:layout_marginStart="10dp"
+                    android:layout_toEndOf="@+id/title"
+                    android:background="@drawable/ic_media_play"
+                    android:backgroundTint="#297BDE"
+                    android:contentDescription="@string/app_name" />
+                <!-- set card title
+                title.setText(text);
+                -->
+                <TextView
+                    android:id="@+id/text"
+                    style="@style/CardText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_alignEnd="@+id/icon"
+                    android:layout_below="@+id/title"
+                    android:text="Quiet Flames in the Dark" />
+
+            </RelativeLayout>
+        </android.support.wearable.view.CardFrame>
+    </android.support.wearable.view.CardScrollView>
 </android.support.wearable.view.BoxInsetLayout>

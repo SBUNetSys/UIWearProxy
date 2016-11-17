@@ -464,15 +464,31 @@ public class PhoneProxyService extends AccessibilityService {
                     // if not hit cache, request real data node
                     // not work on this, probably after finish all integrations and if bad
                     // experimental result happen, like latency or oom, energy etc.
-                    Logger.v("new data bundle" + dataBundle);
+                    Logger.v("new data new  bundle before pruning: " + dataBundle);
+                    Logger.v("new data last bundle before pruning: " + mLastSentDataBundle);
+
+                    DataBundle savedDataBundleBeforePruning = new DataBundle(dataBundle);
+                    if (mLastSentDataBundle != null) {
+                        ArrayList<DataNode> lastSentDataNodes = mLastSentDataBundle.getDataNodes();
+                        ArrayList<DataNode> dataNodes = new ArrayList<>(dataBundle.getDataNodes());
+                        for (DataNode node : dataNodes) {
+                            if (lastSentDataNodes.contains(node)) {
+                                Logger.d("new data bundle removed node: " + node);
+                                dataBundle.remove(node);
+                            }
+                        }
+                    }
+
+                    mLastSentDataBundle = savedDataBundleBeforePruning;
+                    Logger.v("new data new  bundle after pruning: " + dataBundle);
+                    Logger.v("new data last bundle after pruning: " + mLastSentDataBundle);
                 }
 
-                mLastSentDataBundle = dataBundle;
 
-                Logger.i(dataBundle.toString());
+                Logger.d(dataBundle.toString());
                 // send data mNodes to wearable proxy with prefCacheKey
                 byte[] data = marshall(dataBundle);
-                Logger.i("data: " + data.length);
+                Logger.i("new data bundle: " + data.length);
                 mGmsWear.syncAsset(DATA_BUNDLE_PATH, DATA_BUNDLE_KEY, data, true);
             }
         });

@@ -34,8 +34,8 @@
         <item>@array/drink_water_main_phone_id</item>
     </integer-array>
     <string-array name="play_song_phone_id">
-        <item>com.spotify.music:id/title</item>
         <item>com.spotify.music:id/artistAndAlbum</item>
+        <item>com.spotify.music:id/title</item>
         <item>com.spotify.music:id/btn_play</item>
         <item>com.spotify.music:id/image</item>
     </string-array>

@@ -51,8 +51,19 @@ public class DataBundle implements Parcelable {
         mDataNodes = new ArrayList<>();
     }
 
+    public DataBundle(DataBundle dataBundle) {
+        if (dataBundle != null) {
+            mAppPkgName = dataBundle.getAppPkgName();
+            mPreferenceId = dataBundle.getPreferenceId();
+            mDataNodes = new ArrayList<>(dataBundle.getDataNodes());
+        }
+    }
+
     public void add(DataNode node) {
         mDataNodes.add(node);
+    }
+    public void remove(DataNode node) {
+        mDataNodes.remove(node);
     }
 
     @Override
