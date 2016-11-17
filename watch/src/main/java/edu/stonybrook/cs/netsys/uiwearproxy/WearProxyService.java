@@ -5,8 +5,11 @@ import static com.morgoo.helper.compat.PackageManagerCompat.INSTALL_FAILED_INTER
 import static com.morgoo.helper.compat.PackageManagerCompat.INSTALL_FAILED_INVALID_APK;
 import static com.morgoo.helper.compat.PackageManagerCompat.INSTALL_SUCCEEDED;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATABUNDLE_CACHE_SIZE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_HASH_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_REQUIRED_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_APK_REQUEST;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_MAPPING_RULES_REQUEST;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_PATH;
@@ -30,6 +33,7 @@ import android.graphics.Point;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
+import android.util.LruCache;
 import android.view.WindowManager;
 import android.widget.Toast;
 
@@ -79,6 +83,13 @@ public class WearProxyService extends Service {
             }
         }
     };
+    private LruCache<String, byte[]> mDataBundleLruCache = new LruCache<String, byte[]>(
+            DATABUNDLE_CACHE_SIZE) {
+        @Override
+        protected int sizeOf(String key, byte[] dataBundle) {
+            return dataBundle.length;
+        }
+    };
 
     @Nullable
     @Override
@@ -97,8 +108,16 @@ public class WearProxyService extends Service {
         mDataConsumer = new AbstractDataConsumer() {
             @Override
             public void onMessageReceived(MessageEvent messageEvent) {
-                Logger.i("onMessageReceived");
-
+                switch (messageEvent.getPath()) {
+                    case DATA_BUNDLE_HASH_PATH:
+                        Logger.i("DATA_BUNDLE_HASH_PATH");
+                        byte[] hashStringBytes = messageEvent.getData();
+                        String hashString = new String(hashStringBytes);
+                        handleDataBundleHash(hashString);
+                        break;
+                    default:
+                        Logger.w("unknown msg");
+                }
             }
 
             @Override
@@ -137,6 +156,18 @@ public class WearProxyService extends Service {
         registerReceiver(mBroadcastReceiver, intentFilter);
     }
 
+    private void handleDataBundleHash(String hashString) {
+        byte[] dataBundleBytes = mDataBundleLruCache.get(hashString);
+        if (dataBundleBytes != null) {
+            Logger.v("use data bundle in cache ");
+            DataBundle bundle = unmarshall(dataBundleBytes, DataBundle.CREATOR);
+            sendDataBundleToWearAppAsync(bundle);
+        } else {
+            Logger.v("DATA_BUNDLE_REQUIRED on wear");
+            mGmsWear.sendMessage(DATA_BUNDLE_REQUIRED_PATH, hashString.getBytes());
+        }
+    }
+
     private void parseDataBundleAsync(final Asset asset) {
         mWorkerThread.postTask(new Runnable() {
             @Override
@@ -150,7 +181,21 @@ public class WearProxyService extends Service {
                 }
                 Logger.t("data").d("bytes: " + data.length);
                 DataBundle dataBundle = unmarshall(data, DataBundle.CREATOR);
+                sendDataBundleToWearAppAsync(dataBundle);
+                mDataBundleLruCache.put(Integer.toString(dataBundle.hashCode()), data);
+            }
+        });
 
+    }
+
+    private void sendDataBundleToWearAppAsync(final DataBundle dataBundle) {
+        if (dataBundle == null) {
+            return;
+        }
+
+        mWorkerThread.postTask(new Runnable() {
+            @Override
+            public void run() {
                 String appPkgName = dataBundle.getAppPkgName();
                 String preferenceId = dataBundle.getPreferenceId();
                 ArrayList<DataNode> nodes = dataBundle.getDataNodes();
@@ -177,7 +222,6 @@ public class WearProxyService extends Service {
                 Logger.t("data").i(dataBundle.toString());
             }
         });
-
     }
 
     private String convertImageBytesToUri(String appPkgName, byte[] image) {

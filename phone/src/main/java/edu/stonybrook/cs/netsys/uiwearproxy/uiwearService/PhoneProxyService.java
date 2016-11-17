@@ -3,8 +3,11 @@ package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.BITMAP_CACHE_SIZE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATABUNDLE_CACHE_SIZE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_HASH_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_REQUIRED_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ENABLED_APPS_PREF_NAME;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PERSIST_PREFERENCE_NODES_SUCCESS;
@@ -124,6 +127,13 @@ public class PhoneProxyService extends AccessibilityService {
 
     // to avoid same data retransmission due to duplicate accessibility events
     private DataBundle mLastSentDataBundle;
+    private LruCache<String, byte[]> mDataBundleLruCache = new LruCache<String, byte[]>(
+            DATABUNDLE_CACHE_SIZE) {
+        @Override
+        protected int sizeOf(String key, byte[] dataBundle) {
+            return dataBundle.length;
+        }
+    };
 
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -216,7 +226,12 @@ public class PhoneProxyService extends AccessibilityService {
                         int ratio = phoneSize / watchSize;
                         editor.putInt(WATCH_PHONE_RESOLUTION_RATIO_KEY, ratio);
                         editor.apply();
-
+                        break;
+                    case DATA_BUNDLE_REQUIRED_PATH:
+                        Logger.i("DATA_BUNDLE_REQUIRED_PATH");
+                        byte[] hashStringBytes = messageEvent.getData();
+                        String hashString = new String(hashStringBytes);
+                        sendRealDataBundleAsync(hashString);
                         break;
                     default:
                         Logger.w("unknown msg");
@@ -242,6 +257,16 @@ public class PhoneProxyService extends AccessibilityService {
                 .getDefaultDisplay().getSize(size);
         mPhoneWidth = size.x;
         mPhoneHeight = size.y;
+    }
+
+    private void sendRealDataBundleAsync(final String hashString) {
+        mWorkerThread.postTask(new Runnable() {
+            @Override
+            public void run() {
+                byte[] bundleBytes = mDataBundleLruCache.get(hashString);
+                mGmsWear.syncAsset(DATA_BUNDLE_PATH, DATA_BUNDLE_KEY, bundleBytes, true);
+            }
+        });
     }
 
     private void performActionOnPhone(DataAction dataAction) {
@@ -456,14 +481,6 @@ public class PhoneProxyService extends AccessibilityService {
                     Logger.v("repeat last bundle" + mLastSentDataBundle);
                     return;
                 } else {
-                    // TODO: 11/12/16 possible optimization: we can send only the mNodes diff
-                    // possible solution here:
-                    // 1. cache data nodes on phone, if data node in the data bundle hit
-                    // cache, then send the node hash instead of real data node to wear
-                    // 2. cache data nodes on wear, if receives node hash, find data node in cache,
-                    // if not hit cache, request real data node
-                    // not work on this, probably after finish all integrations and if bad
-                    // experimental result happen, like latency or oom, energy etc.
                     Logger.v("new data new  bundle before pruning: " + dataBundle);
                     Logger.v("new data last bundle before pruning: " + mLastSentDataBundle);
 
@@ -484,12 +501,16 @@ public class PhoneProxyService extends AccessibilityService {
                     Logger.v("new data last bundle after pruning: " + mLastSentDataBundle);
                 }
 
-
                 Logger.d(dataBundle.toString());
-                // send data mNodes to wearable proxy with prefCacheKey
+
+                // send hash of data bundle first, if wear has the data bundle, done
+                // if not, send the real data bundle
+                int dataBundleHash = dataBundle.hashCode();
+                String dataBundleHashString = Integer.toString(dataBundleHash);
+                mGmsWear.sendMessage(DATA_BUNDLE_HASH_PATH, dataBundleHashString.getBytes());
                 byte[] data = marshall(dataBundle);
                 Logger.i("new data bundle: " + data.length);
-                mGmsWear.syncAsset(DATA_BUNDLE_PATH, DATA_BUNDLE_KEY, data, true);
+                mDataBundleLruCache.put(dataBundleHashString, data);
             }
         });
 
