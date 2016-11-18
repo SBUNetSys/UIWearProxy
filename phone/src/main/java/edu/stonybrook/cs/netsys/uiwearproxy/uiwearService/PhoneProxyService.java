@@ -3,7 +3,7 @@ package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.BITMAP_CACHE_SIZE;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATABUNDLE_CACHE_SIZE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_CACHE_SIZE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_HASH_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
@@ -25,6 +25,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TIME_FORMAT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_PHONE_RESOLUTION_RATIO_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_PHONE_RESOLUTION_RATIO_PREF_NAME;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_PATH;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_REQUEST_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.XML_EXT;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.BITMAP_DIR;
@@ -128,7 +129,7 @@ public class PhoneProxyService extends AccessibilityService {
     // to avoid same data retransmission due to duplicate accessibility events
     private DataBundle mLastSentDataBundle;
     private LruCache<String, byte[]> mDataBundleLruCache = new LruCache<String, byte[]>(
-            DATABUNDLE_CACHE_SIZE) {
+            DATA_BUNDLE_CACHE_SIZE) {
         @Override
         protected int sizeOf(String key, byte[] dataBundle) {
             return dataBundle.length;
@@ -264,7 +265,12 @@ public class PhoneProxyService extends AccessibilityService {
             @Override
             public void run() {
                 byte[] bundleBytes = mDataBundleLruCache.get(hashString);
-                mGmsWear.syncAsset(DATA_BUNDLE_PATH, DATA_BUNDLE_KEY, bundleBytes, true);
+                if (bundleBytes != null) {
+                    Logger.v("real data bundle: " + bundleBytes.length);
+                    mGmsWear.syncAsset(DATA_BUNDLE_PATH, DATA_BUNDLE_KEY, bundleBytes, true);
+                } else {
+                    Logger.w(" cannot get real data bundle from cache");
+                }
             }
         });
     }
@@ -589,12 +595,20 @@ public class PhoneProxyService extends AccessibilityService {
 
         int ratio = mWatchPhoneResolutionRatioSharedPref
                 .getInt(WATCH_PHONE_RESOLUTION_RATIO_KEY, 1);
+        if (ratio == 1) {
+            Logger.v("requestWatchResolution ");
+            requestWatchResolution();
+        }
         Logger.d("ScaledBitmap ratio " + ratio);
 
         Logger.d("ScaledBitmap scaled width: " + (width / ratio) + " height: " + (height / ratio));
 //        nodeBitmap = Bitmap.createScaledBitmap(nodeBitmap, width / ratio, height / ratio, true);
         nodeBitmap = ThumbnailUtils.extractThumbnail(nodeBitmap, width / ratio, height / ratio);
         return nodeBitmap;
+    }
+
+    private void requestWatchResolution() {
+        mGmsWear.sendMessage(WATCH_RESOLUTION_REQUEST_PATH, null);
     }
 
     private Bitmap requestBitmap(AccessibilityNodeInfo accNode) {

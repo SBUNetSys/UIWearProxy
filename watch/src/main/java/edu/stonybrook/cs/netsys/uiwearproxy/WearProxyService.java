@@ -5,7 +5,7 @@ import static com.morgoo.helper.compat.PackageManagerCompat.INSTALL_FAILED_INTER
 import static com.morgoo.helper.compat.PackageManagerCompat.INSTALL_FAILED_INVALID_APK;
 import static com.morgoo.helper.compat.PackageManagerCompat.INSTALL_SUCCEEDED;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATABUNDLE_CACHE_SIZE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_CACHE_SIZE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_HASH_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
@@ -13,6 +13,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_REQUIRED_P
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_APK_REQUEST;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_MAPPING_RULES_REQUEST;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_PATH;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_REQUEST_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_ID_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.DATA_NODES_KEY;
@@ -84,7 +85,7 @@ public class WearProxyService extends Service {
         }
     };
     private LruCache<String, byte[]> mDataBundleLruCache = new LruCache<String, byte[]>(
-            DATABUNDLE_CACHE_SIZE) {
+            DATA_BUNDLE_CACHE_SIZE) {
         @Override
         protected int sizeOf(String key, byte[] dataBundle) {
             return dataBundle.length;
@@ -115,6 +116,8 @@ public class WearProxyService extends Service {
                         String hashString = new String(hashStringBytes);
                         handleDataBundleHash(hashString);
                         break;
+                    case WATCH_RESOLUTION_REQUEST_PATH:
+                        sendResolutionToPhone();
                     default:
                         Logger.w("unknown msg");
                 }
@@ -179,10 +182,14 @@ public class WearProxyService extends Service {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                Logger.t("data").d("bytes: " + data.length);
-                DataBundle dataBundle = unmarshall(data, DataBundle.CREATOR);
-                sendDataBundleToWearAppAsync(dataBundle);
-                mDataBundleLruCache.put(Integer.toString(dataBundle.hashCode()), data);
+                if (data != null) {
+                    Logger.t("data").d("bytes: " + data.length);
+                    DataBundle dataBundle = unmarshall(data, DataBundle.CREATOR);
+                    sendDataBundleToWearAppAsync(dataBundle);
+                    mDataBundleLruCache.put(Integer.toString(dataBundle.hashCode()), data);
+                } else {
+                    Logger.w("asset null");
+                }
             }
         });
 
@@ -243,12 +250,16 @@ public class WearProxyService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         mGmsWear.addWearConsumer(mDataConsumer);
         Logger.i("start");
+        sendResolutionToPhone();
+
+        return START_STICKY;
+    }
+
+    private void sendResolutionToPhone() {
         Point size = new Point();
         ((WindowManager) getSystemService(Context.WINDOW_SERVICE))
                 .getDefaultDisplay().getSize(size);
         mGmsWear.sendMessage(WATCH_RESOLUTION_PATH, marshall(size));
-
-        return START_STICKY;
     }
 
     @Override
