@@ -52,15 +52,15 @@ public class FileUtilTest {
         }
     }
 
-    @Test
-    public void getBaseName() throws Exception {
-        assertEquals("test_text", FileUtil.getBaseName(new File(testFilePath)));
-    }
-
-    @Test
-    public void getParentName() throws Exception {
-        assertEquals("debug", FileUtil.getParentName(new File(testFilePath)));
-    }
+//    @Test
+//    public void getBaseName() throws Exception {
+//        assertEquals("test_text", FileUtil.getBaseName(new File(testFilePath)));
+//    }
+//
+//    @Test
+//    public void getParentName() throws Exception {
+//        assertEquals("debug", FileUtil.getParentName(new File(testFilePath)));
+//    }
 
     @Test
     public void readFile() throws Exception {

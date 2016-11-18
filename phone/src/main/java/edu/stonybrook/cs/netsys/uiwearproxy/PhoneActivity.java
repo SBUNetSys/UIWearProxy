@@ -26,9 +26,8 @@ import android.widget.Toast;
 
 import com.orhanobut.logger.Logger;
 
-import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.PreferenceSettingActivity;
 import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.AppSettingActivity;
-import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.NotifyService;
+import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.PreferenceSettingActivity;
 import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
 
 public class PhoneActivity extends Activity {
@@ -71,7 +70,6 @@ public class PhoneActivity extends Activity {
             if (isAccessibilityEnabled()) {
                 Toast.makeText(this, R.string.service_enabled, Toast.LENGTH_SHORT).show();
                 startService(mPhoneProxyServiceIntent);
-                startService(new Intent(this, NotifyService.class));
             } else {
                 Toast.makeText(this, R.string.service_not_enabled, Toast.LENGTH_SHORT).show();
             }
