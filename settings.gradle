@@ -1,1 +1,1 @@
-include ':phone', ':watch', ':uiwearlib', ':appbuilder', ':Spotify'
+include ':phone', ':watch', ':uiwearlib'

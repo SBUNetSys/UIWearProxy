@@ -1,4 +1,4 @@
-package com.spotify.music;
+package edu.stonybrook.cs.netsys.uiwearlib.viewProtocol;
 
 import android.app.Fragment;
 import android.os.Bundle;
