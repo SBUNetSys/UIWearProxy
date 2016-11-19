@@ -44,6 +44,8 @@ public class PreferenceSettingActivity extends Activity {
                 case NODES_AVAILABLE:
                     mAvailableNodes = intent.
                             getParcelableArrayListExtra(AVAILABLE_NODES_PREFERENCE_SETTING_KEY);
+
+                    // sort nodes rect size for minimal area matching
                     Collections.sort(mAvailableNodes, new Comparator<Rect>() {
                         @Override
                         public int compare(Rect o1, Rect o2) {

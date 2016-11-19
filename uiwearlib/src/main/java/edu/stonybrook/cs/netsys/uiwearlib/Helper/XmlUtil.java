@@ -59,7 +59,11 @@ public class XmlUtil {
                 serializer.startTag(null, NODE_TAG);
 
                 serializer.startTag(null, ID_TAG);
-                serializer.text(id);
+                if (id == null) {
+                    serializer.text("null");
+                } else {
+                    serializer.text(id);
+                }
                 serializer.endTag(null, ID_TAG);
 
                 serializer.startTag(null, RECT_TAG);

@@ -88,7 +88,11 @@ import edu.stonybrook.cs.netsys.uiwearlib.helper.XmlUtil;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
 public class PhoneProxyService extends AccessibilityService {
+    private GmsWear mGmsWear;
+    private DataConsumer mDataConsumer;
 
+    private int mPhoneWidth;
+    private int mPhoneHeight;
     private NotificationManager mNotificationManager;
 
     // for preference setting, only need to parse once
@@ -162,11 +166,86 @@ public class PhoneProxyService extends AccessibilityService {
         }
     };
 
-    private GmsWear mGmsWear;
-    private DataConsumer mDataConsumer;
+    // send prepared leaf mNodes to PreferenceSettingActivity
+    private void sendLeafNodesToPreferenceSetting() {
+        if (mAppLeafNodesMapForPreferenceSetting.size() > 0) {
+            Intent nodesIntent = new Intent(NODES_AVAILABLE);
+            ArrayList<Rect> nodes = new ArrayList<>(mAppLeafNodesMapForPreferenceSetting.keySet());
+            nodesIntent.putParcelableArrayListExtra(AVAILABLE_NODES_PREFERENCE_SETTING_KEY,
+                    nodes);
+            LocalBroadcastManager.getInstance(this).sendBroadcast(nodesIntent);
+        } else {
+            Logger.t("pref").v("no available mNodes to send!");
+        }
+    }
 
-    private int mPhoneWidth;
-    private int mPhoneHeight;
+    // save rect-ID pair of user's selected UI mNodes and persist them to app specific xml file
+    // support multi-screen preference
+    private void persistAppPreferenceNodesAsync(final ArrayList<Rect> preferredNodes) {
+        // ensure that mAppLeafNodesMapForPreferenceSetting is not cleared
+        final HashMap<Rect, String> savedMap = new HashMap<>(mAppLeafNodesMapForPreferenceSetting);
+        final String appPkgName = mAppRootNodePkgName;
+
+        mWorkerThread.postTask(new Runnable() {
+            @Override
+            public void run() {
+                // write xml file to obb file
+                CharSequence date = DateFormat.format(TIME_FORMAT, new java.util.Date());
+                File preferenceFile = new File(
+                        getResDir(PREFERENCE_DIR, appPkgName),
+                        date + XML_EXT);
+                try {
+                    XmlUtil.serializeAppPreference(preferenceFile, preferredNodes, savedMap);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Logger.t("pref").e(e.getMessage());
+                }
+
+                Message successMsg = mMainThreadHandler.obtainMessage();
+                successMsg.what = PERSIST_PREFERENCE_NODES_SUCCESS;
+                successMsg.obj = appPkgName;
+                mMainThreadHandler.sendMessage(successMsg);
+            }
+        });
+//        Logger.v();("mapped mNodes: " + mAppLeafNodesMapForPreferenceSetting.keySet().toString());
+//        SharedPreferences sharedPref = getSharedPreferences(mAppRootNodePkgName, MODE_APPEND);
+//        SharedPreferences.Editor editor = sharedPref.edit();
+//        for (Rect rect : preferredNodes) {
+//            String id = savedMap.get(rect); // can't be null since already checked during put time
+//            String rectString = rect.flattenToString();
+//            Logger.v();("save preference: " + id + " " + rect);
+//            // FIXME: 10/21/16 possibly to be improved
+//            try {
+//                String existingRect = sharedPref.getString(id, "");
+//                Logger.v();("existingRect: " + existingRect);
+//                if (existingRect.isEmpty()) {
+//                    editor.putString(id, rectString);
+//                } else {
+//                    if (!existingRect.equals(rectString)) {
+//                        HashSet<String> set = new HashSet<>();
+//                        set.add(existingRect);
+//                        set.add(rectString);
+//                        Logger.v();("set add two: " + Arrays.toString(set.toArray()));
+//                        editor.putStringSet(id, set);
+//                    }
+//                }
+//            } catch (ClassCastException e) { // catch return Set exception
+//                Logger.e(e.getMessage());
+//                Set<String> set = sharedPref.getStringSet(id, new HashSet<String>());
+//                if (set.size() > 0) {
+//                    Logger.v();("existing set: " + id + " " + Arrays.toString(set.toArray()));
+//                    set.add(rectString);
+//                    Logger.v();("set add one: " + id + " " + Arrays.toString(set.toArray()));
+//                    editor.putStringSet(id, set);
+//                }
+//            }
+//            // need to commit here, otherwise file not correct!
+//            editor.commit();
+//
+//        }
+//        editor.apply();
+
+    }
 
     @Override
     public void onCreate() {
@@ -285,11 +364,11 @@ public class PhoneProxyService extends AccessibilityService {
         if (hasPerformed) {
             Logger.i("performed success use acc");
         } else {
-            if (performActionUseAdbShel(node)) {
-                Logger.i("performed success use adb");
-            } else {
-                Logger.w("performed failed");
-            }
+//            if (performActionUseAdbShel(node)) {
+//                Logger.i("performed success use adb");
+//            } else {
+            Logger.w("performed failed");
+//            }
         }
     }
 
@@ -406,7 +485,7 @@ public class PhoneProxyService extends AccessibilityService {
             Logger.t("pref").v("app node: " + NodeUtil.getBriefNodeInfo(rootNode));
             mAppRootNodePkgName = rootNode.getPackageName().toString();
             mAppLeafNodesMapForPreferenceSetting.clear();
-            parseLeafNodesForPreferenceSetting(rootNode);
+            parseNodesForPreferenceSetting(rootNode);
 
             // TODO: 11/5/16 extract preference related sub view tree here for app building
 
@@ -522,6 +601,34 @@ public class PhoneProxyService extends AccessibilityService {
 
     }
 
+    // parse all UI nodes and save them to list mAppLeafNodesMapForPreferenceSetting
+    private void parseNodesForPreferenceSetting(AccessibilityNodeInfo rootNode) {
+        if (rootNode == null) {
+            Logger.t("pref").v("null root node ");
+            return;
+        }
+        Rect region = new Rect();
+        rootNode.getBoundsInScreen(region);
+        String id = rootNode.getViewIdResourceName();
+        //        if (!region.isEmpty())
+        if (rootNode.getClassName().toString().endsWith("Layout")) {
+            // id cannot be null for container view like linear layout
+            Logger.t("pref").v("parseNodes add layout: " + NodeUtil.getBriefNodeInfo(rootNode));
+            mAppLeafNodesMapForPreferenceSetting.put(region, id);
+        } else {
+            if (id == null) {
+                Logger.t("pref").v("parseNodes null id" + NodeUtil.getBriefNodeInfo(rootNode));
+            } else {
+                Logger.t("pref").v("parseNodes add leaf: " + NodeUtil.getBriefNodeInfo(rootNode));
+                mAppLeafNodesMapForPreferenceSetting.put(region, id);
+            }
+        }
+        int count = rootNode.getChildCount();
+        for (int i = 0; i < count; i++) {
+            parseNodesForPreferenceSetting(rootNode.getChild(i));
+        }
+    }
+
     private boolean appNodesContainPreferenceNodes(ArrayList<Pair<String, Rect>> preferenceNodes) {
         /** for strict matching of both id and rect ***/
         HashSet<Pair<String, Rect>> preferenceSet = new HashSet<>(preferenceNodes);
@@ -550,6 +657,7 @@ public class PhoneProxyService extends AccessibilityService {
         for (Pair<String, Rect> pair : nodes) {
             Logger.i("id: " + pair.first + " rect: " + pair.second);
             AccessibilityNodeInfo accNode = mPairAccessibilityNodeMap.get(pair);
+            // TODO: 11/19/16 Saturday extract list item data nodes here if accNode has children
             DataNode dataNode = new DataNode(accNode);
             int uniqueId = dataNode.getUniqueId();
             Logger.v("unique id: " + uniqueId);
@@ -659,114 +767,6 @@ public class PhoneProxyService extends AccessibilityService {
         for (int i = 0; i < count; i++) {
             parseAppNodes(rootNode.getChild(i));
         }
-
-    }
-
-    // parse all UI leaf mNodes and save them to list mAppLeafNodesMapForPreferenceSetting
-    private void parseLeafNodesForPreferenceSetting(AccessibilityNodeInfo rootNode) {
-        if (rootNode == null) {
-            Logger.t("pref").v("null root node ");
-            return;
-        }
-
-        int count = rootNode.getChildCount();
-        if (count == 0) { // no child, leaf node
-            if (rootNode.isVisibleToUser() && !rootNode.getClassName()
-                    .toString().endsWith("Layout")) { // filter the ViewGroup
-                Rect region = new Rect();
-                rootNode.getBoundsInScreen(region);
-                String id = rootNode.getViewIdResourceName();
-                if (!region.isEmpty() && id != null) {
-                    Logger.t("pref").v("add: " + NodeUtil.getBriefNodeInfo(rootNode));
-                    mAppLeafNodesMapForPreferenceSetting.put(region, id);
-                }
-            }
-            rootNode.recycle();
-        } else {
-            for (int i = 0; i < count; i++) {
-                parseLeafNodesForPreferenceSetting(rootNode.getChild(i));
-            }
-        }
-    }
-
-    // send prepared leaf mNodes to PreferenceSettingActivity
-    private void sendLeafNodesToPreferenceSetting() {
-        if (mAppLeafNodesMapForPreferenceSetting.size() > 0) {
-            Intent nodesIntent = new Intent(NODES_AVAILABLE);
-            ArrayList<Rect> nodes = new ArrayList<>(mAppLeafNodesMapForPreferenceSetting.keySet());
-            nodesIntent.putParcelableArrayListExtra(AVAILABLE_NODES_PREFERENCE_SETTING_KEY,
-                    nodes);
-            LocalBroadcastManager.getInstance(this).sendBroadcast(nodesIntent);
-        } else {
-            Logger.t("pref").v("no available mNodes to send!");
-        }
-    }
-
-    // save rect-ID pair of user's selected UI mNodes and persist them to app specific xml file
-    // support multi-screen preference
-    private void persistAppPreferenceNodesAsync(final ArrayList<Rect> preferredNodes) {
-        // ensure that mAppLeafNodesMapForPreferenceSetting is not cleared
-        final HashMap<Rect, String> savedMap = new HashMap<>(mAppLeafNodesMapForPreferenceSetting);
-        final String appPkgName = mAppRootNodePkgName;
-
-        mWorkerThread.postTask(new Runnable() {
-            @Override
-            public void run() {
-                // write xml file to obb file
-                CharSequence date = DateFormat.format(TIME_FORMAT, new java.util.Date());
-                File preferenceFile = new File(
-                        getResDir(PREFERENCE_DIR, appPkgName),
-                        date + XML_EXT);
-                try {
-                    XmlUtil.serializeAppPreference(preferenceFile, preferredNodes, savedMap);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    Logger.t("pref").e(e.getMessage());
-                }
-
-                Message successMsg = mMainThreadHandler.obtainMessage();
-                successMsg.what = PERSIST_PREFERENCE_NODES_SUCCESS;
-                successMsg.obj = appPkgName;
-                mMainThreadHandler.sendMessage(successMsg);
-            }
-        });
-//        Logger.v();("mapped mNodes: " + mAppLeafNodesMapForPreferenceSetting.keySet().toString());
-//        SharedPreferences sharedPref = getSharedPreferences(mAppRootNodePkgName, MODE_APPEND);
-//        SharedPreferences.Editor editor = sharedPref.edit();
-//        for (Rect rect : preferredNodes) {
-//            String id = savedMap.get(rect); // can't be null since already checked during put time
-//            String rectString = rect.flattenToString();
-//            Logger.v();("save preference: " + id + " " + rect);
-//            // FIXME: 10/21/16 possibly to be improved
-//            try {
-//                String existingRect = sharedPref.getString(id, "");
-//                Logger.v();("existingRect: " + existingRect);
-//                if (existingRect.isEmpty()) {
-//                    editor.putString(id, rectString);
-//                } else {
-//                    if (!existingRect.equals(rectString)) {
-//                        HashSet<String> set = new HashSet<>();
-//                        set.add(existingRect);
-//                        set.add(rectString);
-//                        Logger.v();("set add two: " + Arrays.toString(set.toArray()));
-//                        editor.putStringSet(id, set);
-//                    }
-//                }
-//            } catch (ClassCastException e) { // catch return Set exception
-//                Logger.e(e.getMessage());
-//                Set<String> set = sharedPref.getStringSet(id, new HashSet<String>());
-//                if (set.size() > 0) {
-//                    Logger.v();("existing set: " + id + " " + Arrays.toString(set.toArray()));
-//                    set.add(rectString);
-//                    Logger.v();("set add one: " + id + " " + Arrays.toString(set.toArray()));
-//                    editor.putStringSet(id, set);
-//                }
-//            }
-//            // need to commit here, otherwise file not correct!
-//            editor.commit();
-//
-//        }
-//        editor.apply();
 
     }
 
