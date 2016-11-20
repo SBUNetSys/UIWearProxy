@@ -1,7 +1,8 @@
 package edu.stonybrook.cs.netsys.uiwearlib.helper;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil.printAccNodeTreeD;
+
 import android.graphics.Rect;
-import android.support.v4.util.Pair;
 import android.util.Xml;
 
 import com.orhanobut.logger.Logger;
@@ -15,7 +16,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+
+import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.AccNode;
 
 /**
  * Created by qqcao on 11/6/16.
@@ -25,13 +29,13 @@ import java.util.HashMap;
 
 public class XmlUtil {
 
-    private static final String ROOT_TAG = "nodes";
+    private static final String NODES_TAG = "nodes";
     private static final String NODE_TAG = "node";
     private static final String ID_TAG = "id";
     private static final String RECT_TAG = "rect";
 
     public static void serializeAppPreference(File preferenceFile,
-            ArrayList<Rect> preferredNodes, HashMap<Rect, String> appLeafNodesMap)
+            ArrayList<Rect> preferredNodes, HashMap<Rect, AccNode> appLeafNodesMap)
             throws IOException {
         XmlSerializer serializer = Xml.newSerializer();
         FileUtil.makeDirsIfNotExist(preferenceFile.getPath());
@@ -41,39 +45,46 @@ public class XmlUtil {
 
     public static void serializeAppPreference(XmlSerializer serializer,
             FileWriter preferenceWriter, ArrayList<Rect> preferredNodes,
-            HashMap<Rect, String> appLeafNodesMap) {
+            HashMap<Rect, AccNode> appLeafNodesMap) {
 
+        Logger.d("xml nodes: " + Arrays.toString(preferredNodes.toArray()));
         try {
 //            FileWriter fileWriter = new FileWriter(preference);
             serializer.setOutput(preferenceWriter);
             serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
             serializer.startDocument("UTF-8", true);
-            serializer.startTag(null, ROOT_TAG);
+            serializer.startTag(null, NODES_TAG);
 
             // serialize data
             for (Rect rect : preferredNodes) {
+                AccNode node = appLeafNodesMap.get(rect);
+                int count = node.getChildCount();
+                if (count > 0) {
+                    printAccNodeTreeD("xml", node);
+                    String id = node.getViewId();
+                    serializer.startTag(null, NODE_TAG);
+                    serializer.startTag(null, ID_TAG);
+                    if (id == null) {
+                        // container node can have null id
+                        serializer.text("null");
+                    } else {
+                        serializer.text(id);
+                    }
+                    serializer.endTag(null, ID_TAG);
 
-                String id = appLeafNodesMap.get(rect);
-                String rectString = rect.flattenToString();
-
-                serializer.startTag(null, NODE_TAG);
-
-                serializer.startTag(null, ID_TAG);
-                if (id == null) {
-                    serializer.text("null");
+                    serializer.startTag(null, RECT_TAG);
+                    serializer.text(rect.flattenToString());
+                    serializer.endTag(null, RECT_TAG);
+                    // serialize all leaf children
+                    serializer = serializeNode(serializer, node);
+                    serializer.endTag(null, NODE_TAG);
                 } else {
-                    serializer.text(id);
+                    serializer = serializeNode(serializer, node);
                 }
-                serializer.endTag(null, ID_TAG);
 
-                serializer.startTag(null, RECT_TAG);
-                serializer.text(rectString);
-                serializer.endTag(null, RECT_TAG);
-
-                serializer.endTag(null, NODE_TAG);
             }
 
-            serializer.endTag(null, ROOT_TAG);
+            serializer.endTag(null, NODES_TAG);
             serializer.endDocument();
 
         } catch (IOException e) {
@@ -83,58 +94,187 @@ public class XmlUtil {
         }
     }
 
-    public static ArrayList<Pair<String, Rect>> deserializeAppPreference(File preferenceFile) {
+    private static XmlSerializer serializeNode(XmlSerializer serializer, AccNode node)
+            throws IOException {
+        if (node == null) {
+            Logger.e("node can't be null");
+            return serializer;
+        }
+
+        int count = node.getChildCount();
+
+        if (count == 0) {
+            String id = node.getViewId();
+            if (id == null) {
+                // leaf node should not have null id
+                return serializer;
+            }
+            Rect rect = node.getRectInScreen();
+            String rectString = rect.flattenToString();
+            serializer.startTag(null, NODE_TAG);
+            serializer.startTag(null, ID_TAG);
+            serializer.text(id);
+            serializer.endTag(null, ID_TAG);
+
+            serializer.startTag(null, RECT_TAG);
+            serializer.text(rectString);
+            serializer.endTag(null, RECT_TAG);
+
+            serializer.endTag(null, NODE_TAG);
+        } else {
+            for (int i = 0; i < count; i++) {
+                serializer = serializeNode(serializer, node.getChild(i));
+            }
+        }
+
+
+        return serializer;
+    }
+
+    public static ArrayList<AccNode> deserializeAppPreference(File preferenceFile) {
         String preferenceString = FileUtil.readFile(preferenceFile.getPath()).toString();
         return deserializeAppPreference(preferenceString);
     }
 
-    public static ArrayList<Pair<String, Rect>> deserializeAppPreference(String preferenceString) {
-        ArrayList<Pair<String, Rect>> nodes = new ArrayList<>();
-        Pair<String, Rect> pair = null;
-        String id = null;
-        Rect rect = null;
-
+    public static ArrayList<AccNode> deserializeAppPreference(String preferenceString) {
+        ArrayList<AccNode> nodes = new ArrayList<>();
         StringReader stringReader = new StringReader(preferenceString);
         XmlPullParser parser = Xml.newPullParser();
         try {
             parser.setInput(stringReader);
-            int event = parser.getEventType();
-            while (event != XmlPullParser.END_DOCUMENT) {
-                String tag = parser.getName();
-                switch (event) {
-                    case XmlPullParser.START_DOCUMENT:
-                        break;
-                    case XmlPullParser.START_TAG:
+            parser.nextTag();
+            nodes = readNodes(parser);
+        } catch (XmlPullParserException | IOException e) {
+            e.printStackTrace();
+        }
 
-                        if (ID_TAG.equals(tag)) {
-                            id = parser.nextText();
-                        }
+        return nodes;
 
-                        if (RECT_TAG.equals(tag)) {
-                            rect = Rect.unflattenFromString(parser.nextText());
-                        }
+    }
 
-                        break;
-                    case XmlPullParser.END_TAG:
-                        if (tag.equals(NODE_TAG)) {
-                            if (id != null && rect != null) {
-                                pair = new Pair<>(id, rect);
-                            }
-                        }
 
-                        if (NODE_TAG.equals(parser.getName())) {
-                            nodes.add(pair);
-                        }
-                        break;
-                    default:
+    private static ArrayList<AccNode> readNodes(XmlPullParser parser) {
+        ArrayList<AccNode> nodes = new ArrayList<>();
+        try {
+            parser.require(XmlPullParser.START_TAG, null, NODES_TAG);
+            while (parser.next() != XmlPullParser.END_TAG) {
+                if (parser.getEventType() != XmlPullParser.START_TAG) {
+                    continue;
                 }
-                event = parser.next();
+                String name = parser.getName();
+                // Starts by looking for the entry tag
+                if (NODE_TAG.equals(name)) {
+                    nodes.add(readNode(parser));
+                } else {
+                    skip(parser);
+                }
             }
         } catch (XmlPullParserException | IOException e) {
             e.printStackTrace();
         }
 
         return nodes;
+    }
+
+    private static AccNode readNode(XmlPullParser parser) {
+        AccNode node = new AccNode();
+        try {
+            parser.require(XmlPullParser.START_TAG, null, NODE_TAG);
+            while (parser.next() != XmlPullParser.END_TAG) {
+                if (parser.getEventType() != XmlPullParser.START_TAG) {
+                    continue;
+                }
+                String name = parser.getName();
+                switch (name) {
+                    case ID_TAG:
+                        String viewId = readViewId(parser);
+                        node.setViewId(viewId);
+                        break;
+                    case RECT_TAG:
+                        Rect rectInScreen = readRectInScreen(parser);
+                        node.setRectInScreen(rectInScreen);
+                        break;
+                    case NODE_TAG:
+                        node.addChild(readNode(parser));
+                        break;
+                    default:
+                        skip(parser);
+                        break;
+                }
+            }
+        } catch (XmlPullParserException | IOException e) {
+            e.printStackTrace();
+        }
+
+
+        return node;
+    }
+
+    private static String readViewId(XmlPullParser parser) {
+        String id = null;
+        try {
+            parser.require(XmlPullParser.START_TAG, null, ID_TAG);
+            id = readText(parser);
+            parser.require(XmlPullParser.END_TAG, null, ID_TAG);
+        } catch (XmlPullParserException | IOException e) {
+            e.printStackTrace();
+        }
+
+        return id;
+    }
+
+    private static Rect readRectInScreen(XmlPullParser parser) {
+        Rect rect = new Rect();
+        try {
+            parser.require(XmlPullParser.START_TAG, null, RECT_TAG);
+            String id = readText(parser);
+            rect = Rect.unflattenFromString(id);
+            parser.require(XmlPullParser.END_TAG, null, RECT_TAG);
+
+        } catch (XmlPullParserException | IOException e) {
+            e.printStackTrace();
+        }
+
+        return rect;
+    }
+
+    private static String readText(XmlPullParser parser) {
+        String result = "";
+        try {
+            if (parser.next() == XmlPullParser.TEXT) {
+                result = parser.getText();
+                parser.nextTag();
+            }
+        } catch (XmlPullParserException | IOException e) {
+            e.printStackTrace();
+        }
+        return result;
+    }
+
+    private static void skip(XmlPullParser parser) {
+        try {
+            if (parser.getEventType() != XmlPullParser.START_TAG) {
+                throw new IllegalStateException();
+            }
+        } catch (XmlPullParserException e) {
+            e.printStackTrace();
+        }
+        int depth = 1;
+        while (depth != 0) {
+            try {
+                switch (parser.next()) {
+                    case XmlPullParser.END_TAG:
+                        depth--;
+                        break;
+                    case XmlPullParser.START_TAG:
+                        depth++;
+                        break;
+                    default:
+                }
+            } catch (XmlPullParserException | IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     public static void parseMappingRule(File mappingRuleFile) {

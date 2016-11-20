@@ -36,6 +36,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.marshall;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.unmarshall;
 import static edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil.getBriefNodeInfo;
 import static edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil.getNodePkgName;
+import static edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil.printNodeTreeD;
 
 import android.accessibilityservice.AccessibilityService;
 import android.app.NotificationManager;
@@ -54,7 +55,6 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
-import android.support.v4.util.Pair;
 import android.text.format.DateFormat;
 import android.util.LruCache;
 import android.view.WindowManager;
@@ -77,6 +77,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 import edu.stonybrook.cs.netsys.uiwearlib.WorkerThread;
+import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.AccNode;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataAction;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataBundle;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataNode;
@@ -101,7 +102,7 @@ public class PhoneProxyService extends AccessibilityService {
     // either region or id alone is not enough for detecting the specific UI elements
     // so combined them and can cover most cases
     // must use region as key, since id can be the same
-    private HashMap<Rect, String> mAppLeafNodesMapForPreferenceSetting = new HashMap<>();
+    private HashMap<Rect, AccNode> mAppNodesMapForPreferenceSetting = new HashMap<>();
     private String mAppRootNodePkgName;
 
     // for bitmap extracting and other heavy work
@@ -115,11 +116,11 @@ public class PhoneProxyService extends AccessibilityService {
     private SharedPreferences mWatchPhoneResolutionRatioSharedPref;
 
     // list of app preference mNodes, for each pair, the first is id, the second is rect
-    private LruCache<String, ArrayList<Pair<String, Rect>>> mAppPreferenceNodesCache =
+    private LruCache<String, ArrayList<AccNode>> mAppPreferenceNodesCache =
             new LruCache<>(RUNNING_APP_PREF_CACHE_SIZE);
 
-    private HashSet<Pair<String, Rect>> mAppNodes = new HashSet<>();
-    private HashMap<Pair<String, Rect>, AccessibilityNodeInfo> mPairAccessibilityNodeMap =
+    private HashSet<AccNode> mAppNodes = new HashSet<>();
+    private HashMap<AccNode, AccessibilityNodeInfo> mPairAccessibilityNodeMap =
             new HashMap<>();
     private LruCache<Integer, Bitmap> mBitmapLruCache = new LruCache<Integer, Bitmap>(
             BITMAP_CACHE_SIZE) {
@@ -168,9 +169,9 @@ public class PhoneProxyService extends AccessibilityService {
 
     // send prepared leaf mNodes to PreferenceSettingActivity
     private void sendLeafNodesToPreferenceSetting() {
-        if (mAppLeafNodesMapForPreferenceSetting.size() > 0) {
+        if (mAppNodesMapForPreferenceSetting.size() > 0) {
             Intent nodesIntent = new Intent(NODES_AVAILABLE);
-            ArrayList<Rect> nodes = new ArrayList<>(mAppLeafNodesMapForPreferenceSetting.keySet());
+            ArrayList<Rect> nodes = new ArrayList<>(mAppNodesMapForPreferenceSetting.keySet());
             nodesIntent.putParcelableArrayListExtra(AVAILABLE_NODES_PREFERENCE_SETTING_KEY,
                     nodes);
             LocalBroadcastManager.getInstance(this).sendBroadcast(nodesIntent);
@@ -182,8 +183,9 @@ public class PhoneProxyService extends AccessibilityService {
     // save rect-ID pair of user's selected UI mNodes and persist them to app specific xml file
     // support multi-screen preference
     private void persistAppPreferenceNodesAsync(final ArrayList<Rect> preferredNodes) {
-        // ensure that mAppLeafNodesMapForPreferenceSetting is not cleared
-        final HashMap<Rect, String> savedMap = new HashMap<>(mAppLeafNodesMapForPreferenceSetting);
+        // ensure that mAppNodesMapForPreferenceSetting is not cleared
+        final HashMap<Rect, AccNode> savedMap = new HashMap<>(
+                mAppNodesMapForPreferenceSetting);
         final String appPkgName = mAppRootNodePkgName;
 
         mWorkerThread.postTask(new Runnable() {
@@ -207,7 +209,7 @@ public class PhoneProxyService extends AccessibilityService {
                 mMainThreadHandler.sendMessage(successMsg);
             }
         });
-//        Logger.v();("mapped mNodes: " + mAppLeafNodesMapForPreferenceSetting.keySet().toString());
+//        Logger.v();("mapped mNodes: " + mAppNodesMapForPreferenceSetting.keySet().toString());
 //        SharedPreferences sharedPref = getSharedPreferences(mAppRootNodePkgName, MODE_APPEND);
 //        SharedPreferences.Editor editor = sharedPref.edit();
 //        for (Rect rect : preferredNodes) {
@@ -261,7 +263,7 @@ public class PhoneProxyService extends AccessibilityService {
             public void handleMessage(Message msg) {
                 switch (msg.what) {
                     case PERSIST_PREFERENCE_NODES_SUCCESS:
-                        Logger.t("pref").v(msg.obj + "preference saved");
+                        Logger.t("pref").v(msg.obj + " preference saved");
                         break;
                     case READ_PREFERENCE_NODES_SUCCESS:
                         Logger.t("pref").v("preference read");
@@ -440,7 +442,7 @@ public class PhoneProxyService extends AccessibilityService {
             int stopCode = intent.getIntExtra(PREFERENCE_STOP_KEY, 0);
             if (stopCode == PREFERENCE_STOP_CODE) {
                 mIsRunningPreferenceSetting = false;
-                mAppLeafNodesMapForPreferenceSetting.clear();
+                mAppNodesMapForPreferenceSetting.clear();
                 Logger.t("pref").v("stop preference setting");
             }
 
@@ -458,7 +460,7 @@ public class PhoneProxyService extends AccessibilityService {
         mAppPreferenceNodesCache.evictAll();
         mLastSentDataBundle = null;
         mAppRootNodePkgName = null;
-        mAppLeafNodesMapForPreferenceSetting.clear();
+        mAppNodesMapForPreferenceSetting.clear();
         mPairAccessibilityNodeMap.clear();
     }
 
@@ -484,8 +486,9 @@ public class PhoneProxyService extends AccessibilityService {
         if (mIsRunningPreferenceSetting) {
             Logger.t("pref").v("app node: " + NodeUtil.getBriefNodeInfo(rootNode));
             mAppRootNodePkgName = rootNode.getPackageName().toString();
-            mAppLeafNodesMapForPreferenceSetting.clear();
-            parseNodesForPreferenceSetting(rootNode);
+            mAppNodesMapForPreferenceSetting.clear();
+            AccNode rootAccNode = new AccNode(rootNode);
+            parseNodesForPreferenceSetting(rootAccNode);
 
             // TODO: 11/5/16 extract preference related sub view tree here for app building
 
@@ -549,7 +552,7 @@ public class PhoneProxyService extends AccessibilityService {
         // read app preference xml file
         readAppPreferenceNodesAsync(preferenceFolder, new AppNodesReadyCallback() {
             @Override
-            public void onAppNodesReady(String preferenceId, ArrayList<Pair<String, Rect>> nodes) {
+            public void onAppNodesReady(String preferenceId, ArrayList<AccNode> nodes) {
                 // decide whether the preference mNodes are subset of current app mNodes
                 Logger.v("pref id: " + preferenceId);
                 if (!appNodesContainPreferenceNodes(nodes)) {
@@ -601,26 +604,25 @@ public class PhoneProxyService extends AccessibilityService {
 
     }
 
-    // parse all UI nodes and save them to list mAppLeafNodesMapForPreferenceSetting
-    private void parseNodesForPreferenceSetting(AccessibilityNodeInfo rootNode) {
+    // parse all UI nodes and save them to list mAppNodesMapForPreferenceSetting
+    private void parseNodesForPreferenceSetting(AccNode rootNode) {
         if (rootNode == null) {
             Logger.t("pref").v("null root node ");
             return;
         }
-        Rect region = new Rect();
-        rootNode.getBoundsInScreen(region);
-        String id = rootNode.getViewIdResourceName();
+        Rect region = rootNode.getRectInScreen();
+        String id = rootNode.getViewId();
         //        if (!region.isEmpty())
-        if (rootNode.getClassName().toString().endsWith("Layout")) {
+        if (rootNode.getClassName().endsWith("Layout")) {
             // id cannot be null for container view like linear layout
-            Logger.t("pref").v("parseNodes add layout: " + NodeUtil.getBriefNodeInfo(rootNode));
-            mAppLeafNodesMapForPreferenceSetting.put(region, id);
+            Logger.t("pref").v("parseNodes add layout: " + rootNode);
+            mAppNodesMapForPreferenceSetting.put(region, rootNode);
         } else {
             if (id == null) {
-                Logger.t("pref").v("parseNodes null id" + NodeUtil.getBriefNodeInfo(rootNode));
+                Logger.t("pref").v("parseNodes null id" + rootNode);
             } else {
-                Logger.t("pref").v("parseNodes add leaf: " + NodeUtil.getBriefNodeInfo(rootNode));
-                mAppLeafNodesMapForPreferenceSetting.put(region, id);
+                Logger.t("pref").v("parseNodes add leaf: " + rootNode);
+                mAppNodesMapForPreferenceSetting.put(region, rootNode);
             }
         }
         int count = rootNode.getChildCount();
@@ -629,9 +631,9 @@ public class PhoneProxyService extends AccessibilityService {
         }
     }
 
-    private boolean appNodesContainPreferenceNodes(ArrayList<Pair<String, Rect>> preferenceNodes) {
+    private boolean appNodesContainPreferenceNodes(ArrayList<AccNode> preferenceNodes) {
         /** for strict matching of both id and rect ***/
-        HashSet<Pair<String, Rect>> preferenceSet = new HashSet<>(preferenceNodes);
+        HashSet<AccNode> preferenceSet = new HashSet<>(preferenceNodes);
         Logger.v("node set: " + mAppNodes.toString());
         Logger.v("pref set: " + preferenceNodes.toString());
         return mAppNodes.containsAll(preferenceSet);
@@ -652,11 +654,15 @@ public class PhoneProxyService extends AccessibilityService {
 //        return appNodeIdList.containsAll(preferenceNodeIdList);
     }
 
-    private void parseNodeData(ArrayList<Pair<String, Rect>> nodes, DataBundle dataBundle) {
+    private void parseNodeData(ArrayList<AccNode> nodes, DataBundle dataBundle) {
         // currently only use id to extract preference nodes info
-        for (Pair<String, Rect> pair : nodes) {
-            Logger.i("id: " + pair.first + " rect: " + pair.second);
-            AccessibilityNodeInfo accNode = mPairAccessibilityNodeMap.get(pair);
+        for (AccNode node : nodes) {
+            Logger.i("id: " + node.getViewId() + " rect: " + node.getRectInScreen());
+            AccessibilityNodeInfo accNode = mPairAccessibilityNodeMap.get(node);
+            Logger.d("child count: " + accNode.getChildCount());
+            if (accNode.getChildCount() > 0) {
+                printNodeTreeD("child", accNode);
+            }
             // TODO: 11/19/16 Saturday extract list item data nodes here if accNode has children
             DataNode dataNode = new DataNode(accNode);
             int uniqueId = dataNode.getUniqueId();
@@ -755,12 +761,11 @@ public class PhoneProxyService extends AccessibilityService {
         String viewId = rootNode.getViewIdResourceName();
         Rect rect = new Rect();
         rootNode.getBoundsInScreen(rect);
-        Pair<String, Rect> pair = new Pair<>(viewId, rect);
+        AccNode node = new AccNode(viewId, rect);
         // for preference comparison
-        mAppNodes.add(pair);
+        mAppNodes.add(node);
         // for finding the node based on pair
-        mPairAccessibilityNodeMap.put(pair, rootNode);
-
+        mPairAccessibilityNodeMap.put(node, rootNode);
 
         int count = rootNode.getChildCount();
 
@@ -784,7 +789,7 @@ public class PhoneProxyService extends AccessibilityService {
                             + FileUtil.getBaseName(preferenceFile);
                     Logger.t("pref").v("cache key: " + cacheKey);
 
-                    ArrayList<Pair<String, Rect>> nodes = mAppPreferenceNodesCache.get(cacheKey);
+                    ArrayList<AccNode> nodes = mAppPreferenceNodesCache.get(cacheKey);
 
                     if (nodes == null) {
                         nodes = XmlUtil.deserializeAppPreference(

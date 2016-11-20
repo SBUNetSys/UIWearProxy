@@ -9,6 +9,8 @@ import android.view.accessibility.AccessibilityNodeInfo;
 
 import com.orhanobut.logger.Logger;
 
+import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.AccNode;
+
 /**
  * Created by qqcao on 10/22/16.
  * <p>
@@ -33,6 +35,40 @@ public class NodeUtil {
         }
     }
 
+    public static void printNodeTreeD(String tag, AccessibilityNodeInfo node) {
+        if (node == null) {
+            Logger.t(tag).d("node null");
+            return;
+        }
+
+        int count = node.getChildCount();
+        if (count == 0) {
+            Logger.t(tag).d(node.toString());
+        } else {
+            for (int i = 0; i < count; i++) {
+                AccessibilityNodeInfo child = node.getChild(i);
+                printNodeTreeD(tag, child);
+            }
+        }
+    }
+
+    public static void printAccNodeTreeD(String tag, AccNode node) {
+        if (node == null) {
+            Logger.t(tag).d("node null");
+            return;
+        }
+
+        int count = node.getChildCount();
+        if (count == 0) {
+            Logger.t(tag).d(node.toString());
+        } else {
+            for (int i = 0; i < count; i++) {
+                AccNode child = node.getChild(i);
+                printAccNodeTreeD(tag, child);
+            }
+        }
+    }
+
     public static String getBriefNodeInfo(AccessibilityNodeInfo source) {
         if (source == null) {
             return "null";
@@ -41,6 +77,7 @@ public class NodeUtil {
         source.getBoundsInScreen(rectScreen);
 
         return "rect: " + rectScreen.toString() + "; "
+                + "size: " + source.getChildCount() + "; "
                 + "packageName: " + source.getPackageName() + ";"
                 + "viewID: " + source.getViewIdResourceName() + "; "
                 + "class: " + source.getClassName() + "; "

@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<nodes>
+    <node>
+        <id>com.spotify.music:id/row_view</id>
+        <rect>0 264 1080 456</rect>
+        <node>
+            <id>android:id/icon</id>
+            <rect>48 288 192 432</rect>
+        </node>
+        <node>
+            <id>android:id/text1</id>
+            <rect>228 301 530 362</rect>
+        </node>
+        <node>
+            <id>android:id/text2</id>
+            <rect>228 370 566 419</rect>
+        </node>
+    </node>
+    <node>
+        <id>com.spotify.music:id/playPause</id>
+        <rect>936 1620 1080 1764</rect>
+    </node>
+    <node>
+        <id>com.spotify.music:id/title</id>
+        <rect>168 1642 912 1699</rect>
+    </node>
+    <node>
+        <id>com.spotify.music:id/subtitle</id>
+        <rect>168 1695 605 1744</rect>
+    </node>
+    <node>
+        <id>com.spotify.music:id/btn_chevron_up</id>
+        <rect>48 1668 96 1716</rect>
+    </node>
+</nodes>

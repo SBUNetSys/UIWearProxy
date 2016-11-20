@@ -1,9 +1,8 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 
-import android.graphics.Rect;
-import android.support.v4.util.Pair;
-
 import java.util.ArrayList;
+
+import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.AccNode;
 
 /**
  * Created by qqcao on 11/5/16.
@@ -11,5 +10,5 @@ import java.util.ArrayList;
  * For app preference nodes ready callback
  */
 interface AppNodesReadyCallback {
-    void onAppNodesReady(String cacheKey, ArrayList<Pair<String, Rect>> nodes);
+    void onAppNodesReady(String cacheKey, ArrayList<AccNode> nodes);
 }
