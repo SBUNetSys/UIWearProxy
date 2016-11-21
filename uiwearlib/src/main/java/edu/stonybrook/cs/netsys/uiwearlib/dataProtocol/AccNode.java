@@ -47,6 +47,14 @@ public class AccNode {
     public AccNode() {
     }
 
+    public AccNode(AccNode node) {
+        mId = node.mId;
+        mViewId = node.mViewId;
+        mRectInScreen = node.mRectInScreen;
+        mClassName = node.mClassName;
+        mChildNodes = new ArrayList<>(node.getChildNodes());
+    }
+
     public void addChild(AccNode node) {
         mChildNodes.add(node);
     }

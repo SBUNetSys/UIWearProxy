@@ -678,39 +678,48 @@ public class PhoneProxyService extends AccessibilityService {
     }
 
     private boolean appNodesContainPreferenceNodes(ArrayList<AccNode> preferenceNodes) {
+        ArrayList<AccNode> prefNodes = new ArrayList<>(preferenceNodes);
         ArrayList<AccNode> appNodes = new ArrayList<>(mPairAccessibilityNodeMap.keySet());
         Logger.v("node app  set: " + appNodes.toString());
-        Logger.v("node pref set: " + preferenceNodes.toString());
+        Logger.v("node pref set: " + prefNodes.toString());
 
         /*** compare viewId, if multiple node have the same id, then use rect size ***/
         boolean oneNodeMatched = true;
-        for (AccNode prefNode : preferenceNodes) {
+        // for node have the same id
+        boolean atLeastOneNodeMatched = false;
+        for (AccNode prefNode : prefNodes) {
             for (AccNode appNode : appNodes) {
                 ArrayList<AccessibilityNodeInfo> nodes = mIdNodesMap.get(appNode.getViewId());
                 if (nodes.size() > 1) {
                     oneNodeMatched = prefNode.matches(appNode, 0);
-//                    Logger.i("node has the same id: " + appNode);
+                    if (oneNodeMatched) {
+                        atLeastOneNodeMatched = true;
+                        // need to update the prefNode to appNode
+                        prefNode.setRectInScreen(appNode.getRectInScreen());
+                        preferenceNodes.add(new AccNode(prefNode));
+                        Logger.v("node match: multiple app- " + appNode + " pref-" + prefNode);
+                        // do not break here, need iterate all nodes that have the same viewID
+                    }
                 } else {
-//                    Logger.i("node single id: " + appNode);
                     oneNodeMatched = prefNode.getViewId().equals(appNode.getViewId());
-                }
-
-                if (oneNodeMatched) {
-                    // need to update the prefNode to appNode
-                    prefNode.setRectInScreen(appNode.getRectInScreen());
-                    Logger.v("node match: app- " + appNode + " pref-" + prefNode);
-                    break;
+                    if (oneNodeMatched) {
+                        // need to update the prefNode to appNode
+                        prefNode.setRectInScreen(appNode.getRectInScreen());
+                        Logger.v("node match: single app- " + appNode + " pref-" + prefNode);
+                        break;
+                    }
                 }
             }
 
-            if (!oneNodeMatched) {
+            if (!oneNodeMatched && !atLeastOneNodeMatched) {
                 // find one node that does not in appNodes
                 Logger.d("node not match");
                 return false;
             }
         }
 
-        Logger.d("node matched");
+        Logger.v("node matched app  set: " + appNodes.toString());
+        Logger.v("node matched pref set: " + preferenceNodes.toString());
         return true;
     }
 
