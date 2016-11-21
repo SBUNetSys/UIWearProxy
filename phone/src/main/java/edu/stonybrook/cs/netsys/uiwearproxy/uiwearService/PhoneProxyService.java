@@ -36,7 +36,6 @@ import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.marshall;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.unmarshall;
 import static edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil.getBriefNodeInfo;
 import static edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil.getNodePkgName;
-import static edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil.printNodeTreeD;
 
 import android.accessibilityservice.AccessibilityService;
 import android.app.NotificationManager;
@@ -74,7 +73,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 
 import edu.stonybrook.cs.netsys.uiwearlib.WorkerThread;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.AccNode;
@@ -119,9 +117,12 @@ public class PhoneProxyService extends AccessibilityService {
     private LruCache<String, ArrayList<AccNode>> mAppPreferenceNodesCache =
             new LruCache<>(RUNNING_APP_PREF_CACHE_SIZE);
 
-    private HashSet<AccNode> mAppNodes = new HashSet<>();
+    //    private HashSet<AccNode> mAppNodes = new HashSet<>();
     private HashMap<AccNode, AccessibilityNodeInfo> mPairAccessibilityNodeMap =
             new HashMap<>();
+    private HashMap<String, ArrayList<AccessibilityNodeInfo>> mIdNodesMap =
+            new HashMap<>();
+
     private LruCache<Integer, Bitmap> mBitmapLruCache = new LruCache<Integer, Bitmap>(
             BITMAP_CACHE_SIZE) {
         @Override
@@ -542,7 +543,8 @@ public class PhoneProxyService extends AccessibilityService {
         mWorkerThread.postTask(new Runnable() {
             @Override
             public void run() {
-                mAppNodes.clear();
+//                mAppNodes.clear();
+                mIdNodesMap.clear();
                 mPairAccessibilityNodeMap.clear();
                 NodeUtil.printNodeTree(rootNode);
                 parseAppNodes(rootNode);
@@ -560,45 +562,19 @@ public class PhoneProxyService extends AccessibilityService {
                     Logger.v("not contain preference nodes, skip");
                     return;
                 }
-                // begin extracting preference view tree info
+
                 DataBundle dataBundle = new DataBundle(appPkgName, preferenceId);
+                // begin extracting preference view tree info
                 parseNodeData(nodes, dataBundle);
 
-                if (dataBundle.equals(mLastSentDataBundle)) {
-                    Logger.v("repeat curr bundle" + dataBundle);
-                    Logger.v("repeat last bundle" + mLastSentDataBundle);
+                if (isDataBundleDuplicate(dataBundle)) {
+                    // no need to further processing
                     return;
                 } else {
-                    Logger.v("new data new  bundle before pruning: " + dataBundle);
-                    Logger.v("new data last bundle before pruning: " + mLastSentDataBundle);
-
-                    DataBundle savedDataBundleBeforePruning = new DataBundle(dataBundle);
-                    if (mLastSentDataBundle != null) {
-                        ArrayList<DataNode> lastSentDataNodes = mLastSentDataBundle.getDataNodes();
-                        ArrayList<DataNode> dataNodes = new ArrayList<>(dataBundle.getDataNodes());
-                        for (DataNode node : dataNodes) {
-                            if (lastSentDataNodes.contains(node)) {
-                                Logger.d("new data bundle removed node: " + node);
-                                dataBundle.remove(node);
-                            }
-                        }
-                    }
-
-                    mLastSentDataBundle = savedDataBundleBeforePruning;
-                    Logger.v("new data new  bundle after pruning: " + dataBundle);
-                    Logger.v("new data last bundle after pruning: " + mLastSentDataBundle);
+                    pruneDataBundle(dataBundle);
                 }
 
-                Logger.d(dataBundle.toString());
-
-                // send hash of data bundle first, if wear has the data bundle, done
-                // if not, send the real data bundle
-                int dataBundleHash = dataBundle.hashCode();
-                String dataBundleHashString = Integer.toString(dataBundleHash);
-                mGmsWear.sendMessage(DATA_BUNDLE_HASH_PATH, dataBundleHashString.getBytes());
-                byte[] data = marshall(dataBundle);
-                Logger.i("new data bundle: " + data.length);
-                mDataBundleLruCache.put(dataBundleHashString, data);
+                cacheDataAndSendHashToWear(dataBundle);
             }
         });
 
@@ -631,53 +607,148 @@ public class PhoneProxyService extends AccessibilityService {
         }
     }
 
-    private boolean appNodesContainPreferenceNodes(ArrayList<AccNode> preferenceNodes) {
-        /** for strict matching of both id and rect ***/
-        HashSet<AccNode> preferenceSet = new HashSet<>(preferenceNodes);
-        Logger.v("node set: " + mAppNodes.toString());
-        Logger.v("pref set: " + preferenceNodes.toString());
-        return mAppNodes.containsAll(preferenceSet);
+    private void parseAppNodes(AccessibilityNodeInfo rootNode) {
+        if (rootNode == null) {
+            Logger.t("parse").v("null app root node ");
+            return;
+        }
 
-        /*** only compare viewId, (change pair.first to pair.second to only compare rect) ***/
-//        ArrayList<String> preferenceNodeIdList = new ArrayList<>();
-//        ArrayList<String> appNodeIdList = new ArrayList<>();
-//
-//        ArrayList<Pair<String, Rect>> appNodes = new ArrayList<>(mAppNodes);
-//        for (Pair<String, Rect> pair : appNodes) {
-//            appNodeIdList.add(pair.first);
-//        }
-//
-//        for (Pair<String, Rect> pair : preferenceNodes) {
-//            preferenceNodeIdList.add(pair.first);
-//        }
-//
-//        return appNodeIdList.containsAll(preferenceNodeIdList);
+        String viewId = rootNode.getViewIdResourceName();
+        Rect rect = new Rect();
+        rootNode.getBoundsInScreen(rect);
+        if (rect.isEmpty() || viewId == null) {
+            Logger.t("parse").v("node: " + rect + " " + viewId);
+        } else {
+            AccNode node = new AccNode(viewId, rect);
+            Logger.t("parse").v("node: " + node);
+
+            ArrayList<AccessibilityNodeInfo> list = mIdNodesMap.get(viewId);
+            if (list == null) {
+                list = new ArrayList<>();
+            }
+            list.add(rootNode);
+            mIdNodesMap.put(viewId, list);
+
+            mPairAccessibilityNodeMap.put(node, rootNode);
+        }
+
+        int count = rootNode.getChildCount();
+
+        for (int i = 0; i < count; i++) {
+            parseAppNodes(rootNode.getChild(i));
+        }
+
     }
 
-    private void parseNodeData(ArrayList<AccNode> nodes, DataBundle dataBundle) {
-        // currently only use id to extract preference nodes info
-        for (AccNode node : nodes) {
-            Logger.i("id: " + node.getViewId() + " rect: " + node.getRectInScreen());
-            AccessibilityNodeInfo accNode = mPairAccessibilityNodeMap.get(node);
-            Logger.d("child count: " + accNode.getChildCount());
-            if (accNode.getChildCount() > 0) {
-                printNodeTreeD("child", accNode);
+    private void readAppPreferenceNodesAsync(final File preferenceFolder,
+            final AppNodesReadyCallback appNodesReadyCallback) {
+
+        mWorkerThread.postTask(new Runnable() {
+            @Override
+            public void run() {
+                for (File preferenceFile : preferenceFolder.listFiles()) {
+                    Logger.t("pref").v("path: " + preferenceFile.getPath() + " name: "
+                            + preferenceFile.getName());
+
+                    String cacheKey = FileUtil.getParentName(preferenceFile) + File.separator
+                            + FileUtil.getBaseName(preferenceFile);
+                    Logger.t("pref").v("cache key: " + cacheKey);
+
+                    ArrayList<AccNode> nodes = mAppPreferenceNodesCache.get(cacheKey);
+
+                    if (nodes == null) {
+                        nodes = XmlUtil.deserializeAppPreference(
+                                preferenceFile);
+                        mAppPreferenceNodesCache.put(cacheKey, nodes);
+                        Logger.t("pref").v("from file");
+                    } else {
+                        Logger.t("pref").v("from cache");
+                    }
+
+                    appNodesReadyCallback.onAppNodesReady(FileUtil.getBaseName(preferenceFile),
+                            nodes);
+                }
+
+//                Message nodesMsg = mMainThreadHandler.obtainMessage();
+//                nodesMsg.what = READ_PREFERENCE_NODES_SUCCESS;
+//                nodesMsg.obj = new Pair<>(appPkgName, mNodes);
+//                mMainThreadHandler.sendMessage(nodesMsg);
             }
-            // TODO: 11/19/16 Saturday extract list item data nodes here if accNode has children
-            DataNode dataNode = new DataNode(accNode);
-            int uniqueId = dataNode.getUniqueId();
-            Logger.v("unique id: " + uniqueId);
-            Bitmap nodeBitmap = getNodeBitmap(accNode, dataNode);
-            dataNode.setImage(nodeBitmap);
-            Logger.i(dataNode.toString());
-            dataBundle.add(dataNode);
+        });
+    }
+
+    private boolean appNodesContainPreferenceNodes(ArrayList<AccNode> preferenceNodes) {
+        ArrayList<AccNode> appNodes = new ArrayList<>(mPairAccessibilityNodeMap.keySet());
+        Logger.v("node app  set: " + appNodes.toString());
+        Logger.v("node pref set: " + preferenceNodes.toString());
+
+        /*** compare viewId, if multiple node have the same id, then use rect size ***/
+        boolean oneNodeMatched = true;
+        for (AccNode prefNode : preferenceNodes) {
+            for (AccNode appNode : appNodes) {
+                ArrayList<AccessibilityNodeInfo> nodes = mIdNodesMap.get(appNode.getViewId());
+                if (nodes.size() > 1) {
+                    oneNodeMatched = prefNode.matches(appNode, 0);
+//                    Logger.i("node has the same id: " + appNode);
+                } else {
+//                    Logger.i("node single id: " + appNode);
+                    oneNodeMatched = prefNode.getViewId().equals(appNode.getViewId());
+                }
+
+                if (oneNodeMatched) {
+                    // need to update the prefNode to appNode
+                    prefNode.setRectInScreen(appNode.getRectInScreen());
+                    Logger.v("node match: app- " + appNode + " pref-" + prefNode);
+                    break;
+                }
+            }
+
+            if (!oneNodeMatched) {
+                // find one node that does not in appNodes
+                Logger.d("node not match");
+                return false;
+            }
         }
+
+        Logger.d("node matched");
+        return true;
+    }
+
+    private void parseNodeData(ArrayList<AccNode> accNodes, DataBundle dataBundle) {
+        for (AccNode accNode : accNodes) {
+            Logger.i("accNode : " + accNode);
+            int count = accNode.getChildCount();
+            if (count > 0) {
+                // this is a list item preference node
+                for (int i = 0; i < count; i++) {
+                    AccNode node = accNode.getChild(i);
+                    ArrayList<AccessibilityNodeInfo> list = mIdNodesMap.get(node.getViewId());
+                    // TODO: 11/21/16 Sunday extract list item data accNodes here
+
+                }
+
+            } else {
+                // normal single node item
+                AccessibilityNodeInfo nodeInfo = mPairAccessibilityNodeMap.get(accNode);
+                parseNodeInfoToDataBundle(dataBundle, nodeInfo);
+            }
+        }
+    }
+
+    private void parseNodeInfoToDataBundle(DataBundle dataBundle, AccessibilityNodeInfo nodeInfo) {
+        DataNode dataNode = new DataNode(nodeInfo);
+        int uniqueId = dataNode.getUniqueId();
+        Logger.v("unique id: " + uniqueId);
+        Bitmap nodeBitmap = getNodeBitmap(nodeInfo, dataNode);
+        dataNode.setImage(nodeBitmap);
+        Logger.i(dataNode.toString());
+        dataBundle.add(dataNode);
     }
 
     private Bitmap getNodeBitmap(AccessibilityNodeInfo accNode, DataNode dataNode) {
         // FIXME: 11/12/16 based on mapping rule, not all mNodes need image/bitmap
         if ("android.widget.TextView".equals(accNode.getClassName())) {
-            Logger.v("text view");
+            Logger.v("text view no need to extract bitmap");
             return null;
         }
 
@@ -734,6 +805,50 @@ public class PhoneProxyService extends AccessibilityService {
         return nodeBitmap;
     }
 
+    private boolean isDataBundleDuplicate(DataBundle dataBundle) {
+        if (dataBundle.equals(mLastSentDataBundle)) {
+            Logger.v("repeat curr bundle" + dataBundle);
+            Logger.v("repeat last bundle" + mLastSentDataBundle);
+            return true;
+        } else {
+            Logger.d(dataBundle.toString());
+            return false;
+        }
+    }
+
+    // prune data to save bandwidth if there are no changing nodes
+    private void pruneDataBundle(DataBundle dataBundle) {
+        Logger.v("new data new  bundle before pruning: " + dataBundle);
+        Logger.v("new data last bundle before pruning: " + mLastSentDataBundle);
+
+        DataBundle savedDataBundleBeforePruning = new DataBundle(dataBundle);
+        if (mLastSentDataBundle != null) {
+            ArrayList<DataNode> lastSentDataNodes = mLastSentDataBundle.getDataNodes();
+            ArrayList<DataNode> dataNodes = new ArrayList<>(dataBundle.getDataNodes());
+            for (DataNode node : dataNodes) {
+                if (lastSentDataNodes.contains(node)) {
+                    Logger.d("new data bundle removed node: " + node);
+                    dataBundle.remove(node);
+                }
+            }
+        }
+
+        mLastSentDataBundle = savedDataBundleBeforePruning;
+        Logger.v("new data new  bundle after pruning: " + dataBundle);
+        Logger.v("new data last bundle after pruning: " + mLastSentDataBundle);
+    }
+
+    private void cacheDataAndSendHashToWear(DataBundle dataBundle) {
+        // send hash of data bundle first, if wear has the data bundle, done
+        // if not, send the real data bundle
+        int dataBundleHash = dataBundle.hashCode();
+        String dataBundleHashString = Integer.toString(dataBundleHash);
+        mGmsWear.sendMessage(DATA_BUNDLE_HASH_PATH, dataBundleHashString.getBytes());
+        byte[] data = marshall(dataBundle);
+        Logger.i("new data bundle: " + data.length);
+        mDataBundleLruCache.put(dataBundleHashString, data);
+    }
+
     @Override
     public void onAccessibilityEventForBackground(String s, AccessibilityEvent accessibilityEvent) {
 
@@ -748,66 +863,6 @@ public class PhoneProxyService extends AccessibilityService {
                 FileTransfer fileTransferHighLevel = new FileTransfer.Builder()
                         .setFile(fileName).setRequestId(requestId).build();
                 fileTransferHighLevel.startTransfer();
-            }
-        });
-    }
-
-    private void parseAppNodes(AccessibilityNodeInfo rootNode) {
-        if (rootNode == null) {
-            Logger.v("null app root node ");
-            return;
-        }
-
-        String viewId = rootNode.getViewIdResourceName();
-        Rect rect = new Rect();
-        rootNode.getBoundsInScreen(rect);
-        AccNode node = new AccNode(viewId, rect);
-        // for preference comparison
-        mAppNodes.add(node);
-        // for finding the node based on pair
-        mPairAccessibilityNodeMap.put(node, rootNode);
-
-        int count = rootNode.getChildCount();
-
-        for (int i = 0; i < count; i++) {
-            parseAppNodes(rootNode.getChild(i));
-        }
-
-    }
-
-    private void readAppPreferenceNodesAsync(final File preferenceFolder,
-            final AppNodesReadyCallback appNodesReadyCallback) {
-
-        mWorkerThread.postTask(new Runnable() {
-            @Override
-            public void run() {
-                for (File preferenceFile : preferenceFolder.listFiles()) {
-                    Logger.t("pref").v("path: " + preferenceFile.getPath() + " name: "
-                            + preferenceFile.getName());
-
-                    String cacheKey = FileUtil.getParentName(preferenceFile) + File.separator
-                            + FileUtil.getBaseName(preferenceFile);
-                    Logger.t("pref").v("cache key: " + cacheKey);
-
-                    ArrayList<AccNode> nodes = mAppPreferenceNodesCache.get(cacheKey);
-
-                    if (nodes == null) {
-                        nodes = XmlUtil.deserializeAppPreference(
-                                preferenceFile);
-                        mAppPreferenceNodesCache.put(cacheKey, nodes);
-                        Logger.t("pref").v("from file");
-                    } else {
-                        Logger.t("pref").v("from cache");
-                    }
-
-                    appNodesReadyCallback.onAppNodesReady(FileUtil.getBaseName(preferenceFile),
-                            nodes);
-                }
-
-//                Message nodesMsg = mMainThreadHandler.obtainMessage();
-//                nodesMsg.what = READ_PREFERENCE_NODES_SUCCESS;
-//                nodesMsg.obj = new Pair<>(appPkgName, mNodes);
-//                mMainThreadHandler.sendMessage(nodesMsg);
             }
         });
     }

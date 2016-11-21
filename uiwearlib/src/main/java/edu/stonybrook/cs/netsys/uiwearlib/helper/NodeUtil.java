@@ -102,7 +102,7 @@ public class NodeUtil {
         }
 
         if (rootNode == null) {
-            Logger.e("root node null");
+            Logger.i("root node null");
             return false;
         }
 
