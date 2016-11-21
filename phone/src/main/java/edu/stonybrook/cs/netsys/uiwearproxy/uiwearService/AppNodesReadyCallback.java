@@ -1,6 +1,6 @@
 package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.AccNode;
 
@@ -10,5 +10,5 @@ import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.AccNode;
  * For app preference nodes ready callback
  */
 interface AppNodesReadyCallback {
-    void onAppNodesReady(String cacheKey, ArrayList<AccNode> nodes);
+    void onAppNodesReady(String cacheKey, HashSet<AccNode> nodes);
 }

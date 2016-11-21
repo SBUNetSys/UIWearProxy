@@ -73,6 +73,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import edu.stonybrook.cs.netsys.uiwearlib.WorkerThread;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.AccNode;
@@ -114,7 +115,7 @@ public class PhoneProxyService extends AccessibilityService {
     private SharedPreferences mWatchPhoneResolutionRatioSharedPref;
 
     // list of app preference mNodes, for each pair, the first is id, the second is rect
-    private LruCache<String, ArrayList<AccNode>> mAppPreferenceNodesCache =
+    private LruCache<String, HashSet<AccNode>> mAppPreferenceNodesCache =
             new LruCache<>(RUNNING_APP_PREF_CACHE_SIZE);
 
     //    private HashSet<AccNode> mAppNodes = new HashSet<>();
@@ -311,7 +312,7 @@ public class PhoneProxyService extends AccessibilityService {
                         editor.apply();
                         break;
                     case DATA_BUNDLE_REQUIRED_PATH:
-                        Logger.i("DATA_BUNDLE_REQUIRED_PATH");
+                        Logger.i("new data DATA_BUNDLE_REQUIRED_PATH");
                         byte[] hashStringBytes = messageEvent.getData();
                         String hashString = new String(hashStringBytes);
                         sendRealDataBundleAsync(hashString);
@@ -554,7 +555,7 @@ public class PhoneProxyService extends AccessibilityService {
         // read app preference xml file
         readAppPreferenceNodesAsync(preferenceFolder, new AppNodesReadyCallback() {
             @Override
-            public void onAppNodesReady(String preferenceId, ArrayList<AccNode> nodes) {
+            public void onAppNodesReady(String preferenceId, HashSet<AccNode> nodes) {
                 // decide whether the preference mNodes are subset of current app mNodes
                 Logger.v("pref id: " + preferenceId);
                 if (!appNodesContainPreferenceNodes(nodes)) {
@@ -616,7 +617,7 @@ public class PhoneProxyService extends AccessibilityService {
         String viewId = rootNode.getViewIdResourceName();
         Rect rect = new Rect();
         rootNode.getBoundsInScreen(rect);
-        if (rect.isEmpty() || viewId == null) {
+        if (rect.isEmpty() || viewId == null || !rootNode.isVisibleToUser()) {
             Logger.t("parse").v("node: " + rect + " " + viewId);
         } else {
             AccNode node = new AccNode(viewId, rect);
@@ -654,7 +655,7 @@ public class PhoneProxyService extends AccessibilityService {
                             + FileUtil.getBaseName(preferenceFile);
                     Logger.t("pref").v("cache key: " + cacheKey);
 
-                    ArrayList<AccNode> nodes = mAppPreferenceNodesCache.get(cacheKey);
+                    HashSet<AccNode> nodes = mAppPreferenceNodesCache.get(cacheKey);
 
                     if (nodes == null) {
                         nodes = XmlUtil.deserializeAppPreference(
@@ -677,7 +678,7 @@ public class PhoneProxyService extends AccessibilityService {
         });
     }
 
-    private boolean appNodesContainPreferenceNodes(ArrayList<AccNode> preferenceNodes) {
+    private boolean appNodesContainPreferenceNodes(HashSet<AccNode> preferenceNodes) {
         ArrayList<AccNode> prefNodes = new ArrayList<>(preferenceNodes);
         ArrayList<AccNode> appNodes = new ArrayList<>(mPairAccessibilityNodeMap.keySet());
         Logger.v("node app  set: " + appNodes.toString());
@@ -685,7 +686,9 @@ public class PhoneProxyService extends AccessibilityService {
 
         /*** compare viewId, if multiple node have the same id, then use rect size ***/
         boolean oneNodeMatched = true;
-        // for node have the same id
+        // for node have the same id, only use oneNodeMatched is not enough, since it does not
+        // break the loop after one match thus oneNodeMatched may become false later, but in fact
+        // should be true in this situation
         boolean atLeastOneNodeMatched = false;
         for (AccNode prefNode : prefNodes) {
             for (AccNode appNode : appNodes) {
@@ -718,12 +721,14 @@ public class PhoneProxyService extends AccessibilityService {
             }
         }
 
-        Logger.v("node matched app  set: " + appNodes.toString());
-        Logger.v("node matched pref set: " + preferenceNodes.toString());
+        Logger.d("node matched");
+//        Logger.v("node matched app  set: " + appNodes.toString());
+//        Logger.v("node matched pref set: " + preferenceNodes.toString());
         return true;
     }
 
-    private void parseNodeData(ArrayList<AccNode> accNodes, DataBundle dataBundle) {
+    private void parseNodeData(HashSet<AccNode> accNodes, DataBundle dataBundle) {
+        Logger.d("accNodes: " + accNodes);
         for (AccNode accNode : accNodes) {
             Logger.i("accNode : " + accNode);
             int count = accNode.getChildCount();

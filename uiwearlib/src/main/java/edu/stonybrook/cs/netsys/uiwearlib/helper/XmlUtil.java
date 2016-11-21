@@ -18,6 +18,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.AccNode;
 
@@ -131,13 +132,13 @@ public class XmlUtil {
         return serializer;
     }
 
-    public static ArrayList<AccNode> deserializeAppPreference(File preferenceFile) {
+    public static HashSet<AccNode> deserializeAppPreference(File preferenceFile) {
         String preferenceString = FileUtil.readFile(preferenceFile.getPath()).toString();
         return deserializeAppPreference(preferenceString);
     }
 
-    public static ArrayList<AccNode> deserializeAppPreference(String preferenceString) {
-        ArrayList<AccNode> nodes = new ArrayList<>();
+    public static HashSet<AccNode> deserializeAppPreference(String preferenceString) {
+        HashSet<AccNode> nodes = new HashSet<>();
         StringReader stringReader = new StringReader(preferenceString);
         XmlPullParser parser = Xml.newPullParser();
         try {
@@ -153,8 +154,8 @@ public class XmlUtil {
     }
 
 
-    private static ArrayList<AccNode> readNodes(XmlPullParser parser) {
-        ArrayList<AccNode> nodes = new ArrayList<>();
+    private static HashSet<AccNode> readNodes(XmlPullParser parser) {
+        HashSet<AccNode> nodes = new HashSet<>();
         try {
             parser.require(XmlPullParser.START_TAG, null, NODES_TAG);
             while (parser.next() != XmlPullParser.END_TAG) {

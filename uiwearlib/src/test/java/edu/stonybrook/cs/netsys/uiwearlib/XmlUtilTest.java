@@ -19,6 +19,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.AccNode;
 import edu.stonybrook.cs.netsys.uiwearlib.helper.FileUtil;
@@ -38,7 +39,7 @@ public class XmlUtilTest {
     private FileWriter mFileWriter;
     private ArrayList<Rect> mPreferenceNodes = new ArrayList<>();
     private HashMap<Rect, AccNode> mAppNodesMap = new HashMap<>();
-    private ArrayList<AccNode> mPreferenceNodesIdPairs = new ArrayList<>();
+    private HashSet<AccNode> mPreferenceNodesIdPairs = new HashSet<>();
     private File mInputPrefFile = new File(getClass().getClassLoader()
             .getResource("sample_pref.xml").getFile());
     private File mTestPrefFile = new File(mInputPrefFile.getParent() + "sample_pref_test.xml");
@@ -47,7 +48,7 @@ public class XmlUtilTest {
     private FileWriter mFileWriterList;
     private ArrayList<Rect> mPreferenceNodesList = new ArrayList<>();
     private HashMap<Rect, AccNode> mAppNodesMapList = new HashMap<>();
-    private ArrayList<AccNode> mPreferenceNodesIdPairsList = new ArrayList<>();
+    private HashSet<AccNode> mPreferenceNodesIdPairsList = new HashSet<>();
     private File mInputPrefFileList = new File(getClass().getClassLoader()
             .getResource("list_pref.xml").getFile());
     private File mTestPrefFileList = new File(
@@ -178,7 +179,7 @@ public class XmlUtilTest {
     @Test
     public void deserializeAppPreference() throws Exception {
 
-        ArrayList<AccNode> preferenceNodesIdPairs = XmlUtil.deserializeAppPreference(
+        HashSet<AccNode> preferenceNodesIdPairs = XmlUtil.deserializeAppPreference(
                 FileUtil.readFile(mInputPrefFile.getPath()).toString());
         System.out.println(preferenceNodesIdPairs);
         System.out.println(mPreferenceNodesIdPairs);
@@ -189,7 +190,7 @@ public class XmlUtilTest {
     @Test
     public void deserializeAppPreferenceListView() throws Exception {
 
-        ArrayList<AccNode> preferenceNodesIdPairs = XmlUtil.deserializeAppPreference(
+        HashSet<AccNode> preferenceNodesIdPairs = XmlUtil.deserializeAppPreference(
                 FileUtil.readFile(mInputPrefFileList.getPath()).toString());
         System.out.println(preferenceNodesIdPairs);
         System.out.println(mPreferenceNodesIdPairsList);

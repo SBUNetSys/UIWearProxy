@@ -118,6 +118,7 @@ public class WearProxyService extends Service {
                         break;
                     case WATCH_RESOLUTION_REQUEST_PATH:
                         sendResolutionToPhone();
+                        break;
                     default:
                         Logger.w("unknown msg");
                 }
