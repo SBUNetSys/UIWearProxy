@@ -122,8 +122,7 @@ public class PhoneProxyService extends AccessibilityService {
     //    private HashSet<AccNode> mAppNodes = new HashSet<>();
     private HashMap<AccNode, AccessibilityNodeInfo> mPairAccessibilityNodeMap =
             new HashMap<>();
-    private HashMap<String, ArrayList<AccessibilityNodeInfo>> mIdNodesMap =
-            new HashMap<>();
+    private Bundle mViewIdCountMap = new Bundle();
 
     private LruCache<Integer, Bitmap> mBitmapLruCache = new LruCache<Integer, Bitmap>(
             BITMAP_CACHE_SIZE) {
@@ -465,7 +464,7 @@ public class PhoneProxyService extends AccessibilityService {
         mAppRootNodePkgName = null;
         mAppNodesMapForPreferenceSetting.clear();
         mPairAccessibilityNodeMap.clear();
-        mIdNodesMap.clear();
+        mViewIdCountMap.clear();
         mDataBundleLruCache.evictAll();
     }
 
@@ -530,7 +529,7 @@ public class PhoneProxyService extends AccessibilityService {
             @Override
             public void run() {
 //                mAppNodes.clear();
-                mIdNodesMap.clear();
+                mViewIdCountMap.clear();
                 mPairAccessibilityNodeMap.clear();
 //                NodeUtil.printNodeTree(rootNode);
                 parseAppNodes(rootNode);
@@ -601,17 +600,23 @@ public class PhoneProxyService extends AccessibilityService {
         if (rect.isEmpty() || viewId == null || !rootNode.isVisibleToUser()) {
             Logger.t("parse").v("node: " + rect + " " + viewId);
         } else {
-            AccNode node = new AccNode(viewId, rect);
-            String nodeClassName = rootNode.getClassName().toString();
-            node.setClassName(nodeClassName);
-            Logger.t("parse").v("node: " + node);
+            AccNode node = new AccNode();
+            if (rootNode.getChildCount() > 0) {
+                node.setViewId(viewId);
+                node.setRectInScreen(rect);
+                ArrayList<AccNode> children = node.getChildNodes();
+                node.setChildNodes(parseChildLeafNodes(children, rootNode));
+                Logger.t("parse").v("node: norm " + node);
 
-            ArrayList<AccessibilityNodeInfo> list = mIdNodesMap.get(viewId);
-            if (list == null) {
-                list = new ArrayList<>();
+            } else {
+                // node has no children, so only set mId, mViewId, mRectInScreen and mClassName
+                node = new AccNode(rootNode);
+                Logger.t("parse").v("node: leaf " + node);
             }
-            list.add(rootNode);
-            mIdNodesMap.put(viewId, list);
+
+
+            int count = mViewIdCountMap.getInt(viewId);
+            mViewIdCountMap.putInt(viewId, ++count);
 
             mPairAccessibilityNodeMap.put(node, rootNode);
         }
@@ -622,6 +627,26 @@ public class PhoneProxyService extends AccessibilityService {
             parseAppNodes(rootNode.getChild(i));
         }
 
+    }
+
+    private ArrayList<AccNode> parseChildLeafNodes(ArrayList<AccNode> list,
+            AccessibilityNodeInfo node) {
+        int count = node.getChildCount();
+
+        if (count == 0) {
+            // skip null viewId for leaf nodes
+            if (node.getViewIdResourceName() != null) {
+                // node has no children, so only set mId, mViewId, mRectInScreen and mClassName
+                AccNode accNode = new AccNode(node);
+                list.add(accNode);
+            }
+        } else {
+            for (int i = 0; i < count; i++) {
+                list = parseChildLeafNodes(list, node.getChild(i));
+            }
+        }
+
+        return list;
     }
 
     private void readAppPreferenceNodesAsync(final File preferenceFolder,
@@ -683,9 +708,9 @@ public class PhoneProxyService extends AccessibilityService {
         boolean atLeastOneNodeMatched = false;
         for (AccNode prefNode : prefNodes) {
             for (AccNode appNode : appNodes) {
-                ArrayList<AccessibilityNodeInfo> nodes = mIdNodesMap.get(appNode.getViewId());
+                int count = mViewIdCountMap.getInt(appNode.getViewId());
                 //multiple nodes have the same id
-                if (nodes.size() > 1) {
+                if (count > 1) {
                     oneNodeMatched = prefNode.matches(appNode, 0);
                     if (oneNodeMatched) {
                         atLeastOneNodeMatched = true;
@@ -723,9 +748,7 @@ public class PhoneProxyService extends AccessibilityService {
             AccNode appNode) {
         // remove the old pref node, update it to the matched app node
         preferenceNodes.remove(prefNode);
-        AccNode newNode = new AccNode(prefNode);
-        newNode.setClassName(appNode.getClassName());
-        newNode.setRectInScreen(appNode.getRectInScreen());
+        AccNode newNode = new AccNode(appNode);
         preferenceNodes.add(newNode);
     }
 
@@ -741,10 +764,10 @@ public class PhoneProxyService extends AccessibilityService {
                 for (int i = 0; i < count; i++) {
                     AccNode node = accNode.getChild(i);
 
-                    // get AccessibilityNodeInfo based on node or node attribute
-                    // like nodeInfo = something.get(node);
-                    AccessibilityNodeInfo nodeInfo = AccessibilityNodeInfo.obtain();
-                    dataNodes[i]=getDataNode(nodeInfo);
+                    // get AccessibilityNodeInfo based on node
+                    AccessibilityNodeInfo nodeInfo = mPairAccessibilityNodeMap.get(node);
+                    Logger.d("accNode child: " + getBriefNodeInfo(nodeInfo));
+                    dataNodes[i] = getDataNode(nodeInfo);
                 }
 
                 // TODO: 11/22/16  define list data nodes protocol

@@ -83,7 +83,7 @@ public class AccNode {
     }
 
     public void setChildNodes(ArrayList<AccNode> childNodes) {
-        mChildNodes = childNodes;
+        mChildNodes = new ArrayList<>(childNodes);
     }
 
     public String getClassName() {
