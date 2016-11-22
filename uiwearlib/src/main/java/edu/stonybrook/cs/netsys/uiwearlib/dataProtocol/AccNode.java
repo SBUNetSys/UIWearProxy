@@ -41,7 +41,8 @@ public class AccNode {
 
     public AccNode(String viewId, Rect rectInScreen) {
         mViewId = viewId;
-        mRectInScreen = rectInScreen;
+        mRectInScreen.set(rectInScreen.left, rectInScreen.top,
+                rectInScreen.right, rectInScreen.bottom);
     }
 
     public AccNode() {
@@ -50,7 +51,9 @@ public class AccNode {
     public AccNode(AccNode node) {
         mId = node.mId;
         mViewId = node.mViewId;
-        mRectInScreen = node.mRectInScreen;
+        Rect rectInScreen = node.mRectInScreen;
+        mRectInScreen.set(rectInScreen.left, rectInScreen.top,
+                rectInScreen.right, rectInScreen.bottom);
         mClassName = node.mClassName;
         mChildNodes = new ArrayList<>(node.getChildNodes());
     }
@@ -105,7 +108,8 @@ public class AccNode {
     }
 
     public void setRectInScreen(Rect rectInScreen) {
-        mRectInScreen = rectInScreen;
+        mRectInScreen.set(rectInScreen.left, rectInScreen.top,
+                rectInScreen.right, rectInScreen.bottom);
     }
 
     public String getViewId() {

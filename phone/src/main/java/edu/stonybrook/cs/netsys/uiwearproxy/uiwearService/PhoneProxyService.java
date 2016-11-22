@@ -498,24 +498,6 @@ public class PhoneProxyService extends AccessibilityService {
             return;
         }
 
-        // TODO: 11/10/16 support notification capture, code below or use NotifyService
-//        if (event.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
-//            final String packageName = String.valueOf(event.getPackageName());
-//            if ("com.spotify.music".equals(packageName)) {
-//                // represents the actual notification
-//                final Parcelable payload = event.getParcelableData();
-//                // check for a notification
-//                if (!(payload instanceof Notification)) {
-//                    Logger.v();("not notification");
-//                    return;
-//                }
-//
-//                final Notification notification = (Notification) payload;
-//                final RemoteViews contentView = notification.contentView;
-//                Logger.v();("contentView " + contentView.getPackage());
-//            }
-//        }
-
         /********** Extracting Sub View Tree Based on App Preference  *********/
         final String appPkgName = getNodePkgName(rootNode);
 
@@ -552,17 +534,13 @@ public class PhoneProxyService extends AccessibilityService {
             }
         });
 
-        // read app preference xml file
+        // read app preference xml file and extract view tree content if nodes ready
         readAppPreferenceNodesAsync(preferenceFolder, new AppNodesReadyCallback() {
             @Override
             public void onAppNodesReady(String preferenceId, HashSet<AccNode> nodes) {
                 // decide whether the preference mNodes are subset of current app mNodes
                 Logger.v("pref id: " + preferenceId);
-                if (!appNodesContainPreferenceNodes(nodes)) {
-//                     root node from non preference screen, so skip
-                    Logger.v("not contain preference nodes, skip");
-                    return;
-                }
+                Logger.v("pref nodes: " + nodes);
 
                 DataBundle dataBundle = new DataBundle(appPkgName, preferenceId);
                 // begin extracting preference view tree info
@@ -655,16 +633,24 @@ public class PhoneProxyService extends AccessibilityService {
                             + FileUtil.getBaseName(preferenceFile);
                     Logger.t("pref").v("cache key: " + cacheKey);
 
-                    HashSet<AccNode> nodes = mAppPreferenceNodesCache.get(cacheKey);
+                    HashSet<AccNode> prefNodesFromFile = mAppPreferenceNodesCache.get(cacheKey);
 
-                    if (nodes == null) {
-                        nodes = XmlUtil.deserializeAppPreference(
+                    if (prefNodesFromFile == null) {
+                        prefNodesFromFile = XmlUtil.deserializeAppPreference(
                                 preferenceFile);
-                        mAppPreferenceNodesCache.put(cacheKey, nodes);
-                        Logger.t("pref").v("from file");
+                        mAppPreferenceNodesCache.put(cacheKey, prefNodesFromFile);
+                        Logger.t("pref").v("from file: " + prefNodesFromFile);
                     } else {
-                        Logger.t("pref").v("from cache");
+                        Logger.t("pref").v("from cache: " + prefNodesFromFile);
                     }
+
+                    HashSet<AccNode> nodes = new HashSet<>(prefNodesFromFile);
+                    if (!appNodesContainPreferenceNodes(nodes)) {
+                        //root node from non preference screen, so skip
+                        Logger.t("pref").v("not contain preference nodes, skip");
+                        continue;
+                    }
+                    Logger.t("pref").v("from contain preference nodes: " + nodes);
 
                     appNodesReadyCallback.onAppNodesReady(FileUtil.getBaseName(preferenceFile),
                             nodes);
@@ -697,18 +683,28 @@ public class PhoneProxyService extends AccessibilityService {
                     oneNodeMatched = prefNode.matches(appNode, 0);
                     if (oneNodeMatched) {
                         atLeastOneNodeMatched = true;
-                        // need to update the prefNode to appNode
-                        prefNode.setRectInScreen(appNode.getRectInScreen());
-                        preferenceNodes.add(new AccNode(prefNode));
                         Logger.v("node match: multiple app- " + appNode + " pref-" + prefNode);
+                        // need to update the prefNode to appNode
+                        AccNode newNode = new AccNode(prefNode);
+                        newNode.setRectInScreen(appNode.getRectInScreen());
+//
+//                        // we don't care about children rect, only use id
+//                        for (AccNode node : appNode.getChildNodes()) {
+//                            Rect rect = node.getRectInScreen();
+//                            rect.setEmpty();
+//                            node.setRectInScreen(rect);
+//                            appNode.removeChild(node);
+//                            appNode.addChild(new AccNode(node));
+//                        }
+                        preferenceNodes.add(newNode);
                         // do not break here, need iterate all nodes that have the same viewID
                     }
                 } else {
                     oneNodeMatched = prefNode.getViewId().equals(appNode.getViewId());
                     if (oneNodeMatched) {
+                        Logger.v("node match: single app- " + appNode + " pref-" + prefNode);
                         // need to update the prefNode to appNode
                         prefNode.setRectInScreen(appNode.getRectInScreen());
-                        Logger.v("node match: single app- " + appNode + " pref-" + prefNode);
                         break;
                     }
                 }
@@ -722,8 +718,8 @@ public class PhoneProxyService extends AccessibilityService {
         }
 
         Logger.d("node matched");
-//        Logger.v("node matched app  set: " + appNodes.toString());
-//        Logger.v("node matched pref set: " + preferenceNodes.toString());
+        Logger.v("node matched app  set: " + appNodes.toString());
+        Logger.v("node matched pref set: " + preferenceNodes.toString());
         return true;
     }
 
