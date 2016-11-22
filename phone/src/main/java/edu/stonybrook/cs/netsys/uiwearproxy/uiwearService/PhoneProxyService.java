@@ -52,6 +52,7 @@ import android.media.ThumbnailUtils;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.support.annotation.NonNull;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.format.DateFormat;
@@ -464,6 +465,8 @@ public class PhoneProxyService extends AccessibilityService {
         mAppRootNodePkgName = null;
         mAppNodesMapForPreferenceSetting.clear();
         mPairAccessibilityNodeMap.clear();
+        mIdNodesMap.clear();
+        mDataBundleLruCache.evictAll();
     }
 
     @Override
@@ -529,7 +532,7 @@ public class PhoneProxyService extends AccessibilityService {
 //                mAppNodes.clear();
                 mIdNodesMap.clear();
                 mPairAccessibilityNodeMap.clear();
-                NodeUtil.printNodeTree(rootNode);
+//                NodeUtil.printNodeTree(rootNode);
                 parseAppNodes(rootNode);
             }
         });
@@ -599,6 +602,8 @@ public class PhoneProxyService extends AccessibilityService {
             Logger.t("parse").v("node: " + rect + " " + viewId);
         } else {
             AccNode node = new AccNode(viewId, rect);
+            String nodeClassName = rootNode.getClassName().toString();
+            node.setClassName(nodeClassName);
             Logger.t("parse").v("node: " + node);
 
             ArrayList<AccessibilityNodeInfo> list = mIdNodesMap.get(viewId);
@@ -670,7 +675,7 @@ public class PhoneProxyService extends AccessibilityService {
         Logger.v("node app  set: " + appNodes.toString());
         Logger.v("node pref set: " + prefNodes.toString());
 
-        /*** compare viewId, if multiple node have the same id, then use rect size ***/
+        /*** compare viewId, if multiple nodes have the same id, then use rect size ***/
         boolean oneNodeMatched = true;
         // for node have the same id, only use oneNodeMatched is not enough, since it does not
         // break the loop after one match thus oneNodeMatched may become false later, but in fact
@@ -679,32 +684,23 @@ public class PhoneProxyService extends AccessibilityService {
         for (AccNode prefNode : prefNodes) {
             for (AccNode appNode : appNodes) {
                 ArrayList<AccessibilityNodeInfo> nodes = mIdNodesMap.get(appNode.getViewId());
+                //multiple nodes have the same id
                 if (nodes.size() > 1) {
                     oneNodeMatched = prefNode.matches(appNode, 0);
                     if (oneNodeMatched) {
                         atLeastOneNodeMatched = true;
                         Logger.v("node match: multiple app- " + appNode + " pref-" + prefNode);
                         // need to update the prefNode to appNode
-                        AccNode newNode = new AccNode(prefNode);
-                        newNode.setRectInScreen(appNode.getRectInScreen());
-//
-//                        // we don't care about children rect, only use id
-//                        for (AccNode node : appNode.getChildNodes()) {
-//                            Rect rect = node.getRectInScreen();
-//                            rect.setEmpty();
-//                            node.setRectInScreen(rect);
-//                            appNode.removeChild(node);
-//                            appNode.addChild(new AccNode(node));
-//                        }
-                        preferenceNodes.add(newNode);
+                        updatePreferenceNode(preferenceNodes, prefNode, appNode);
                         // do not break here, need iterate all nodes that have the same viewID
                     }
                 } else {
+                    //no two nodes have the same id
                     oneNodeMatched = prefNode.getViewId().equals(appNode.getViewId());
                     if (oneNodeMatched) {
                         Logger.v("node match: single app- " + appNode + " pref-" + prefNode);
                         // need to update the prefNode to appNode
-                        prefNode.setRectInScreen(appNode.getRectInScreen());
+                        updatePreferenceNode(preferenceNodes, prefNode, appNode);
                         break;
                     }
                 }
@@ -723,6 +719,16 @@ public class PhoneProxyService extends AccessibilityService {
         return true;
     }
 
+    private void updatePreferenceNode(HashSet<AccNode> preferenceNodes, AccNode prefNode,
+            AccNode appNode) {
+        // remove the old pref node, update it to the matched app node
+        preferenceNodes.remove(prefNode);
+        AccNode newNode = new AccNode(prefNode);
+        newNode.setClassName(appNode.getClassName());
+        newNode.setRectInScreen(appNode.getRectInScreen());
+        preferenceNodes.add(newNode);
+    }
+
     private void parseNodeData(HashSet<AccNode> accNodes, DataBundle dataBundle) {
         Logger.d("accNodes: " + accNodes);
         for (AccNode accNode : accNodes) {
@@ -730,12 +736,18 @@ public class PhoneProxyService extends AccessibilityService {
             int count = accNode.getChildCount();
             if (count > 0) {
                 // this is a list item preference node
+                Logger.d("accNode possible list item");
+                DataNode[] dataNodes = new DataNode[count];
                 for (int i = 0; i < count; i++) {
                     AccNode node = accNode.getChild(i);
-                    ArrayList<AccessibilityNodeInfo> list = mIdNodesMap.get(node.getViewId());
-                    // TODO: 11/21/16 Sunday extract list item data accNodes here
 
+                    // get AccessibilityNodeInfo based on node or node attribute
+                    // like nodeInfo = something.get(node);
+                    AccessibilityNodeInfo nodeInfo = AccessibilityNodeInfo.obtain();
+                    dataNodes[i]=getDataNode(nodeInfo);
                 }
+
+                // TODO: 11/22/16  define list data nodes protocol
 
             } else {
                 // normal single node item
@@ -746,13 +758,23 @@ public class PhoneProxyService extends AccessibilityService {
     }
 
     private void parseNodeInfoToDataBundle(DataBundle dataBundle, AccessibilityNodeInfo nodeInfo) {
+        if (nodeInfo == null) {
+            Logger.w("cannot parse null node for dataBundle: " + dataBundle);
+            return;
+        }
+        DataNode dataNode = getDataNode(nodeInfo);
+        dataBundle.add(dataNode);
+    }
+
+    @NonNull
+    private DataNode getDataNode(AccessibilityNodeInfo nodeInfo) {
         DataNode dataNode = new DataNode(nodeInfo);
         int uniqueId = dataNode.getUniqueId();
         Logger.v("unique id: " + uniqueId);
         Bitmap nodeBitmap = getNodeBitmap(nodeInfo, dataNode);
         dataNode.setImage(nodeBitmap);
         Logger.i(dataNode.toString());
-        dataBundle.add(dataNode);
+        return dataNode;
     }
 
     private Bitmap getNodeBitmap(AccessibilityNodeInfo accNode, DataNode dataNode) {

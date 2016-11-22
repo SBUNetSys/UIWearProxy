@@ -129,4 +129,8 @@ public class DataBundle implements Parcelable {
     public ArrayList<DataNode> getDataNodes() {
         return mDataNodes;
     }
+
+    public int size() {
+        return mDataNodes.size();
+    }
 }

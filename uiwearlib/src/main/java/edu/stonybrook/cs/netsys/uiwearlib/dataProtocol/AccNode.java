@@ -82,8 +82,7 @@ public class AccNode {
         return mChildNodes;
     }
 
-    public void setChildNodes(
-            ArrayList<AccNode> childNodes) {
+    public void setChildNodes(ArrayList<AccNode> childNodes) {
         mChildNodes = childNodes;
     }
 
@@ -156,7 +155,7 @@ public class AccNode {
         int diffSize = Math.abs(size - nodeSize);
         // probably nodeSize will always be greater than 0
         if (nodeSize != 0) {
-            diffRatio = diffSize / nodeSize * 1.0;
+            diffRatio = diffSize * 1.0 / nodeSize;
         } else {
             if (diffSize == 0) {
                 diffRatio = 0;
@@ -177,6 +176,9 @@ public class AccNode {
         sb.append(", mRectInScreen=").append(mRectInScreen);
         if (mChildNodes.size() > 0) {
             sb.append(", mChildNodes=").append(mChildNodes.size());
+            for (AccNode node : mChildNodes) {
+                sb.append(node).append(";");
+            }
         }
 
         if (mId != 0) {
