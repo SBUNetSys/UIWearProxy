@@ -160,15 +160,17 @@ public class WearProxyService extends Service {
         registerReceiver(mBroadcastReceiver, intentFilter);
     }
 
-    private void handleDataBundleHash(String hashString) {
-        byte[] dataBundleBytes = mDataBundleLruCache.get(hashString);
-        if (dataBundleBytes != null) {
-            Logger.v("use data bundle in cache ");
+    private void handleDataBundleHash(String dataBundleHashString) {
+        byte[] dataBundleBytes = mDataBundleLruCache.get(dataBundleHashString);
+        if (dataBundleBytes != null && dataBundleBytes.length > 0) {
+            Logger.v("new data bundle use cache hash:" + dataBundleHashString
+                    + " length:" + dataBundleBytes.length);
+
             DataBundle bundle = unmarshall(dataBundleBytes, DataBundle.CREATOR);
             sendDataBundleToWearAppAsync(bundle);
         } else {
-            Logger.v("DATA_BUNDLE_REQUIRED on wear");
-            mGmsWear.sendMessage(DATA_BUNDLE_REQUIRED_PATH, hashString.getBytes());
+            Logger.i("new data bundle on wear required: " + dataBundleHashString);
+            mGmsWear.sendMessage(DATA_BUNDLE_REQUIRED_PATH, dataBundleHashString.getBytes());
         }
     }
 
@@ -184,10 +186,11 @@ public class WearProxyService extends Service {
                     e.printStackTrace();
                 }
                 if (data != null) {
-                    Logger.t("data").d("bytes: " + data.length);
+                    Logger.t("data").d("new bytes: " + data.length);
                     DataBundle dataBundle = unmarshall(data, DataBundle.CREATOR);
+                    Logger.t("data").d("new data bundle: " + dataBundle);
                     sendDataBundleToWearAppAsync(dataBundle);
-                    mDataBundleLruCache.put(Integer.toString(dataBundle.hashCode()), data);
+                    mDataBundleLruCache.put(Integer.toHexString(dataBundle.hashCode()), data);
                 } else {
                     Logger.w("asset null");
                 }
@@ -204,6 +207,9 @@ public class WearProxyService extends Service {
         mWorkerThread.postTask(new Runnable() {
             @Override
             public void run() {
+                String hash = Integer.toHexString(dataBundle.hashCode());
+                Logger.i("new data bundle, hash: " + hash);
+
                 String appPkgName = dataBundle.getAppPkgName();
                 String preferenceId = dataBundle.getPreferenceId();
                 ArrayList<DataNode> nodes = dataBundle.getDataNodes();
@@ -211,7 +217,7 @@ public class WearProxyService extends Service {
                 // save image from bytes and return Uri to avoid large intent data
                 for (DataNode node : nodes) {
                     processNode(node, appPkgName);
-                    Logger.d("node normal: " + node);
+                    Logger.d("new node normal: " + node);
                 }
 
                 Intent appIntent = new Intent(INTENT_PREFIX + appPkgName + INTENT_SUFFIX);
@@ -227,15 +233,19 @@ public class WearProxyService extends Service {
                 for (DataNode[] list : listNodes) {
                     for (DataNode node : list) {
                         processNode(node, appPkgName);
-                        Logger.d("node list: " + node);
+                        Logger.d("new node list: " + node);
                     }
                 }
-                Logger.t("data").i(dataBundle.toString());
+                Logger.t("data").i("new send " + dataBundle.toString());
             }
         });
     }
 
     private void processNode(DataNode node, String appPkgName) {
+        if (node == null) {
+            Logger.w("node null");
+            return;
+        }
         byte[] image = node.getImageBytes();
         if (image != null && image.length > 0) {
             String imageFile = convertImageBytesToUri(appPkgName, image);
@@ -266,6 +276,8 @@ public class WearProxyService extends Service {
         mGmsWear.addWearConsumer(mDataConsumer);
         Logger.i("start");
         sendResolutionToPhone();
+
+        mDataBundleLruCache.evictAll();
 
         return START_STICKY;
     }

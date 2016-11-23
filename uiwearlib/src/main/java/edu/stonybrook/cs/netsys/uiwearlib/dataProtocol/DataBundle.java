@@ -5,6 +5,7 @@ import android.os.Parcelable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 
 /**
  * Data Bundle is the our UIWear data protocol for phone proxy to communicate with wear proxy
@@ -59,8 +60,11 @@ public class DataBundle implements Parcelable {
         this.mAppPkgName = in.readString();
         this.mPreferenceId = in.readString();
         this.mDataNodes = in.createTypedArrayList(DataNode.CREATOR);
-        this.mListNodes = new ArrayList<>();
-        in.readList(this.mListNodes, DataNode[].class.getClassLoader());
+        int listCount = in.readInt();
+        this.mListNodes = new ArrayList<>(listCount);
+        for (int i = 0; i < listCount; i++) {
+            this.mListNodes.add(in.createTypedArray(DataNode.CREATOR));
+        }
     }
 
     public void add(DataNode node) {
@@ -103,12 +107,25 @@ public class DataBundle implements Parcelable {
         return mListNodes;
     }
 
+    public ArrayList<DataNode> getAllListNodes() {
+        ArrayList<DataNode> nodes = new ArrayList<>(listSize());
+        for (DataNode[] listNodes : mListNodes) {
+            Collections.addAll(nodes, listNodes);
+        }
+        return nodes;
+    }
+
     public int normalSize() {
         return mDataNodes.size();
     }
 
     public int listSize() {
-        return mListNodes.size();
+        int listCount = mListNodes.size();
+        int itemCount = 1;
+        if (listCount > 0) {
+            itemCount = mListNodes.get(0).length;
+        }
+        return listCount * itemCount;
     }
 
     @Override
@@ -149,7 +166,7 @@ public class DataBundle implements Parcelable {
         return "DataBundle{" + "mAppPkgName=" + mAppPkgName
                 + ", mPreferenceId=" + mPreferenceId
                 + ", hash=" + Integer.toHexString(hashCode())
-                + ", Size=" + mDataNodes.size()
+                + ", size=[norm: " + mDataNodes.size() + ",list: " + this.listSize() + "]"
                 + ", mDataNodes=" + sb.toString()
                 + ", mListNodes=" + sbList.toString()
                 + "}";
@@ -165,6 +182,12 @@ public class DataBundle implements Parcelable {
         dest.writeString(this.mAppPkgName);
         dest.writeString(this.mPreferenceId);
         dest.writeTypedList(this.mDataNodes);
-        dest.writeList(this.mListNodes);
+        int listCount = this.mListNodes.size();
+        dest.writeInt(listCount);
+        for (DataNode[] nodes : this.mListNodes) {
+            dest.writeTypedArray(nodes, flags);
+        }
     }
+
+
 }

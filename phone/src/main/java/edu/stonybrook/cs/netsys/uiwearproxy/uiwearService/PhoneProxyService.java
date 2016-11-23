@@ -73,6 +73,8 @@ import com.orhanobut.logger.Logger;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -293,16 +295,15 @@ public class PhoneProxyService extends AccessibilityService {
             public void onMessageReceived(MessageEvent messageEvent) {
                 switch (messageEvent.getPath()) {
                     case CLICK_PATH:
-                        Logger.i("CLICK_PATH");
                         byte[] actionData = messageEvent.getData();
                         DataAction dataAction = unmarshall(actionData, DataAction.CREATOR);
-                        Logger.d(dataAction);
+                        Logger.i("action data received: " + dataAction);
                         performActionOnPhone(dataAction);
                         break;
                     case WATCH_RESOLUTION_PATH:
-                        Logger.i("WATCH_RESOLUTION_PATH");
                         byte[] watchResolution = messageEvent.getData();
                         Point size = unmarshall(watchResolution, Point.CREATOR);
+                        Logger.i("watch resolution received: " + size);
                         SharedPreferences.Editor editor =
                                 mWatchPhoneResolutionRatioSharedPref.edit();
                         int phoneSize = Math.max(mPhoneHeight, mPhoneWidth);
@@ -312,9 +313,9 @@ public class PhoneProxyService extends AccessibilityService {
                         editor.apply();
                         break;
                     case DATA_BUNDLE_REQUIRED_PATH:
-                        Logger.i("new data DATA_BUNDLE_REQUIRED_PATH");
                         byte[] hashStringBytes = messageEvent.getData();
                         String hashString = new String(hashStringBytes);
+                        Logger.i("new data bundle hash received: " + hashString);
                         sendRealDataBundleAsync(hashString);
                         break;
                     default:
@@ -343,13 +344,14 @@ public class PhoneProxyService extends AccessibilityService {
         mPhoneHeight = size.y;
     }
 
-    private void sendRealDataBundleAsync(final String hashString) {
+    private void sendRealDataBundleAsync(final String dataBundleHashString) {
         mWorkerThread.postTask(new Runnable() {
             @Override
             public void run() {
-                byte[] bundleBytes = mDataBundleLruCache.get(hashString);
+                byte[] bundleBytes = mDataBundleLruCache.get(dataBundleHashString);
                 if (bundleBytes != null) {
-                    Logger.v("real data bundle: " + bundleBytes.length);
+                    Logger.v("new real data bundle received hash:" + dataBundleHashString
+                            + " length: " + bundleBytes.length);
                     mGmsWear.syncAsset(DATA_BUNDLE_PATH, DATA_BUNDLE_KEY, bundleBytes, true);
                 } else {
                     Logger.w(" cannot get real data bundle from cache");
@@ -556,9 +558,6 @@ public class PhoneProxyService extends AccessibilityService {
                 }
 
                 cacheDataAndSendHashToWear(dataBundle);
-
-                DataBundle listBundle = new DataBundle(appPkgName, preferenceId);
-
             }
         });
 
@@ -604,22 +603,24 @@ public class PhoneProxyService extends AccessibilityService {
             Logger.t("parse").v("node: " + rect + " " + viewId);
         } else {
             AccNode node = new AccNode();
-            if (rootNode.getChildCount() > 0) {
+            int childCount = rootNode.getChildCount();
+            if (childCount > 0 && childCount < 10) {
                 node.setViewId(viewId);
                 node.setRectInScreen(rect);
                 ArrayList<AccNode> children = node.getChildNodes();
                 node.setChildNodes(parseChildLeafNodes(children, rootNode));
                 Logger.t("parse").v("node: norm " + node);
 
-            } else {
+            } else if (childCount == 0) {
                 // node has no children, so only set mId, mViewId, mRectInScreen and mClassName
                 node = new AccNode(rootNode);
                 Logger.t("parse").v("node: leaf " + node);
+            } else {
+                Logger.t("parse").v("node: too many children, too deep, not parse ");
             }
 
-
-            int count = mViewIdCountMap.getInt(viewId);
-            mViewIdCountMap.putInt(viewId, ++count);
+            int viewIdCount = mViewIdCountMap.getInt(viewId);
+            mViewIdCountMap.putInt(viewId, ++viewIdCount);
 
             mPairAccessibilityNodeMap.put(node, rootNode);
         }
@@ -634,6 +635,9 @@ public class PhoneProxyService extends AccessibilityService {
 
     private ArrayList<AccNode> parseChildLeafNodes(ArrayList<AccNode> list,
             AccessibilityNodeInfo node) {
+        if (node == null) {
+            return list;
+        }
         int count = node.getChildCount();
 
         if (count == 0) {
@@ -757,32 +761,57 @@ public class PhoneProxyService extends AccessibilityService {
 
     private void parseNodeData(HashSet<AccNode> accNodes, DataBundle dataBundle) {
         Logger.d("accNodes: " + accNodes);
+        ArrayList<AccNode> listNodes = new ArrayList<>();
         for (AccNode accNode : accNodes) {
             Logger.i("accNode : " + accNode);
-            int count = accNode.getChildCount();
-            if (count > 0) {
+            if (accNode.getChildCount() > 0) {
                 // this is a list item preference node
-                Logger.d("accNode possible list item");
-                DataNode[] dataNodes = new DataNode[count];
-                for (int i = 0; i < count; i++) {
-                    AccNode node = accNode.getChild(i);
-                    // get AccessibilityNodeInfo based on node
-                    AccessibilityNodeInfo nodeInfo = mPairAccessibilityNodeMap.get(node);
-                    Logger.d("accNode child: " + getBriefNodeInfo(nodeInfo));
-                    dataNodes[i] = getDataNode(nodeInfo);
-                }
-                dataBundle.add(dataNodes);
-
+                listNodes.add(accNode);
             } else {
                 // normal single node item
                 AccessibilityNodeInfo nodeInfo = mPairAccessibilityNodeMap.get(accNode);
                 if (nodeInfo == null) {
-                    Logger.w("cannot parse null node for dataBundle: " + dataBundle);
+                    Logger.w("accNode norm child null for dataBundle: " + dataBundle);
                     return;
                 }
+                Logger.d("accNode norm child: " + getBriefNodeInfo(nodeInfo));
                 DataNode dataNode = getDataNode(nodeInfo);
                 dataBundle.add(dataNode);
             }
+        }
+
+        // need to sort list nodes based on the screen position
+        Collections.sort(listNodes, new Comparator<AccNode>() {
+            @Override
+            public int compare(AccNode lhs, AccNode rhs) {
+                // need to compare x and y coordinate
+                int xDiff = lhs.getRectInScreen().centerX() - rhs.getRectInScreen().centerX();
+                int yDiff = lhs.getRectInScreen().centerY() - rhs.getRectInScreen().centerY();
+
+                if (xDiff == 0) {
+                    return yDiff;
+                } else {
+                    return xDiff;
+                }
+            }
+        });
+
+        // parse list nodes and set to dataBundle
+        for (AccNode accNode : listNodes) {
+            int count = accNode.getChildCount();
+            DataNode[] dataNodes = new DataNode[count];
+            for (int i = 0; i < count; i++) {
+                AccNode node = accNode.getChild(i);
+                // get AccessibilityNodeInfo based on node
+                AccessibilityNodeInfo nodeInfo = mPairAccessibilityNodeMap.get(node);
+                if (nodeInfo != null) {
+                    Logger.d("accNode list child: " + getBriefNodeInfo(nodeInfo));
+                    dataNodes[i] = getDataNode(nodeInfo);
+                } else {
+                    Logger.w("accNode list child null");
+                }
+            }
+            dataBundle.add(dataNodes);
         }
     }
 
@@ -875,12 +904,28 @@ public class PhoneProxyService extends AccessibilityService {
 
         DataBundle savedDataBundleBeforePruning = new DataBundle(dataBundle);
         if (mLastSentDataBundle != null) {
+            // prune normal nodes
             ArrayList<DataNode> lastSentDataNodes = mLastSentDataBundle.getDataNodes();
             ArrayList<DataNode> dataNodes = new ArrayList<>(dataBundle.getDataNodes());
             for (DataNode node : dataNodes) {
                 if (lastSentDataNodes.contains(node)) {
                     Logger.d("new data bundle removed node: " + node);
                     dataBundle.remove(node);
+                }
+            }
+
+            // prune list nodes
+            ArrayList<DataNode[]> listNodes = new ArrayList<>(dataBundle.getListNodes());
+            ArrayList<DataNode> allLastListNodes = mLastSentDataBundle.getAllListNodes();
+            for (DataNode[] nodes : listNodes) {
+                for (DataNode node : nodes) {
+                    if (allLastListNodes.contains(node)) {
+                        Logger.d("new data bundle removed list node: " + node);
+                        // should not remove the nodes, instead tell wear proxy, nodes not change,
+                        // use existing ones, during the telling process, do not carry heavy data
+                        // FIXME: 11/23/16 notify node hash to wear proxy
+//                        dataBundle.remove(nodes);
+                    }
                 }
             }
         }
@@ -894,10 +939,10 @@ public class PhoneProxyService extends AccessibilityService {
         // send hash of data bundle first, if wear has the data bundle, done
         // if not, send the real data bundle
         int dataBundleHash = dataBundle.hashCode();
-        String dataBundleHashString = Integer.toString(dataBundleHash);
+        String dataBundleHashString = Integer.toHexString(dataBundleHash);
         mGmsWear.sendMessage(DATA_BUNDLE_HASH_PATH, dataBundleHashString.getBytes());
         byte[] data = marshall(dataBundle);
-        Logger.i("new data bundle: " + data.length);
+        Logger.i("new data bundle hash:" + dataBundleHashString + " length:" + data.length);
         mDataBundleLruCache.put(dataBundleHashString, data);
     }
 
