@@ -544,8 +544,8 @@ public class PhoneProxyService extends AccessibilityService {
                 Logger.v("pref id: " + preferenceId);
                 Logger.v("pref nodes: " + nodes);
 
-                DataBundle dataBundle = new DataBundle(appPkgName, preferenceId);
                 // begin extracting preference view tree info
+                DataBundle dataBundle = new DataBundle(appPkgName, preferenceId);
                 parseNodeData(nodes, dataBundle);
 
                 if (isDataBundleDuplicate(dataBundle)) {
@@ -556,6 +556,9 @@ public class PhoneProxyService extends AccessibilityService {
                 }
 
                 cacheDataAndSendHashToWear(dataBundle);
+
+                DataBundle listBundle = new DataBundle(appPkgName, preferenceId);
+
             }
         });
 
@@ -763,30 +766,24 @@ public class PhoneProxyService extends AccessibilityService {
                 DataNode[] dataNodes = new DataNode[count];
                 for (int i = 0; i < count; i++) {
                     AccNode node = accNode.getChild(i);
-
                     // get AccessibilityNodeInfo based on node
                     AccessibilityNodeInfo nodeInfo = mPairAccessibilityNodeMap.get(node);
                     Logger.d("accNode child: " + getBriefNodeInfo(nodeInfo));
                     dataNodes[i] = getDataNode(nodeInfo);
                 }
-
-                // TODO: 11/22/16  define list data nodes protocol
+                dataBundle.add(dataNodes);
 
             } else {
                 // normal single node item
                 AccessibilityNodeInfo nodeInfo = mPairAccessibilityNodeMap.get(accNode);
-                parseNodeInfoToDataBundle(dataBundle, nodeInfo);
+                if (nodeInfo == null) {
+                    Logger.w("cannot parse null node for dataBundle: " + dataBundle);
+                    return;
+                }
+                DataNode dataNode = getDataNode(nodeInfo);
+                dataBundle.add(dataNode);
             }
         }
-    }
-
-    private void parseNodeInfoToDataBundle(DataBundle dataBundle, AccessibilityNodeInfo nodeInfo) {
-        if (nodeInfo == null) {
-            Logger.w("cannot parse null node for dataBundle: " + dataBundle);
-            return;
-        }
-        DataNode dataNode = getDataNode(nodeInfo);
-        dataBundle.add(dataNode);
     }
 
     @NonNull

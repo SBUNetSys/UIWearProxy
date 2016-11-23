@@ -4,33 +4,27 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 /**
  * Data Bundle is the our UIWear data protocol for phone proxy to communicate with wear proxy
  *
  * This bundle contain:
  *
- * 1. a key, which has the information about preference file name and app packagename
- * e.g., com.spotify.music/2016-11-07-04_52_23
+ * 1. data bundle description,  preference id  and app package name
  *
- * 2. a list of app data nodes that corresponds to the preference file
+ * 2. normal view data nodes and possible list view data nodes that corresponds to the preference
+ * file
  *
  * Created by qqcao on 11/10/2016.
  */
 
 public class DataBundle implements Parcelable {
+
     public static final Creator<DataBundle> CREATOR = new Creator<DataBundle>() {
         @Override
-        public DataBundle createFromParcel(Parcel parcel) {
-            String key = parcel.readString();
-            String preferenceId = parcel.readString();
-            DataBundle dataBundle = new DataBundle(key, preferenceId);
-            int count = parcel.readInt();
-            for (int i = 0; i < count; i++) {
-                DataNode node = DataNode.CREATOR.createFromParcel(parcel);
-                dataBundle.add(node);
-            }
-            return dataBundle;
+        public DataBundle createFromParcel(Parcel source) {
+            return new DataBundle(source);
         }
 
         @Override
@@ -40,82 +34,57 @@ public class DataBundle implements Parcelable {
     };
 
     private String mAppPkgName;
-
     private String mPreferenceId;
-
     private ArrayList<DataNode> mDataNodes;
+    private ArrayList<DataNode[]> mListNodes;
 
     public DataBundle(String appPkgName, String preferenceId) {
         mAppPkgName = appPkgName;
         mPreferenceId = preferenceId;
         mDataNodes = new ArrayList<>();
+        mListNodes = new ArrayList<>();
     }
+
 
     public DataBundle(DataBundle dataBundle) {
         if (dataBundle != null) {
-            mAppPkgName = dataBundle.getAppPkgName();
-            mPreferenceId = dataBundle.getPreferenceId();
-            mDataNodes = new ArrayList<>(dataBundle.getDataNodes());
+            mAppPkgName = dataBundle.mAppPkgName;
+            mPreferenceId = dataBundle.mPreferenceId;
+            mDataNodes = new ArrayList<>(dataBundle.mDataNodes);
+            mListNodes = new ArrayList<>(dataBundle.mListNodes);
         }
+    }
+
+    private DataBundle(Parcel in) {
+        this.mAppPkgName = in.readString();
+        this.mPreferenceId = in.readString();
+        this.mDataNodes = in.createTypedArrayList(DataNode.CREATOR);
+        this.mListNodes = new ArrayList<>();
+        in.readList(this.mListNodes, DataNode[].class.getClassLoader());
     }
 
     public void add(DataNode node) {
         mDataNodes.add(node);
     }
+
+    public void add(DataNode[] nodes) {
+        mListNodes.add(nodes);
+    }
+
     public void remove(DataNode node) {
         mDataNodes.remove(node);
     }
 
-    @Override
-    public int describeContents() {
-        return 0;
+    public void remove(DataNode[] node) {
+        mListNodes.remove(node);
     }
 
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(mAppPkgName);
-        dest.writeString(mPreferenceId);
-        int count = mDataNodes.size();
-        dest.writeInt(count);
-        for (int i = 0; i < count; i++) {
-            mDataNodes.get(i).writeToParcel(dest, flags);
-        }
+    public void clearNormalData() {
+        mDataNodes.clear();
     }
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        for (DataNode node : mDataNodes) {
-            sb.append(node.toString());
-            sb.append("; ");
-        }
-        return "DataBundle{" + "mAppPkgName=" + mAppPkgName
-                + ", mPreferenceId=" + mPreferenceId
-                + ", hash=" + Integer.toHexString(hashCode())
-                + ", Size=" + mDataNodes.size()
-                + ", mDataNodes=" + sb.toString()
-                + "}";
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof DataBundle)) return false;
-
-        DataBundle that = (DataBundle) o;
-
-        return mAppPkgName.equals(that.mAppPkgName)
-                && mPreferenceId.equals(that.mPreferenceId)
-                && mDataNodes.equals(that.mDataNodes);
-
-    }
-
-    @Override
-    public int hashCode() {
-        int result = mAppPkgName.hashCode();
-        result = 31 * result + mPreferenceId.hashCode();
-        result = 31 * result + mDataNodes.hashCode();
-        return result;
+    public void clearListData() {
+        mListNodes.clear();
     }
 
     public String getAppPkgName() {
@@ -130,7 +99,72 @@ public class DataBundle implements Parcelable {
         return mDataNodes;
     }
 
-    public int size() {
+    public ArrayList<DataNode[]> getListNodes() {
+        return mListNodes;
+    }
+
+    public int normalSize() {
         return mDataNodes.size();
+    }
+
+    public int listSize() {
+        return mListNodes.size();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DataBundle)) return false;
+
+        DataBundle bundle = (DataBundle) o;
+
+        return mAppPkgName.equals(bundle.mAppPkgName) && mPreferenceId.equals(bundle.mPreferenceId)
+                && mDataNodes.equals(bundle.mDataNodes) && mListNodes.equals(bundle.mListNodes);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = mAppPkgName.hashCode();
+        result = 31 * result + mPreferenceId.hashCode();
+        result = 31 * result + mDataNodes.hashCode();
+        result = 31 * result + mListNodes.hashCode();
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (DataNode node : mDataNodes) {
+            sb.append(node);
+            sb.append("; ");
+        }
+
+        StringBuilder sbList = new StringBuilder();
+        for (DataNode[] node : mListNodes) {
+            sbList.append(Arrays.toString(node));
+            sbList.append("; ");
+        }
+
+        return "DataBundle{" + "mAppPkgName=" + mAppPkgName
+                + ", mPreferenceId=" + mPreferenceId
+                + ", hash=" + Integer.toHexString(hashCode())
+                + ", Size=" + mDataNodes.size()
+                + ", mDataNodes=" + sb.toString()
+                + ", mListNodes=" + sbList.toString()
+                + "}";
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(this.mAppPkgName);
+        dest.writeString(this.mPreferenceId);
+        dest.writeTypedList(this.mDataNodes);
+        dest.writeList(this.mListNodes);
     }
 }

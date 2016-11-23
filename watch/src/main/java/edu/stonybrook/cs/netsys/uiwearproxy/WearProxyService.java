@@ -210,14 +210,8 @@ public class WearProxyService extends Service {
 
                 // save image from bytes and return Uri to avoid large intent data
                 for (DataNode node : nodes) {
-                    byte[] image = node.getImageBytes();
-                    if (image != null && image.length > 0) {
-                        String imageFile = convertImageBytesToUri(appPkgName, image);
-                        node.setImageFile(imageFile);
-                    }
-                    // clear image bytes in original data node
-                    image = new byte[0];
-                    node.setImage(image);
+                    processNode(node, appPkgName);
+                    Logger.d("node normal: " + node);
                 }
 
                 Intent appIntent = new Intent(INTENT_PREFIX + appPkgName + INTENT_SUFFIX);
@@ -227,9 +221,29 @@ public class WearProxyService extends Service {
                 appIntent.putParcelableArrayListExtra(DATA_NODES_KEY, nodes);
                 sendBroadcast(appIntent);
 
+
+                // list nodes parsing
+                ArrayList<DataNode[]> listNodes = dataBundle.getListNodes();
+                for (DataNode[] list : listNodes) {
+                    for (DataNode node : list) {
+                        processNode(node, appPkgName);
+                        Logger.d("node list: " + node);
+                    }
+                }
                 Logger.t("data").i(dataBundle.toString());
             }
         });
+    }
+
+    private void processNode(DataNode node, String appPkgName) {
+        byte[] image = node.getImageBytes();
+        if (image != null && image.length > 0) {
+            String imageFile = convertImageBytesToUri(appPkgName, image);
+            node.setImageFile(imageFile);
+        }
+        // clear image bytes in original data node
+        image = new byte[0];
+        node.setImage(image);
     }
 
     private String convertImageBytesToUri(String appPkgName, byte[] image) {
