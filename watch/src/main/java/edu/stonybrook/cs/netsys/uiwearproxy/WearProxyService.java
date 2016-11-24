@@ -16,12 +16,10 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_REQUEST_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_ID_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_PATH;
-import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.DATA_NODES_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.IMAGE_DIR_NAME;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.INTENT_PREFIX;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.INTENT_SUFFIX;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.PKG_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.PREF_ID_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.marshall;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.unmarshall;
 
@@ -31,6 +29,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Point;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
@@ -223,9 +222,9 @@ public class WearProxyService extends Service {
                 Intent appIntent = new Intent(INTENT_PREFIX + appPkgName + INTENT_SUFFIX);
                 Logger.i("filter : " + INTENT_PREFIX + appPkgName + INTENT_SUFFIX);
 
-                appIntent.putExtra(PREF_ID_KEY, preferenceId);
-                appIntent.putParcelableArrayListExtra(DATA_NODES_KEY, nodes);
-                sendBroadcast(appIntent);
+//                appIntent.putExtra(PREF_ID_KEY, preferenceId);
+//                appIntent.putParcelableArrayListExtra(DATA_NODES_KEY, nodes);
+//                sendBroadcast(appIntent);
 
 
                 // list nodes parsing
@@ -236,6 +235,14 @@ public class WearProxyService extends Service {
                         Logger.d("new node list: " + node);
                     }
                 }
+                Bundle bundle = new Bundle();
+                bundle.putParcelable(DATA_BUNDLE_KEY, dataBundle);
+                appIntent.putExtra(DATA_BUNDLE_KEY,bundle);
+//                appIntent.putExtra(DATA_BUNDLE_KEY, dataBundle);
+//                 remove previously sent normal nodes to avoid duplicate rendering on wear apps
+//                appIntent.removeExtra(DATA_NODES_KEY);
+//                appIntent.putExtra(LIST_NODES_KEY, listNodes);
+                sendBroadcast(appIntent);
                 Logger.t("data").i("new send " + dataBundle.toString());
             }
         });

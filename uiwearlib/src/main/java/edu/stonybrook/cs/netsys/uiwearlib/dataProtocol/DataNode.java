@@ -48,21 +48,29 @@ public class DataNode implements Parcelable {
         mImage = new byte[0];
     }
 
-    public DataNode(int id, String viewId, String text, Bitmap image) {
-        mClickId = id;
+    public DataNode(String viewId) {
+        mClickId = 0;
         mViewId = viewId;
-        mText = text;
-        mImage = getBitmapBytes(image);
+        mText = "";
+        mImageFile = "";
+        mImage = new byte[0];
     }
 
-    public DataNode(int id, String viewId, String text, String imageFile, byte[] image) {
-        mClickId = id;
-        mViewId = viewId;
-        mText = text;
-        mImageFile = imageFile;
-        mImage = image;
-
-    }
+//    public DataNode(int id, String viewId, String text, Bitmap image) {
+//        mClickId = id;
+//        mViewId = viewId;
+//        mText = text;
+//        mImage = getBitmapBytes(image);
+//    }
+//
+//    public DataNode(int id, String viewId, String text, String imageFile, byte[] image) {
+//        mClickId = id;
+//        mViewId = viewId;
+//        mText = text;
+//        mImageFile = imageFile;
+//        mImage = image;
+//
+//    }
 
     public int getClickId() {
         return mClickId;

@@ -796,6 +796,14 @@ public class PhoneProxyService extends AccessibilityService {
             }
         });
 
+
+        // need to add list view layout node to normal data nodes, set viewId info
+        if (listNodes.size() > 0) {
+            AccNode node = listNodes.get(0);
+            DataNode listNode = new DataNode(node.getViewId());
+            dataBundle.add(listNode);
+        }
+
         // parse list nodes and set to dataBundle
         for (AccNode accNode : listNodes) {
             int count = accNode.getChildCount();
