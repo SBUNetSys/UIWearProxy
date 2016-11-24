@@ -44,6 +44,8 @@ dependencies {
     compile rootProject.ext.dependencies["ioutil"]
     compile rootProject.ext.dependencies["rxjava"]
     compile rootProject.ext.dependencies["rxandroid"]
+    compile rootProject.ext.dependencies["glide"]
+
 
     testCompile rootProject.ext.dependencies["junit"]
     testCompile rootProject.ext.dependencies["mockito"]

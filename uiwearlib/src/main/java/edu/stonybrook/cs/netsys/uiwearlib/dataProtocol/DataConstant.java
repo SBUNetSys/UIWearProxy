@@ -21,6 +21,7 @@ public class DataConstant {
     public static final String PREF_ID_KEY = "PREF_ID_KEY";
     public static final String DATA_NODES_KEY = "DATA_NODES_KEY";
     public static final String LIST_NODES_KEY = "LIST_NODES_KEY";
+    public static final String DATA_BUNDLE_KEY = "/DATA_BUNDLE_KEY";
 
     public static final String CLICK_PATH = "/CLICK_PATH";
     public static final String CLICK_ID_KEY = "CLICK_ID_KEY";

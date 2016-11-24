@@ -389,6 +389,7 @@ public class PhoneProxyService extends AccessibilityService {
         fileTransferHighLevel.requestOutputStream();
     }
 
+    // TODO: 11/24/16 first find node in cached hash map, if not found, use getRootInActiveWindow
     private void performActionOnPhone(DataAction dataAction) {
         // FIXME: 11/15/16 how to use this?
         String pkgName = dataAction.getPkgName();
@@ -534,6 +535,8 @@ public class PhoneProxyService extends AccessibilityService {
 
         /********** Extracting Sub View Tree Based on App Preference  *********/
         final String appPkgName = getNodePkgName(rootNode);
+        // register app for background processing
+//        setAppBackgroundAlive(appPkgName);
 
         // even root node is app, if accessibility event is from non app node, then skip
         if (!appPkgName.equals(sourceNode.getPackageName())) {

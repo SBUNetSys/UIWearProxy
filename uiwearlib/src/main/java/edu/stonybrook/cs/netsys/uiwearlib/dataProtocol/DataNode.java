@@ -1,12 +1,11 @@
 package edu.stonybrook.cs.netsys.uiwearlib.dataProtocol;
 
-import static edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil.getBitmapBytes;
-
 import android.graphics.Bitmap;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.view.accessibility.AccessibilityNodeInfo;
 
+import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
 /**
@@ -192,4 +191,17 @@ public class DataNode implements Parcelable {
             return new DataNode[size];
         }
     };
+
+    private static byte[] getBitmapBytes(Bitmap bitmap) {
+        if (bitmap == null) {
+            return null;
+        }
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        if (bitmap.getByteCount() > 50 * 1024) {
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
+        } else {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        }
+        return stream.toByteArray();
+    }
 }

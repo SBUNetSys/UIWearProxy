@@ -11,7 +11,6 @@ import android.graphics.drawable.Drawable;
 
 import com.orhanobut.logger.Logger;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
@@ -133,17 +132,17 @@ public class AppUtil {
 
     }
 
-    public static byte[] getBitmapBytes(Bitmap bitmap) {
-        if (bitmap == null) {
-            return null;
-        }
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        if (bitmap.getByteCount() > 50 * 1024) {
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
-        } else {
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-        }
-        return stream.toByteArray();
-    }
+//    public static byte[] getBitmapBytes(Bitmap bitmap) {
+//        if (bitmap == null) {
+//            return null;
+//        }
+//        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+//        if (bitmap.getByteCount() > 50 * 1024) {
+//            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
+//        } else {
+//            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+//        }
+//        return stream.toByteArray();
+//    }
 
 }

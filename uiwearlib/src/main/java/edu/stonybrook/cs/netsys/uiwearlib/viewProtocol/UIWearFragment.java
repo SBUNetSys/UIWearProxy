@@ -2,9 +2,14 @@ package edu.stonybrook.cs.netsys.uiwearlib.viewProtocol;
 
 import android.app.Fragment;
 import android.os.Bundle;
+import android.support.wearable.view.WearableListView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import java.util.ArrayList;
+
+import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataNode;
 
 /**
  * A simple {@link Fragment} subclass for UIWear companion app to load layout xml.
@@ -28,7 +33,19 @@ public class UIWearFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
-        return inflater.inflate(getArguments().getInt(ARG_LAYOUT), container, false);
+        View view = inflater.inflate(getArguments().getInt(ARG_LAYOUT), container, false);
+        ViewGroup viewGroup = (ViewGroup) view;
+        if (viewGroup != null) {
+            for (int i = 0; i < viewGroup.getChildCount(); i++) {
+                View child = viewGroup.getChildAt(i);
+                if (child instanceof WearableListView) {
+                    WearableListView listView = (WearableListView) child;
+                    listView.setAdapter(new WearableListAdapter(getActivity(), 0, null, null,
+                            new ArrayList<DataNode[]>()));
+                }
+            }
+        }
+        return view;
     }
 
 }
