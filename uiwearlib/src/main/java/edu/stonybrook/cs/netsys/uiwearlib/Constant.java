@@ -27,7 +27,8 @@ public class Constant {
 
     public static final float CLICK_SPAN_THRESHOLD = 5.0f;
 
-    public static final String CAPABILITY = "UIWear_Capability";
+    public static final String PHONE_CAPABILITY = "phone_capability";
+    public static final String WEAR_CAPABILITY = "wear_capability";
 
     public static final int PERSIST_PREFERENCE_NODES_SUCCESS = 5;
     public static final int READ_PREFERENCE_NODES_SUCCESS = 6;

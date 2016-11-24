@@ -14,6 +14,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_APK_REQUEST;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_MAPPING_RULES_REQUEST;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_REQUEST_PATH;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WEAR_CAPABILITY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_ID_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.IMAGE_DIR_NAME;
@@ -138,6 +139,22 @@ public class WearProxyService extends Service {
                 }
             }
 
+//            @Override
+//            public void onInputStreamForChannelOpened(int statusCode, String requestId,
+//                    Channel channel,
+//                    InputStream inputStream) {
+//
+//                if (statusCode != WearableStatusCodes.SUCCESS) {
+//                    Logger.e("onInputStreamForChannelOpened(): " + "Failed to get input stream");
+//                    return;
+//                }
+//
+//                parseDataBundleAsync(inputStream);
+//
+//                Logger.d("Channel opened for path: " + channel.getPath());
+//
+//            }
+
             @Override
             public void onFileReceivedResult(int statusCode, String requestId, File savedFile,
                     String originalName) {
@@ -172,6 +189,30 @@ public class WearProxyService extends Service {
             mGmsWear.sendMessage(DATA_BUNDLE_REQUIRED_PATH, dataBundleHashString.getBytes());
         }
     }
+
+//    private void parseDataBundleAsync(final InputStream inputStream) {
+//        mWorkerThread.postTask(new Runnable() {
+//            @Override
+//            public void run() {
+//                Logger.t("data").d("parseDataBundleAsync");
+//                byte[] data = new byte[0];
+//                try {
+//                    data = IOUtils.toByteArray(inputStream);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//                if (data != null) {
+//                    Logger.t("data").d("new bytes: " + data.length);
+//                    DataBundle dataBundle = unmarshall(data, DataBundle.CREATOR);
+//                    Logger.t("data").d("new data bundle: " + dataBundle);
+//                    sendDataBundleToWearAppAsync(dataBundle);
+//                    mDataBundleLruCache.put(Integer.toHexString(dataBundle.hashCode()), data);
+//                } else {
+//                    Logger.w("asset null");
+//                }
+//            }
+//        });
+//    }
 
     private void parseDataBundleAsync(final Asset asset) {
         mWorkerThread.postTask(new Runnable() {
@@ -237,7 +278,7 @@ public class WearProxyService extends Service {
                 }
                 Bundle bundle = new Bundle();
                 bundle.putParcelable(DATA_BUNDLE_KEY, dataBundle);
-                appIntent.putExtra(DATA_BUNDLE_KEY,bundle);
+                appIntent.putExtra(DATA_BUNDLE_KEY, bundle);
 //                appIntent.putExtra(DATA_BUNDLE_KEY, dataBundle);
 //                 remove previously sent normal nodes to avoid duplicate rendering on wear apps
 //                appIntent.removeExtra(DATA_NODES_KEY);
@@ -254,18 +295,31 @@ public class WearProxyService extends Service {
             return;
         }
         byte[] image = node.getImageBytes();
-        if (image != null && image.length > 0) {
+        if (image == null) {
+            return;
+        }
+        if (image.length > 0) {
             String imageFile = convertImageBytesToUri(appPkgName, image);
             node.setImageFile(imageFile);
+            // clear image bytes in original data node
+            image = new byte[0];
+            node.setImage(image);
+        } else {
+            // length = 0 means should be in the cache
+            String imageFile = node.getImageFile();
+            String path = getAppImageCacheFolderPath(appPkgName);
+            node.setImageFile(path + imageFile);
         }
-        // clear image bytes in original data node
-        image = new byte[0];
-        node.setImage(image);
+
+    }
+
+    private String getAppImageCacheFolderPath(String appPkgName) {
+        return getObbDir().getPath() + File.separator + appPkgName
+                + File.separator + IMAGE_DIR_NAME + File.separator;
     }
 
     private String convertImageBytesToUri(String appPkgName, byte[] image) {
-        File imageFile = new File(getObbDir().getPath() + File.separator
-                + appPkgName + File.separator + IMAGE_DIR_NAME + File.separator
+        File imageFile = new File(getAppImageCacheFolderPath(appPkgName)
                 + Integer.toHexString(Arrays.hashCode(image)));
 
         Logger.v("image path: " + imageFile.getPath());
@@ -281,6 +335,7 @@ public class WearProxyService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         mGmsWear.addWearConsumer(mDataConsumer);
+        mGmsWear.addCapabilities(WEAR_CAPABILITY);
         Logger.i("start");
         sendResolutionToPhone();
 
@@ -299,6 +354,7 @@ public class WearProxyService extends Service {
     @Override
     public void onDestroy() {
         mGmsWear.removeWearConsumer(mDataConsumer);
+        mGmsWear.removeCapabilities(WEAR_CAPABILITY);
         unregisterReceiver(mBroadcastReceiver);
         super.onDestroy();
     }

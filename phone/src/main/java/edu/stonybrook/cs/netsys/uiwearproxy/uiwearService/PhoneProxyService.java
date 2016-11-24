@@ -11,6 +11,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_REQUIRED_P
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ENABLED_APPS_PREF_NAME;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PERSIST_PREFERENCE_NODES_SUCCESS;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PHONE_CAPABILITY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
@@ -65,14 +66,20 @@ import com.cscao.libs.gmswear.GmsWear;
 import com.cscao.libs.gmswear.connectivity.FileTransfer;
 import com.cscao.libs.gmswear.consumer.AbstractDataConsumer;
 import com.cscao.libs.gmswear.consumer.DataConsumer;
+import com.google.android.gms.wearable.Channel;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.MessageEvent;
+import com.google.android.gms.wearable.WearableStatusCodes;
 import com.orhanobut.logger.Logger;
+
+import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -352,12 +359,34 @@ public class PhoneProxyService extends AccessibilityService {
                 if (bundleBytes != null) {
                     Logger.v("new real data bundle received hash:" + dataBundleHashString
                             + " length: " + bundleBytes.length);
+//                    sendRealDataBundleStream(bundleBytes);
                     mGmsWear.syncAsset(DATA_BUNDLE_PATH, DATA_BUNDLE_KEY, bundleBytes, true);
                 } else {
                     Logger.w(" cannot get real data bundle from cache");
                 }
             }
         });
+    }
+
+    private void sendRealDataBundleStream(final byte[] bytes) {
+        FileTransfer fileTransferHighLevel = new FileTransfer.Builder()
+                .setOnChannelOutputStreamListener(new FileTransfer.OnChannelOutputStreamListener() {
+                    @Override
+                    public void onOutputStreamForChannelReady(int statusCode, Channel channel,
+                            final OutputStream outputStream) {
+                        if (statusCode != WearableStatusCodes.SUCCESS) {
+                            Logger.e("Failed to open a channel, status code: " + statusCode);
+                            return;
+                        }
+                        try {
+                            Logger.d("new send bytes: " + bytes.length);
+                            IOUtils.write(bytes, outputStream);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }).build();
+        fileTransferHighLevel.requestOutputStream();
     }
 
     private void performActionOnPhone(DataAction dataAction) {
@@ -452,6 +481,7 @@ public class PhoneProxyService extends AccessibilityService {
 
         }
         mGmsWear.addWearConsumer(mDataConsumer);
+        mGmsWear.addCapabilities(PHONE_CAPABILITY);
         // reset all cache here
         resetAllCacheHere();
 
@@ -912,16 +942,6 @@ public class PhoneProxyService extends AccessibilityService {
 
         DataBundle savedDataBundleBeforePruning = new DataBundle(dataBundle);
         if (mLastSentDataBundle != null) {
-            // prune normal nodes
-            ArrayList<DataNode> lastSentDataNodes = mLastSentDataBundle.getDataNodes();
-            ArrayList<DataNode> dataNodes = new ArrayList<>(dataBundle.getDataNodes());
-            for (DataNode node : dataNodes) {
-                if (lastSentDataNodes.contains(node)) {
-                    Logger.d("new data bundle removed node: " + node);
-                    dataBundle.remove(node);
-                }
-            }
-
             // prune list nodes
             ArrayList<DataNode[]> listNodes = new ArrayList<>(dataBundle.getListNodes());
             ArrayList<DataNode> allLastListNodes = mLastSentDataBundle.getAllListNodes();
@@ -931,8 +951,24 @@ public class PhoneProxyService extends AccessibilityService {
                         Logger.d("new data bundle removed list node: " + node);
                         // should not remove the nodes, instead tell wear proxy, nodes not change,
                         // use existing ones, during the telling process, do not carry heavy data
-                        // FIXME: 11/23/16 notify node hash to wear proxy
-//                        dataBundle.remove(nodes);
+//                        setImageBytesToHash(node);
+                        dataBundle.remove(node);
+                    }
+                }
+            }
+
+            // prune normal nodes
+            ArrayList<DataNode> lastSentDataNodes = mLastSentDataBundle.getDataNodes();
+            ArrayList<DataNode> dataNodes = new ArrayList<>(dataBundle.getDataNodes());
+            if (listNodes.size() == 0) {
+                for (DataNode node : dataNodes) {
+                    if (lastSentDataNodes.contains(node)) {
+                        Logger.d("new data bundle removed node: " + node);
+                        // clear image data, add bytes hash so that wear proxy can find them in
+                        // cache
+                        // TODO: 11/24/16  set hash and send to wear to avoid carrying image data
+//                    setImageBytesToHash(node);
+                        dataBundle.remove(node);
                     }
                 }
             }
@@ -941,6 +977,14 @@ public class PhoneProxyService extends AccessibilityService {
         mLastSentDataBundle = savedDataBundleBeforePruning;
         Logger.v("new data new  bundle after pruning: " + dataBundle);
         Logger.v("new data last bundle after pruning: " + mLastSentDataBundle);
+    }
+
+    private void setImageBytesToHash(DataNode node) {
+        byte[] image = node.getImageBytes();
+        if (image != null) {
+            node.setImage(new byte[0]);
+            node.setImageFile(Integer.toHexString(Arrays.hashCode(image)));
+        }
     }
 
     private void cacheDataAndSendHashToWear(DataBundle dataBundle) {
@@ -982,6 +1026,8 @@ public class PhoneProxyService extends AccessibilityService {
     public void onDestroy() {
         Logger.v("");
         stopRunningNotification();
+        mGmsWear.removeWearConsumer(mDataConsumer);
+        mGmsWear.removeCapabilities(PHONE_CAPABILITY);
         LocalBroadcastManager.getInstance(getApplicationContext())
                 .unregisterReceiver(mBroadcastReceiver);
         super.onDestroy();
