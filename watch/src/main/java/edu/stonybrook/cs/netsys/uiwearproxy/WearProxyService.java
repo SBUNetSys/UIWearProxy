@@ -251,7 +251,6 @@ public class WearProxyService extends Service {
                 Logger.i("new data bundle, hash: " + hash);
 
                 String appPkgName = dataBundle.getAppPkgName();
-                String preferenceId = dataBundle.getPreferenceId();
                 ArrayList<DataNode> nodes = dataBundle.getDataNodes();
 
                 // save image from bytes and return Uri to avoid large intent data
@@ -259,15 +258,6 @@ public class WearProxyService extends Service {
                     processNode(node, appPkgName);
                     Logger.d("new node normal: " + node);
                 }
-
-                Intent appIntent = new Intent(INTENT_PREFIX + appPkgName + INTENT_SUFFIX);
-                Logger.i("filter : " + INTENT_PREFIX + appPkgName + INTENT_SUFFIX);
-
-//                appIntent.putExtra(PREF_ID_KEY, preferenceId);
-//                appIntent.putParcelableArrayListExtra(DATA_NODES_KEY, nodes);
-//                sendBroadcast(appIntent);
-
-
                 // list nodes parsing
                 ArrayList<DataNode[]> listNodes = dataBundle.getListNodes();
                 for (DataNode[] list : listNodes) {
@@ -276,13 +266,12 @@ public class WearProxyService extends Service {
                         Logger.d("new node list: " + node);
                     }
                 }
+
+                Intent appIntent = new Intent(INTENT_PREFIX + appPkgName + INTENT_SUFFIX);
+                Logger.i("filter : " + INTENT_PREFIX + appPkgName + INTENT_SUFFIX);
                 Bundle bundle = new Bundle();
                 bundle.putParcelable(DATA_BUNDLE_KEY, dataBundle);
                 appIntent.putExtra(DATA_BUNDLE_KEY, bundle);
-//                appIntent.putExtra(DATA_BUNDLE_KEY, dataBundle);
-//                 remove previously sent normal nodes to avoid duplicate rendering on wear apps
-//                appIntent.removeExtra(DATA_NODES_KEY);
-//                appIntent.putExtra(LIST_NODES_KEY, listNodes);
                 sendBroadcast(appIntent);
                 Logger.t("data").i("new send " + dataBundle.toString());
             }
