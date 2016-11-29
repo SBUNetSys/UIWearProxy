@@ -1,6 +1,6 @@
 <resources>
     <string-array name="android_wear_capabilities">
-        <item>msg_capability</item>
+        <item>phone_capability</item>
     </string-array>
 </resources>
 

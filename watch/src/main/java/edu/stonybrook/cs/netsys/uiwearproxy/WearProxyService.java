@@ -34,6 +34,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.support.annotation.Nullable;
+import android.util.Log;
 import android.util.LruCache;
 import android.view.WindowManager;
 import android.widget.Toast;
@@ -78,6 +79,7 @@ public class WearProxyService extends Service {
                     String pkgName = intent.getStringExtra(PKG_KEY);
                     int clickId = intent.getIntExtra(CLICK_ID_KEY, 0);
                     byte[] clickData = marshall(new DataAction(pkgName, clickId));
+                    Log.d("BENCH", "action click from wear proxy before sending: " + clickId);
                     mGmsWear.sendMessage(CLICK_PATH, clickData);
                     break;
                 default:
@@ -295,9 +297,18 @@ public class WearProxyService extends Service {
             node.setImage(image);
         } else {
             // length = 0 means should be in the cache
-            String imageFile = node.getImageFile();
+            // read hash of image first
+            String imageFileHash = node.getImageFile();
             String path = getAppImageCacheFolderPath(appPkgName);
-            node.setImageFile(path + imageFile);
+            // if image does not exist in cache(disk), ask phone proxy send real image
+            Logger.d("image path: " + path);
+            File imageFile = new File(path);
+            if (imageFile.exists()) {
+                node.setImageFile(path + imageFileHash);
+            } else {
+                // request real image from phone proxy
+
+            }
         }
 
     }

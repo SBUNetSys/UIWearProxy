@@ -57,6 +57,7 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.util.LruCache;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
@@ -107,6 +108,7 @@ public class PhoneProxyService extends AccessibilityService {
 
     // for preference setting, only need to parse once
     private boolean mIsRunningPreferenceSetting;
+    private boolean mIsLoggingActionBenchmark;
 
     // either region or id alone is not enough for detecting the specific UI elements
     // so combined them and can cover most cases
@@ -304,8 +306,12 @@ public class PhoneProxyService extends AccessibilityService {
                     case CLICK_PATH:
                         byte[] actionData = messageEvent.getData();
                         DataAction dataAction = unmarshall(actionData, DataAction.CREATOR);
-                        Logger.i("action data received: " + dataAction);
+//                        Logger.i("action data received: " + dataAction);
+                        Log.d("BENCH", "action received on phone, size : " + actionData.length);
+                        mIsLoggingActionBenchmark = true;
                         performActionOnPhone(dataAction);
+                        Log.d("BENCH", "action performed on phone");
+
                         break;
                     case WATCH_RESOLUTION_PATH:
                         byte[] watchResolution = messageEvent.getData();
@@ -503,6 +509,10 @@ public class PhoneProxyService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
+        if (mIsLoggingActionBenchmark) {
+            Log.d("BENCH", "action click trigger event");
+            mIsLoggingActionBenchmark = false;
+        }
 
         final AccessibilityNodeInfo rootNode = getRootInActiveWindow();
 
@@ -537,7 +547,7 @@ public class PhoneProxyService extends AccessibilityService {
         final String appPkgName = getNodePkgName(rootNode);
         // register app for background processing
 //        setAppBackgroundAlive(appPkgName);
-
+        Log.i("STATS", event.toString() + sourceNode.toString());
         // even root node is app, if accessibility event is from non app node, then skip
         if (!appPkgName.equals(sourceNode.getPackageName())) {
             return;
@@ -952,10 +962,13 @@ public class PhoneProxyService extends AccessibilityService {
                 for (DataNode node : nodes) {
                     if (allLastListNodes.contains(node)) {
                         Logger.d("new data bundle removed list node: " + node);
-                        // should not remove the nodes, instead tell wear proxy, nodes not change,
-                        // use existing ones, during the telling process, do not carry heavy data
-//                        setImageBytesToHash(node);
+                        // should remove duplicate nodes that were sent last time
                         dataBundle.remove(node);
+                    } else {
+                        // for the new nodes, instead of sending heavy image data, tell wear proxy
+                        // the hash value of image, if found not found real image data in wear's
+                        // cache, need notify phone proxy to send real data
+//                        setImageBytesToHash(node);
                     }
                 }
             }
@@ -967,11 +980,9 @@ public class PhoneProxyService extends AccessibilityService {
                 for (DataNode node : dataNodes) {
                     if (lastSentDataNodes.contains(node)) {
                         Logger.d("new data bundle removed node: " + node);
-                        // clear image data, add bytes hash so that wear proxy can find them in
-                        // cache
-                        // TODO: 11/24/16  set hash and send to wear to avoid carrying image data
-//                    setImageBytesToHash(node);
                         dataBundle.remove(node);
+                    } else {
+//                        setImageBytesToHash(node);
                     }
                 }
             }
@@ -986,6 +997,7 @@ public class PhoneProxyService extends AccessibilityService {
         byte[] image = node.getImageBytes();
         if (image != null) {
             node.setImage(new byte[0]);
+            // for phone proxy, imageFile field means the hash of image
             node.setImageFile(Integer.toHexString(Arrays.hashCode(image)));
         }
     }

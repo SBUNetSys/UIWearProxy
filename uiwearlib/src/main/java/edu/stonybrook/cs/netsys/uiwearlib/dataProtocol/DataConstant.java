@@ -12,10 +12,6 @@ public class DataConstant {
     public static final String RES_DIR_NAME = "Resources";
     public static final String IMAGE_DIR_NAME = "SavedImages";
 
-    public static final String PREF_FILE_SUFFIX = "_pref";
-    public static final String RULE_FILE_SUFFIX = "_rule";
-    public static final String LAYOUT_FILE_SUFFIX = "_layout";
-
     public static final String INTENT_PREFIX = "uiwear.";
     public static final String INTENT_SUFFIX = ".data.intent";
     public static final String PREF_ID_KEY = "PREF_ID_KEY";
