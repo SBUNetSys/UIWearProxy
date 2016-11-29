@@ -45,6 +45,9 @@ public class WearableListAdapter extends WearableListView.Adapter {
         DataNode[] dataNodes = mListDataNodes.get(position);
         for (DataNode node : dataNodes) {
             Logger.d("new item node: " + node);
+            if (node == null) {
+                return;
+            }
             String phoneItemNodeViewId = node.getViewId();
             int index = mPhoneItemViewIdList.indexOf(phoneItemNodeViewId);
 

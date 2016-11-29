@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
@@ -34,6 +35,8 @@ public class ViewUtil {
         nodeView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+//                Logger.d("render node click: " + clickId);
+                Log.d("BENCH", "action click from wear app: " + clickId);
                 Intent clickIntent = new Intent(CLICK_PATH);
                 clickIntent.putExtra(PKG_KEY, context.getPackageName());
                 clickIntent.putExtra(CLICK_ID_KEY, clickId);
