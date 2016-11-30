@@ -814,7 +814,7 @@ public class PhoneProxyService extends AccessibilityService {
                     //no two nodes have the same id
                     oneNodeMatched = prefNode.getViewId().equals(appNode.getViewId());
                     if (oneNodeMatched) {
-                        Logger.v("node match: single app- " + appNode + " pref-" + prefNode);
+                        Logger.v("node match: single app- " + appNode + " pref- " + prefNode);
                         // need to update the prefNode to appNode
                         updatePreferenceNode(preferenceNodes, prefNode, appNode);
                         break;
@@ -837,9 +837,26 @@ public class PhoneProxyService extends AccessibilityService {
 
     private void updatePreferenceNode(HashSet<AccNode> preferenceNodes, AccNode prefNode,
             AccNode appNode) {
-        // remove the old pref node, update it to the matched app node
+//        // remove the old pref node, update it to the matched app node
         preferenceNodes.remove(prefNode);
         AccNode newNode = new AccNode(appNode);
+
+        // delete unnecessary nodes, i.e., those not in prefNodes
+        for (int i = 0; i < newNode.getChildCount(); i++) {
+            AccNode appChild = newNode.getChild(i);
+            String appChildViewId = appChild.getViewId();
+            boolean hasFoundChild = false;
+            for (int j = 0; j < prefNode.getChildCount(); j++) {
+                String prefChildViewId = prefNode.getChild(j).getViewId();
+                if (appChildViewId.equals(prefChildViewId)) {
+                    hasFoundChild = true;
+                }
+            }
+            if (!hasFoundChild) {
+                newNode.removeChild(appChild);
+            }
+        }
+
         preferenceNodes.add(newNode);
     }
 
@@ -975,7 +992,6 @@ public class PhoneProxyService extends AccessibilityService {
         Bundle bitmapBundle = new Bundle();
         accNode.requestSnapshot(bitmapBundle);
         nodeBitmap = (Bitmap) bitmapBundle.get("bitmap");
-        // FIXME: 11/13/16 compress and scale bitmap before sending to wear
         return nodeBitmap;
     }
 
