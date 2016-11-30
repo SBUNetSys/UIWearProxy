@@ -2,7 +2,6 @@ package edu.stonybrook.cs.netsys.uiwearproxy;
 
 import android.app.Application;
 
-import com.cscao.libs.gmswear.GmsWear;
 import com.orhanobut.logger.Logger;
 
 /**
@@ -15,7 +14,6 @@ public class PhoneApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        GmsWear.initialize(this);
         Logger.init("UIWearPhone");
     }
 }

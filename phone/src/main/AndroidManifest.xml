@@ -37,18 +37,19 @@
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/accessibility_service_config" />
-        </service>
-        <!--<service-->
-        <!--android:name=".uiwearService.NotifyService"-->
-        <!--android:label="@string/service_notify"-->
-        <!--android:enabled="true"-->
-        <!--android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"-->
-        <!--&gt;-->
-        <!--<intent-filter>-->
-        <!--<action android:name="android.service.notification.NotificationListenerService" />-->
-        <!--</intent-filter>-->
         <!--</service>-->
-        <service android:name="com.cscao.libs.gmswear.GmsWearService">
+        <!--&lt;!&ndash;<service&ndash;&gt;-->
+        <!--&lt;!&ndash;android:name=".uiwearService.NotifyService"&ndash;&gt;-->
+        <!--&lt;!&ndash;android:label="@string/service_notify"&ndash;&gt;-->
+        <!--&lt;!&ndash;android:enabled="true"&ndash;&gt;-->
+        <!--&lt;!&ndash;android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"&ndash;&gt;-->
+        <!--&lt;!&ndash;&gt;&ndash;&gt;-->
+        <!--&lt;!&ndash;<intent-filter>&ndash;&gt;-->
+        <!--&lt;!&ndash;<action android:name="android.service.notification.NotificationListenerService" />&ndash;&gt;-->
+        <!--&lt;!&ndash;</intent-filter>&ndash;&gt;-->
+        <!--&lt;!&ndash;</service>&ndash;&gt;-->
+        <!--&lt;!&ndash;<service android:name="com.cscao.libs.gmswear.GmsWearService">&ndash;&gt;-->
+        <!--<service android:name=".uiwearService.PhoneProxyService">-->
             <intent-filter>
                 <!-- listeners receive events that match the action and data filters -->
                 <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />

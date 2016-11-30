@@ -18,5 +18,6 @@
 <resources>
     <string-array name="android_wear_capabilities">
         <item>wear_capability</item>
+        <item>msg_capability</item>
     </string-array>
 </resources>

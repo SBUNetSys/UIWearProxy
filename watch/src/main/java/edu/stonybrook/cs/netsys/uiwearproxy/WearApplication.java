@@ -3,7 +3,6 @@ package edu.stonybrook.cs.netsys.uiwearproxy;
 import android.app.Application;
 import android.content.Context;
 
-import com.cscao.libs.gmswear.GmsWear;
 import com.morgoo.droidplugin.PluginHelper;
 import com.orhanobut.logger.Logger;
 
@@ -18,7 +17,6 @@ public class WearApplication extends Application {
     public void onCreate() {
         super.onCreate();
         PluginHelper.getInstance().applicationOnCreate(getBaseContext());
-        GmsWear.initialize(this);
         Logger.init("UIWearWatch");
     }
 

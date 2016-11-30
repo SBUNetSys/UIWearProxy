@@ -10,11 +10,9 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_HASH_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_REQUIRED_PATH;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_APK_REQUEST;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TRANSFER_MAPPING_RULES_REQUEST;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.MSG_CAPABILITY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_REQUEST_PATH;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WEAR_CAPABILITY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_ID_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.IMAGE_DIR_NAME;
@@ -39,15 +37,9 @@ import android.util.LruCache;
 import android.view.WindowManager;
 import android.widget.Toast;
 
-import com.cscao.libs.gmswear.GmsWear;
-import com.cscao.libs.gmswear.consumer.AbstractDataConsumer;
-import com.cscao.libs.gmswear.consumer.DataConsumer;
+import com.cscao.libs.gmsapi.GmsApi;
 import com.google.android.gms.wearable.Asset;
-import com.google.android.gms.wearable.DataEvent;
-import com.google.android.gms.wearable.DataItem;
 import com.google.android.gms.wearable.DataMap;
-import com.google.android.gms.wearable.DataMapItem;
-import com.google.android.gms.wearable.MessageEvent;
 import com.morgoo.droidplugin.pm.PluginManager;
 import com.orhanobut.logger.Logger;
 
@@ -63,13 +55,16 @@ import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataAction;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataBundle;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataNode;
 
+//import com.cscao.libs.gmswear.GmsWear;
+
 /**
  * UIWear wear side proxy service, handling sub view tree info received from phone
  */
 public class WearProxyService extends Service {
 
-    private GmsWear mGmsWear;
-    private DataConsumer mDataConsumer;
+    private GmsApi mGmsApi;
+    //    private GmsWear mGmsWear;
+//    private DataConsumer mDataConsumer;
     private WorkerThread mWorkerThread;
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -80,7 +75,8 @@ public class WearProxyService extends Service {
                     int clickId = intent.getIntExtra(CLICK_ID_KEY, 0);
                     byte[] clickData = marshall(new DataAction(pkgName, clickId));
                     Log.d("BENCH", "action click from wear proxy before sending: " + clickId);
-                    mGmsWear.sendMessage(CLICK_PATH, clickData);
+//                    mGmsWear.sendMessage(CLICK_PATH, clickData);
+                    mGmsApi.sendMsg((CLICK_PATH), clickData, null);
                     break;
                 default:
             }
@@ -103,14 +99,83 @@ public class WearProxyService extends Service {
 
     @Override
     public void onCreate() {
+//        GmsWear.initialize(this);
         Logger.i("create");
         mWorkerThread = new WorkerThread("worker-thread");
         mWorkerThread.start();
 
-        mGmsWear = GmsWear.getInstance();
-        mDataConsumer = new AbstractDataConsumer() {
+//        mGmsWear = GmsWear.getInstance();
+//        mDataConsumer = new AbstractDataConsumer() {
+//            @Override
+//            public void onMessageReceived(MessageEvent messageEvent) {
+//                switch (messageEvent.getPath()) {
+//                    case DATA_BUNDLE_HASH_PATH:
+//                        Logger.i("DATA_BUNDLE_HASH_PATH");
+//                        byte[] hashStringBytes = messageEvent.getData();
+//                        String hashString = new String(hashStringBytes);
+//                        handleDataBundleHash(hashString);
+//                        break;
+//                    case WATCH_RESOLUTION_REQUEST_PATH:
+//                        sendResolutionToPhone();
+//                        break;
+//                    default:
+//                        Logger.w("unknown msg");
+//                }
+//            }
+//
+//            @Override
+//            public void onDataChanged(DataEvent event) {
+//                Logger.i("data:");
+//                if (event.getType() == DataEvent.TYPE_CHANGED) {
+//                    // DataItem changed
+//                    DataItem item = event.getDataItem();
+//                    Logger.i(item.getUri().getPath());
+//                    if (item.getUri().getPath().equals(DATA_BUNDLE_PATH)) {
+//                        DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
+//                        Asset asset = dataMap.getAsset(DATA_BUNDLE_KEY);
+//                        parseDataBundleAsync(asset);
+//                    }
+//                }
+//            }
+//
+////            @Override
+////            public void onInputStreamForChannelOpened(int statusCode, String requestId,
+////                    Channel channel,
+////                    InputStream inputStream) {
+////
+////                if (statusCode != WearableStatusCodes.SUCCESS) {
+////                    Logger.e("onInputStreamForChannelOpened(): " + "Failed to get input
+// stream");
+////                    return;
+////                }
+////
+////                parseDataBundleAsync(inputStream);
+////
+////                Logger.d("Channel opened for path: " + channel.getPath());
+////
+////            }
+//
+//            @Override
+//            public void onFileReceivedResult(int statusCode, String requestId, File savedFile,
+//                    String originalName) {
+//                Logger.d(
+//                        "File Received: status=%d, requestId=%s, savedLocation=%s,
+// originalName=%s",
+//                        statusCode, requestId, savedFile.getAbsolutePath(), originalName);
+//                // for apk file transfer
+//                if (TRANSFER_APK_REQUEST.equals(requestId)) {
+//                    processApk(savedFile);
+//                }
+//
+//                if (TRANSFER_MAPPING_RULES_REQUEST.equals(requestId)) {
+//                    processMappingRule(savedFile);
+//                }
+//            }
+//        };
+        mGmsApi = new GmsApi(this, MSG_CAPABILITY);
+        mGmsApi.setOnMessageReceivedListener(new GmsApi.OnMessageReceivedListener() {
             @Override
-            public void onMessageReceived(MessageEvent messageEvent) {
+            public void onMessageReceived(GmsApi.MessageData messageEvent) {
                 switch (messageEvent.getPath()) {
                     case DATA_BUNDLE_HASH_PATH:
                         Logger.i("DATA_BUNDLE_HASH_PATH");
@@ -121,61 +186,47 @@ public class WearProxyService extends Service {
                     case WATCH_RESOLUTION_REQUEST_PATH:
                         sendResolutionToPhone();
                         break;
+                    case DATA_BUNDLE_PATH:
+                        parseDataBundleAsync(messageEvent.getData());
+                        break;
                     default:
                         Logger.w("unknown msg");
                 }
             }
-
+        });
+        mGmsApi.setOnDataChangedListener(new GmsApi.OnDataChangedListener() {
             @Override
-            public void onDataChanged(DataEvent event) {
-                Logger.i("data:");
-                if (event.getType() == DataEvent.TYPE_CHANGED) {
-                    // DataItem changed
-                    DataItem item = event.getDataItem();
-                    Logger.i(item.getUri().getPath());
-                    if (item.getUri().getPath().equals(DATA_BUNDLE_PATH)) {
-                        DataMap dataMap = DataMapItem.fromDataItem(item).getDataMap();
-                        Asset asset = dataMap.getAsset(DATA_BUNDLE_KEY);
-                        parseDataBundleAsync(asset);
-                    }
-                }
+            public void onDataChanged(DataMap dataMap) {
+//                Asset asset = dataMap.getAsset(DATA_BUNDLE_KEY);
+//                parseDataBundleAsync(asset);
             }
 
-//            @Override
-//            public void onInputStreamForChannelOpened(int statusCode, String requestId,
-//                    Channel channel,
-//                    InputStream inputStream) {
-//
-//                if (statusCode != WearableStatusCodes.SUCCESS) {
-//                    Logger.e("onInputStreamForChannelOpened(): " + "Failed to get input stream");
-//                    return;
-//                }
-//
-//                parseDataBundleAsync(inputStream);
-//
-//                Logger.d("Channel opened for path: " + channel.getPath());
-//
-//            }
-
             @Override
-            public void onFileReceivedResult(int statusCode, String requestId, File savedFile,
-                    String originalName) {
-                Logger.d(
-                        "File Received: status=%d, requestId=%s, savedLocation=%s, originalName=%s",
-                        statusCode, requestId, savedFile.getAbsolutePath(), originalName);
-                // for apk file transfer
-                if (TRANSFER_APK_REQUEST.equals(requestId)) {
-                    processApk(savedFile);
-                }
+            public void onDataDeleted(DataMap dataMap) {
 
-                if (TRANSFER_MAPPING_RULES_REQUEST.equals(requestId)) {
-                    processMappingRule(savedFile);
-                }
             }
-        };
-
+        });
         IntentFilter intentFilter = new IntentFilter(CLICK_PATH);
         registerReceiver(mBroadcastReceiver, intentFilter);
+    }
+
+    private void parseDataBundleAsync(final byte[] data) {
+        mWorkerThread.postTask(new Runnable() {
+            @Override
+            public void run() {
+                if (data != null) {
+                    Logger.t("data").d("new bytes: " + data.length);
+                    DataBundle dataBundle = unmarshall(data, DataBundle.CREATOR);
+                    Logger.t("data").d("new data bundle: " + dataBundle);
+                    sendDataBundleToWearAppAsync(dataBundle);
+                    mDataBundleLruCache.put(Integer.toHexString(dataBundle.hashCode()),
+                            data);
+                } else {
+                    Logger.w("asset null");
+                }
+            }
+        });
+
     }
 
     private void handleDataBundleHash(String dataBundleHashString) {
@@ -188,7 +239,8 @@ public class WearProxyService extends Service {
             sendDataBundleToWearAppAsync(bundle);
         } else {
             Logger.i("new data bundle on wear required: " + dataBundleHashString);
-            mGmsWear.sendMessage(DATA_BUNDLE_REQUIRED_PATH, dataBundleHashString.getBytes());
+//            mGmsWear.sendMessage(DATA_BUNDLE_REQUIRED_PATH, dataBundleHashString.getBytes());
+            mGmsApi.sendMsg(DATA_BUNDLE_REQUIRED_PATH, dataBundleHashString.getBytes(), null);
         }
     }
 
@@ -220,22 +272,25 @@ public class WearProxyService extends Service {
         mWorkerThread.postTask(new Runnable() {
             @Override
             public void run() {
+
                 Logger.t("data").d("parseDataBundleAsync");
-                byte[] data = new byte[0];
-                try {
-                    data = mGmsWear.loadAssetSynchronous(asset);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                if (data != null) {
-                    Logger.t("data").d("new bytes: " + data.length);
-                    DataBundle dataBundle = unmarshall(data, DataBundle.CREATOR);
-                    Logger.t("data").d("new data bundle: " + dataBundle);
-                    sendDataBundleToWearAppAsync(dataBundle);
-                    mDataBundleLruCache.put(Integer.toHexString(dataBundle.hashCode()), data);
-                } else {
-                    Logger.w("asset null");
-                }
+//                byte[] data = new byte[0];
+                //                    data = mGmsWear.loadAssetSynchronous(asset);
+                mGmsApi.setOnAssetReceivedListener(new GmsApi.OnAssetReceivedListener() {
+                    @Override
+                    public void onAssetReceived(byte[] bytes) {
+                        if (bytes != null) {
+                            Logger.t("data").d("new bytes: " + bytes.length);
+                            DataBundle dataBundle = unmarshall(bytes, DataBundle.CREATOR);
+                            Logger.t("data").d("new data bundle: " + dataBundle);
+                            sendDataBundleToWearAppAsync(dataBundle);
+                            mDataBundleLruCache.put(Integer.toHexString(dataBundle.hashCode()),
+                                    bytes);
+                        } else {
+                            Logger.w("asset null");
+                        }
+                    }
+                }, asset);
             }
         });
 
@@ -334,10 +389,15 @@ public class WearProxyService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        mGmsWear.addWearConsumer(mDataConsumer);
-        mGmsWear.addCapabilities(WEAR_CAPABILITY);
+//        GmsWear.initialize(this);
+//        mGmsWear.addWearConsumer(mDataConsumer);
+//        mGmsWear.addCapabilities(WEAR_CAPABILITY);
+        if (mGmsApi != null) {
+            Logger.v("gms connect");
+            mGmsApi.connect();
+        }
         Logger.i("start");
-        sendResolutionToPhone();
+//        sendResolutionToPhone();
 
         mDataBundleLruCache.evictAll();
 
@@ -348,14 +408,19 @@ public class WearProxyService extends Service {
         Point size = new Point();
         ((WindowManager) getSystemService(Context.WINDOW_SERVICE))
                 .getDefaultDisplay().getSize(size);
-        mGmsWear.sendMessage(WATCH_RESOLUTION_PATH, marshall(size));
+//        mGmsWear.sendMessage(WATCH_RESOLUTION_PATH, marshall(size));
+        mGmsApi.sendMsg(WATCH_RESOLUTION_PATH, marshall(size), null);
     }
 
     @Override
     public void onDestroy() {
-        mGmsWear.removeWearConsumer(mDataConsumer);
-        mGmsWear.removeCapabilities(WEAR_CAPABILITY);
+//        mGmsWear.removeWearConsumer(mDataConsumer);
+//        mGmsWear.removeCapabilities(WEAR_CAPABILITY);
         unregisterReceiver(mBroadcastReceiver);
+        if (mGmsApi != null) {
+            Logger.v("gms disconnect");
+            mGmsApi.disconnect();
+        }
         super.onDestroy();
     }
 

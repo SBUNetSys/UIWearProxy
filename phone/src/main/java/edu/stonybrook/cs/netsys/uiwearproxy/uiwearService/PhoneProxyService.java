@@ -5,13 +5,12 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFER
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.BITMAP_CACHE_SIZE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_CACHE_SIZE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_HASH_PATH;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_REQUIRED_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ENABLED_APPS_PREF_NAME;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.MSG_CAPABILITY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.NODES_AVAILABLE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PERSIST_PREFERENCE_NODES_SUCCESS;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PHONE_CAPABILITY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_NODES_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_EXIT;
@@ -63,22 +62,12 @@ import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-import com.cscao.libs.gmswear.GmsWear;
-import com.cscao.libs.gmswear.connectivity.FileTransfer;
-import com.cscao.libs.gmswear.consumer.AbstractDataConsumer;
-import com.cscao.libs.gmswear.consumer.DataConsumer;
-import com.google.android.gms.wearable.Channel;
-import com.google.android.gms.wearable.DataEvent;
-import com.google.android.gms.wearable.DataItem;
-import com.google.android.gms.wearable.MessageEvent;
-import com.google.android.gms.wearable.WearableStatusCodes;
+import com.cscao.libs.gmsapi.GmsApi;
+import com.google.android.gms.wearable.DataMap;
 import com.orhanobut.logger.Logger;
-
-import org.apache.commons.io.IOUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -99,9 +88,10 @@ import edu.stonybrook.cs.netsys.uiwearlib.helper.XmlUtil;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
 public class PhoneProxyService extends AccessibilityService {
-    private GmsWear mGmsWear;
-    private DataConsumer mDataConsumer;
+//    private GmsWear mGmsWear;
+//    private DataConsumer mDataConsumer;
 
+    private GmsApi mGmsApi;
     private int mPhoneWidth;
     private int mPhoneHeight;
     private NotificationManager mNotificationManager;
@@ -264,6 +254,7 @@ public class PhoneProxyService extends AccessibilityService {
 
     @Override
     public void onCreate() {
+//        GmsWear.initialize(this);
         IntentFilter filter = new IntentFilter(PREFERENCE_SETTING_SAVE);
         filter.addAction(PREFERENCE_SETTING_STARTED);
         filter.addAction(PREFERENCE_SETTING_EXIT);
@@ -298,10 +289,61 @@ public class PhoneProxyService extends AccessibilityService {
         mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         raiseRunningNotification();
 
-        mGmsWear = GmsWear.getInstance();
-        mDataConsumer = new AbstractDataConsumer() {
+//        mGmsWear = GmsWear.getInstance();
+//        mDataConsumer = new AbstractDataConsumer() {
+//            @Override
+//            public void onMessageReceived(MessageEvent messageEvent) {
+//                switch (messageEvent.getPath()) {
+//                    case CLICK_PATH:
+//                        byte[] actionData = messageEvent.getData();
+//                        DataAction dataAction = unmarshall(actionData, DataAction.CREATOR);
+////                        Logger.i("action data received: " + dataAction);
+//                        Log.d("BENCH", "action received on phone, size : " + actionData.length);
+//                        mIsLoggingActionBenchmark = true;
+//                        performActionOnPhone(dataAction);
+//                        Log.d("BENCH", "action performed on phone");
+//
+//                        break;
+//                    case WATCH_RESOLUTION_PATH:
+//                        byte[] watchResolution = messageEvent.getData();
+//                        Point size = unmarshall(watchResolution, Point.CREATOR);
+//                        Logger.i("watch resolution received: " + size);
+//                        SharedPreferences.Editor editor =
+//                                mWatchPhoneResolutionRatioSharedPref.edit();
+//                        int phoneSize = Math.max(mPhoneHeight, mPhoneWidth);
+//                        int watchSize = Math.min(size.x, size.y);
+//                        int ratio = phoneSize / watchSize;
+//                        editor.putInt(WATCH_PHONE_RESOLUTION_RATIO_KEY, ratio);
+//                        editor.apply();
+//                        break;
+//                    case DATA_BUNDLE_REQUIRED_PATH:
+//                        byte[] hashStringBytes = messageEvent.getData();
+//                        String hashString = new String(hashStringBytes);
+//                        Logger.i("new data bundle hash received: " + hashString);
+//                        sendRealDataBundleAsync(hashString);
+//                        break;
+//                    default:
+//                        Logger.w("unknown msg");
+//                }
+//            }
+//
+//            @Override
+//            public void onDataChanged(DataEvent event) {
+//                Logger.i("onDataChanged");
+//                if (event.getType() == DataEvent.TYPE_CHANGED) {
+//                    // DataItem changed
+//                    DataItem item = event.getDataItem();
+//                    Logger.i(item.getUri().getPath());
+//                    if (item.getUri().getPath().equals(DATA_BUNDLE_PATH)) {
+//                        Logger.i("DATA_BUNDLE_PATH");
+//                    }
+//                }
+//            }
+//        };
+        mGmsApi = new GmsApi(this, MSG_CAPABILITY);
+        mGmsApi.setOnMessageReceivedListener(new GmsApi.OnMessageReceivedListener() {
             @Override
-            public void onMessageReceived(MessageEvent messageEvent) {
+            public void onMessageReceived(GmsApi.MessageData messageEvent) {
                 switch (messageEvent.getPath()) {
                     case CLICK_PATH:
                         byte[] actionData = messageEvent.getData();
@@ -335,20 +377,17 @@ public class PhoneProxyService extends AccessibilityService {
                         Logger.w("unknown msg");
                 }
             }
+        });
+        mGmsApi.setOnDataChangedListener(new GmsApi.OnDataChangedListener() {
+            @Override
+            public void onDataChanged(DataMap dataMap) {
+            }
 
             @Override
-            public void onDataChanged(DataEvent event) {
-                Logger.i("onDataChanged");
-                if (event.getType() == DataEvent.TYPE_CHANGED) {
-                    // DataItem changed
-                    DataItem item = event.getDataItem();
-                    Logger.i(item.getUri().getPath());
-                    if (item.getUri().getPath().equals(DATA_BUNDLE_PATH)) {
-                        Logger.i("DATA_BUNDLE_PATH");
-                    }
-                }
+            public void onDataDeleted(DataMap dataMap) {
+
             }
-        };
+        });
 
         Point size = new Point();
         ((WindowManager) getSystemService(Context.WINDOW_SERVICE))
@@ -366,7 +405,8 @@ public class PhoneProxyService extends AccessibilityService {
                     Logger.v("new real data bundle received hash:" + dataBundleHashString
                             + " length: " + bundleBytes.length);
 //                    sendRealDataBundleStream(bundleBytes);
-                    mGmsWear.syncAsset(DATA_BUNDLE_PATH, DATA_BUNDLE_KEY, bundleBytes, true);
+//                    mGmsWear.syncAsset(DATA_BUNDLE_PATH, DATA_BUNDLE_KEY, bundleBytes, true);
+                    mGmsApi.sendMsg(DATA_BUNDLE_PATH, bundleBytes, null);
                 } else {
                     Logger.w(" cannot get real data bundle from cache");
                 }
@@ -374,26 +414,27 @@ public class PhoneProxyService extends AccessibilityService {
         });
     }
 
-    private void sendRealDataBundleStream(final byte[] bytes) {
-        FileTransfer fileTransferHighLevel = new FileTransfer.Builder()
-                .setOnChannelOutputStreamListener(new FileTransfer.OnChannelOutputStreamListener() {
-                    @Override
-                    public void onOutputStreamForChannelReady(int statusCode, Channel channel,
-                            final OutputStream outputStream) {
-                        if (statusCode != WearableStatusCodes.SUCCESS) {
-                            Logger.e("Failed to open a channel, status code: " + statusCode);
-                            return;
-                        }
-                        try {
-                            Logger.d("new send bytes: " + bytes.length);
-                            IOUtils.write(bytes, outputStream);
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                        }
-                    }
-                }).build();
-        fileTransferHighLevel.requestOutputStream();
-    }
+//    private void sendRealDataBundleStream(final byte[] bytes) {
+//        FileTransfer fileTransferHighLevel = new FileTransfer.Builder()
+//                .setOnChannelOutputStreamListener(new FileTransfer
+// .OnChannelOutputStreamListener() {
+//                    @Override
+//                    public void onOutputStreamForChannelReady(int statusCode, Channel channel,
+//                            final OutputStream outputStream) {
+//                        if (statusCode != WearableStatusCodes.SUCCESS) {
+//                            Logger.e("Failed to open a channel, status code: " + statusCode);
+//                            return;
+//                        }
+//                        try {
+//                            Logger.d("new send bytes: " + bytes.length);
+//                            IOUtils.write(bytes, outputStream);
+//                        } catch (IOException e) {
+//                            e.printStackTrace();
+//                        }
+//                    }
+//                }).build();
+//        fileTransferHighLevel.requestOutputStream();
+//    }
 
     // TODO: 11/24/16 first find node in cached hash map, if not found, use getRootInActiveWindow
     private void performActionOnPhone(DataAction dataAction) {
@@ -487,8 +528,8 @@ public class PhoneProxyService extends AccessibilityService {
             }
 
         }
-        mGmsWear.addWearConsumer(mDataConsumer);
-        mGmsWear.addCapabilities(PHONE_CAPABILITY);
+//        mGmsWear.addWearConsumer(mDataConsumer);
+//        mGmsWear.addCapabilities(PHONE_CAPABILITY);
         // reset all cache here
         resetAllCacheHere();
 
@@ -925,7 +966,8 @@ public class PhoneProxyService extends AccessibilityService {
     }
 
     private void requestWatchResolution() {
-        mGmsWear.sendMessage(WATCH_RESOLUTION_REQUEST_PATH, null);
+        mGmsApi.sendMsg(WATCH_RESOLUTION_REQUEST_PATH, null, null);
+//        mGmsWear.sendMessage(WATCH_RESOLUTION_REQUEST_PATH, null);
     }
 
     private Bitmap requestBitmap(AccessibilityNodeInfo accNode) {
@@ -1007,7 +1049,8 @@ public class PhoneProxyService extends AccessibilityService {
         // if not, send the real data bundle
         int dataBundleHash = dataBundle.hashCode();
         String dataBundleHashString = Integer.toHexString(dataBundleHash);
-        mGmsWear.sendMessage(DATA_BUNDLE_HASH_PATH, dataBundleHashString.getBytes());
+//        mGmsWear.sendMessage(DATA_BUNDLE_HASH_PATH, dataBundleHashString.getBytes());
+        mGmsApi.sendMsg(DATA_BUNDLE_HASH_PATH, dataBundleHashString.getBytes(), null);
         byte[] data = marshall(dataBundle);
         Logger.i("new data bundle hash:" + dataBundleHashString + " length:" + data.length);
         mDataBundleLruCache.put(dataBundleHashString, data);
@@ -1019,17 +1062,17 @@ public class PhoneProxyService extends AccessibilityService {
     }
 
     // transfer apk file, mapping rules to wearable
-    private void sendFileToWearableAsync(final File fileName, final String requestId) {
-        mWorkerThread.postTask(new Runnable() {
-            @Override
-            public void run() {
-                // send to wearable
-                FileTransfer fileTransferHighLevel = new FileTransfer.Builder()
-                        .setFile(fileName).setRequestId(requestId).build();
-                fileTransferHighLevel.startTransfer();
-            }
-        });
-    }
+//    private void sendFileToWearableAsync(final File fileName, final String requestId) {
+//        mWorkerThread.postTask(new Runnable() {
+//            @Override
+//            public void run() {
+//                // send to wearable
+//                FileTransfer fileTransferHighLevel = new FileTransfer.Builder()
+//                        .setFile(fileName).setRequestId(requestId).build();
+//                fileTransferHighLevel.startTransfer();
+//            }
+//        });
+//    }
 
     @Override
     public void onInterrupt() {
@@ -1038,13 +1081,25 @@ public class PhoneProxyService extends AccessibilityService {
     }
 
     @Override
+    protected void onServiceConnected() {
+        if (mGmsApi != null) {
+            Logger.v("gms connect");
+            mGmsApi.connect();
+        }
+    }
+
+    @Override
     public void onDestroy() {
         Logger.v("");
         stopRunningNotification();
-        mGmsWear.removeWearConsumer(mDataConsumer);
-        mGmsWear.removeCapabilities(PHONE_CAPABILITY);
+//        mGmsWear.removeWearConsumer(mDataConsumer);
+//        mGmsWear.removeCapabilities(PHONE_CAPABILITY);
         LocalBroadcastManager.getInstance(getApplicationContext())
                 .unregisterReceiver(mBroadcastReceiver);
+        if (mGmsApi != null) {
+            Logger.v("gms disconnect");
+            mGmsApi.disconnect();
+        }
         super.onDestroy();
     }
 

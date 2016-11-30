@@ -30,13 +30,14 @@
             </intent-filter>
         </activity>
 
-        <service
-            android:name=".WearProxyService"
-            android:enabled="true"
-            android:exported="false">
+        <!--<service-->
+            <!--android:name=".WearProxyService"-->
+            <!--android:enabled="true"-->
+            <!--android:exported="false">-->
 
-        </service>
-        <service android:name="com.cscao.libs.gmswear.GmsWearService">
+        <!--</service>-->
+        <!--<service android:name="com.cscao.libs.gmswear.GmsWearService">-->
+        <service android:name=".WearProxyService">
             <intent-filter>
                 <!-- listeners receive events that match the action and data filters -->
                 <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
