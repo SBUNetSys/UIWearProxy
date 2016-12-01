@@ -145,8 +145,8 @@ public class AppUtil {
             return null;
         }
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        if (bitmap.getByteCount() > 60 * 1024) {
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
+        if (bitmap.getByteCount() > 100 * 1024) {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 70, stream);
         } else {
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
         }

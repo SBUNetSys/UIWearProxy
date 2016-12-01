@@ -194,18 +194,23 @@ public class WearProxyService extends Service {
 
         String path = getImageCacheFolderPath();
         File imageFile = new File(path, imageFileHash);
-        Logger.d("image path: " + imageFile.getPath());
         // if image does not exist in cache(disk), ask phone proxy send real image
         if (imageFile.exists()) {
+            Logger.d("image path: " + imageFile.getPath());
             node.setImageHash(imageFile.getPath());
             return true;
         } else {
+            Logger.d("image not exist: " + imageFile.getPath());
             return false;
         }
 
     }
 
     private void storeImageToDiskCache(final byte[] image) {
+        if (image == null) {
+            return;
+        }
+
         mThreadPool.execute(new Runnable() {
             @Override
             public void run() {

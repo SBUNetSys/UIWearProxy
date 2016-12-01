@@ -57,11 +57,10 @@ public class Constant {
     public static final int PERMISSIONS_REQUEST_CODE = 7;
 
     public static final String WATCH_RESOLUTION_PATH = "/WATCH_RESOLUTION_PATH";
-    public static final String WATCH_PHONE_RESOLUTION_RATIO_PREF_NAME =
-            "WATCH_PHONE_RESOLUTION_RATIO_PREF_NAME";
-    public static final String WATCH_PHONE_RESOLUTION_RATIO_KEY =
-            "WATCH_PHONE_RESOLUTION_RATIO_KEY";
-
+    public static final String WATCH_RESOLUTION_PREF_NAME = "WATCH_RESOLUTION_PREF_NAME";
+    public static final String WATCH_RESOLUTION_KEY = "WATCH_RESOLUTION_KEY";
+    public static final String WATCH_HEIGHT_KEY = "WATCH_HEIGHT_KEY";
+    public static final String WATCH_WIDTH_KEY = "WATCH_WIDTH_KEY";
     public static final String WATCH_RESOLUTION_REQUEST_PATH = "/WATCH_RESOLUTION_REQUEST_PATH";
 
 }
