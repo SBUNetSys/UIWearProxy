@@ -1,12 +1,8 @@
 package edu.stonybrook.cs.netsys.uiwearlib.dataProtocol;
 
-import android.graphics.Bitmap;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.view.accessibility.AccessibilityNodeInfo;
-
-import java.io.ByteArrayOutputStream;
-import java.util.Arrays;
 
 /**
  * Data Node is the our UIWear data protocol for phone proxy to communicate with wear proxy
@@ -21,6 +17,8 @@ import java.util.Arrays;
  *
  * Created by qqcao on 03/12/2016.
  * Modified on 11/10/2016.
+ *
+ * Updated on 11/30/2016 for lightweight data transfer
  */
 
 public class DataNode implements Parcelable {
@@ -28,10 +26,9 @@ public class DataNode implements Parcelable {
     private int mClickId;
     private String mViewId;
     private String mText;
-    private byte[] mImage;
-
-    // only for wear side use
-    private String mImageFile;
+    // image hash, on wear side, if hash exist,
+    // wear proxy will process this file with real image path
+    private String mImageHash;
 
     public DataNode(AccessibilityNodeInfo node) {
         mClickId = node.hashCode();
@@ -40,36 +37,12 @@ public class DataNode implements Parcelable {
             mText = node.getText().toString();
         } else if (node.getContentDescription() != null) {
             mText = node.getContentDescription().toString();
-        } else {
-            mText = "";
         }
-        mImageFile = "";
-        mImage = new byte[0];
     }
 
     public DataNode(String viewId) {
-        mClickId = 0;
         mViewId = viewId;
-        mText = "";
-        mImageFile = "";
-        mImage = new byte[0];
     }
-
-//    public DataNode(int id, String viewId, String text, Bitmap image) {
-//        mClickId = id;
-//        mViewId = viewId;
-//        mText = text;
-//        mImage = getBitmapBytes(image);
-//    }
-//
-//    public DataNode(int id, String viewId, String text, String imageFile, byte[] image) {
-//        mClickId = id;
-//        mViewId = viewId;
-//        mText = text;
-//        mImageFile = imageFile;
-//        mImage = image;
-//
-//    }
 
     public int getClickId() {
         return mClickId;
@@ -95,35 +68,14 @@ public class DataNode implements Parcelable {
         mText = text;
     }
 
-    public byte[] getImageBytes() {
-        return mImage;
-    }
-
-    public void setImage(byte[] image) {
-        mImage = image;
-    }
-
-    public void setImage(Bitmap image) {
-        mImage = getBitmapBytes(image);
-    }
-
-    public int getUniqueId() {
-        return (mViewId + mText + mClickId).hashCode();
-    }
-
-    public String getFriendlyName(Bitmap bitmap) {
-        return (mViewId).replaceAll("[^a-zA-Z0-9.-]", "_")
-                + Integer.toHexString(Arrays.hashCode(getBitmapBytes(bitmap)));
-    }
-
     @Override
     public String toString() {
         return "DataNode{"
                 + "mClickId=" + Integer.toHexString(mClickId)
                 + ", mViewId=" + mViewId
                 + ", mText=" + mText
-                + ", mImage=" + (mImage == null ? "null" : mImage.length + " bytes")
-                + ", mImageFile=" + mImageFile
+//                + ", mImage=" + (mImage == null ? "null" : mImage.length + " bytes")
+                + ", mImageHash=" + mImageHash
                 + ", hash=" + Integer.toHexString(hashCode()) + "}";
     }
 
@@ -135,27 +87,28 @@ public class DataNode implements Parcelable {
         DataNode node = (DataNode) o;
 
         return mClickId == node.mClickId
-                && mViewId.equals(node.mViewId)
-                && mText.equals(node.mText)
-                && Arrays.equals(mImage, node.mImage);
+                && (mViewId != null ? mViewId.equals(node.mViewId) : node.mViewId == null)
+                && (mText != null ? mText.equals(node.mText) : node.mText == null)
+                && (mImageHash != null ? mImageHash.equals(node.mImageHash)
+                : node.mImageHash == null);
 
     }
 
     @Override
     public int hashCode() {
         int result = mClickId;
-        result = 31 * result + mViewId.hashCode();
-        result = 31 * result + mText.hashCode();
-        result = 31 * result + Arrays.hashCode(mImage);
+        result = 31 * result + (mViewId != null ? mViewId.hashCode() : 0);
+        result = 31 * result + (mText != null ? mText.hashCode() : 0);
+        result = 31 * result + (mImageHash != null ? mImageHash.hashCode() : 0);
         return result;
     }
 
-    public void setImageFile(String imageFile) {
-        mImageFile = imageFile;
+    public void setImageHash(String imageHash) {
+        mImageHash = imageHash;
     }
 
-    public String getImageFile() {
-        return mImageFile;
+    public String getImageHash() {
+        return mImageHash;
     }
 
     @Override
@@ -168,16 +121,16 @@ public class DataNode implements Parcelable {
         dest.writeInt(this.mClickId);
         dest.writeString(this.mViewId);
         dest.writeString(this.mText);
-        dest.writeByteArray(this.mImage);
-        dest.writeString(this.mImageFile);
+//        dest.writeByteArray(this.mImage);
+        dest.writeString(this.mImageHash);
     }
 
     private DataNode(Parcel in) {
         this.mClickId = in.readInt();
         this.mViewId = in.readString();
         this.mText = in.readString();
-        this.mImage = in.createByteArray();
-        this.mImageFile = in.readString();
+//        this.mImage = in.createByteArray();
+        this.mImageHash = in.readString();
     }
 
     public static final Creator<DataNode> CREATOR = new Creator<DataNode>() {
@@ -192,16 +145,4 @@ public class DataNode implements Parcelable {
         }
     };
 
-    private static byte[] getBitmapBytes(Bitmap bitmap) {
-        if (bitmap == null) {
-            return null;
-        }
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        if (bitmap.getByteCount() > 50 * 1024) {
-            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
-        } else {
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-        }
-        return stream.toByteArray();
-    }
 }

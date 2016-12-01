@@ -8,9 +8,11 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
+import android.os.Environment;
 
 import com.orhanobut.logger.Logger;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
@@ -132,17 +134,23 @@ public class AppUtil {
 
     }
 
-//    public static byte[] getBitmapBytes(Bitmap bitmap) {
-//        if (bitmap == null) {
-//            return null;
-//        }
-//        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-//        if (bitmap.getByteCount() > 50 * 1024) {
-//            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
-//        } else {
-//            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
-//        }
-//        return stream.toByteArray();
-//    }
+    public static String getImageCacheFolderPath() {
+        File sdcard = Environment.getExternalStorageDirectory();
+        return sdcard.getPath() + File.separator + "UIWear" + File.separator
+                + "ImageCache";
+    }
+
+    public static byte[] getBitmapBytes(Bitmap bitmap) {
+        if (bitmap == null) {
+            return null;
+        }
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        if (bitmap.getByteCount() > 60 * 1024) {
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 70, stream);
+        } else {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        }
+        return stream.toByteArray();
+    }
 
 }

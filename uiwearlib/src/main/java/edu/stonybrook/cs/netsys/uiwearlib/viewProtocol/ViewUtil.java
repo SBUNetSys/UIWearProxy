@@ -56,8 +56,8 @@ public class ViewUtil {
         }
 
         if (hasImageInfo(node)) {
-            File imageFile = new File(node.getImageFile());
-//            Uri imageUri = Uri.parse(node.getImageFile());
+            File imageFile = new File(node.getImageHash());
+//            Uri imageUri = Uri.parse(node.getImageHash());
             Logger.v("image file: " + imageFile);
             Glide.with(context).load(imageFile).asBitmap().into(getViewTarget(context, nodeView));
         }
@@ -79,6 +79,6 @@ public class ViewUtil {
     }
 
     private static boolean hasImageInfo(DataNode node) {
-        return node.getImageFile() != null && !node.getImageFile().isEmpty();
+        return node.getImageHash() != null && !node.getImageHash().isEmpty();
     }
 }

@@ -44,10 +44,12 @@ public class Constant {
     public static final int BITMAP_CACHE_SIZE = 10 * 1024 * 1024;
 
     public static final String DATA_BUNDLE_HASH_PATH = "/DATA_BUNDLE_HASH_PATH";
-    public static final String DATA_BUNDLE_REQUIRED_PATH = "/DATA_BUNDLE_REQUIRED_PATH";
+    public static final String DATA_BUNDLE_REQUIRED_IMAGE_PATH = "/DATA_BUNDLE_REQUIRED_IMAGE_PATH";
     public static final String DATA_BUNDLE_PATH = "/DATA_BUNDLE_PATH";
     public static final String DATA_BUNDLE_KEY = "/DATA_BUNDLE_KEY";
     public static final int DATA_BUNDLE_CACHE_SIZE = 20 * 1024 * 1024;
+
+    public static final String IMAGE_PATH = "/IMAGE_PATH";
 
     public static final String TRANSFER_APK_REQUEST = "/TRANSFER_APK_REQUEST";
     public static final String TRANSFER_MAPPING_RULES_REQUEST = "/TRANSFER_MAPPING_RULES_REQUEST";
