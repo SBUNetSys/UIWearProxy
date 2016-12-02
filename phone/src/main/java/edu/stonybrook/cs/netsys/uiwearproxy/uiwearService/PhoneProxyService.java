@@ -2,6 +2,9 @@ package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_DISABLED;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_ENABLED;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_STATUS_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_REQUIRED_IMAGE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ENABLED_APPS_PREF_NAME;
@@ -17,7 +20,9 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAV
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PURGE_CACHE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.READ_PREFERENCE_NODES_SUCCESS;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RESET_DIFF_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RUNNING_APP_PREF_CACHE_SIZE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.TIME_FORMAT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_HEIGHT_KEY;
@@ -59,9 +64,9 @@ import android.text.format.DateFormat;
 import android.util.Log;
 import android.util.LruCache;
 import android.util.SparseArray;
-import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
+import android.widget.Toast;
 
 import com.cscao.libs.gmsapi.GmsApi;
 import com.google.android.gms.wearable.DataMap;
@@ -94,8 +99,6 @@ import edu.stonybrook.cs.netsys.uiwearproxy.R;
 public class PhoneProxyService extends AccessibilityService {
 
     private GmsApi mGmsApi;
-    private int mPhoneWidth;
-    private int mPhoneHeight;
     private NotificationManager mNotificationManager;
 
     // for preference setting, only need to parse once
@@ -305,12 +308,6 @@ public class PhoneProxyService extends AccessibilityService {
             }
         });
 
-        Point size = new Point();
-        ((WindowManager) getSystemService(Context.WINDOW_SERVICE))
-                .getDefaultDisplay().getSize(size);
-        mPhoneWidth = size.x;
-        mPhoneHeight = size.y;
-
         mThreadPool = new ThreadPoolExecutor(2, 4, 10, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>());
     }
@@ -376,6 +373,7 @@ public class PhoneProxyService extends AccessibilityService {
             int startCode = intent.getIntExtra(PREFERENCE_SETTING_KEY, 0);
             if (startCode == PREFERENCE_SETTING_CODE) {
                 mIsRunningPreferenceSetting = true;
+                Toast.makeText(this, "Preference setting started", Toast.LENGTH_SHORT).show();
                 Logger.t("pref").v("start preference setting");
             }
 
@@ -383,27 +381,36 @@ public class PhoneProxyService extends AccessibilityService {
             if (stopCode == PREFERENCE_STOP_CODE) {
                 mIsRunningPreferenceSetting = false;
                 mAppNodesMapForPreferenceSetting.clear();
+                Toast.makeText(this, "Preference setting exited", Toast.LENGTH_SHORT).show();
                 Logger.t("pref").v("stop preference setting");
             }
 
+            boolean purgeCache = intent.getBooleanExtra(PURGE_CACHE_KEY, false);
+            if (purgeCache) {
+                Toast.makeText(this, "Cache Purged", Toast.LENGTH_SHORT).show();
+            }
+
+            int cacheEnable = intent.getIntExtra(CACHE_STATUS_KEY, -1);
+            if (cacheEnable == CACHE_ENABLED) {
+                Toast.makeText(this, "Cache enabled ", Toast.LENGTH_SHORT).show();
+
+            } else if (cacheEnable == CACHE_DISABLED) {
+                Toast.makeText(this, "Cache disabled", Toast.LENGTH_SHORT).show();
+
+            }
+
+            boolean resetDiff = intent.getBooleanExtra(RESET_DIFF_KEY, false);
+            if (resetDiff) {
+                Logger.v("reset diff");
+                mLastSentDataBundle = null;
+            }
         }
-        // reset all cache here
-        resetAllCacheHere();
 
         return START_STICKY;
     }
 
-    private void resetAllCacheHere() {
-        Logger.v("reset cache");
-//        mBitmapLruCache.evictAll();
-        mAppPreferenceNodesCache.evictAll();
-        mLastSentDataBundle = null;
-        mAppRootNodePkgName = null;
-        mAppNodesMapForPreferenceSetting.clear();
-        mPairAccessibilityNodeMap.clear();
-        mViewIdCountMap.clear();
-        mActionNodes.clear();
-//        mDataBundleLruCache.evictAll();
+    private void purageCache() {
+
     }
 
     @Override
@@ -412,7 +419,7 @@ public class PhoneProxyService extends AccessibilityService {
             Log.d("BENCH", "action click trigger event");
             mIsLoggingActionBenchmark = false;
         }
-
+        setAppBackgroundAlive("com.contacts1800.ecomapp");  // By XUJAY
         final AccessibilityNodeInfo rootNode = getRootInActiveWindow();
 
         // skip non app node
@@ -442,7 +449,7 @@ public class PhoneProxyService extends AccessibilityService {
         /********** Extracting Sub View Tree Based on App Preference  *********/
         final String appPkgName = getNodePkgName(rootNode);
         // register app for background processing
-//        setAppBackgroundAlive(appPkgName);
+        setAppBackgroundAlive(appPkgName);
         Log.i("STATS", event.toString() + sourceNode.toString());
         // even root node is app, if accessibility event is from non app node, then skip
         if (!appPkgName.equals(sourceNode.getPackageName())) {

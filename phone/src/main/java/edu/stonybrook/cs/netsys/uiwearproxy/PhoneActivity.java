@@ -2,11 +2,16 @@ package edu.stonybrook.cs.netsys.uiwearproxy;
 
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SERVICE_REQUEST_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_DISABLED;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_ENABLED;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_STATUS_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PERMISSIONS_REQUEST_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PURGE_CACHE_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RESET_DIFF_KEY;
 
 import android.Manifest;
 import android.app.Activity;
@@ -22,6 +27,9 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
 import android.view.View;
+import android.widget.CompoundButton;
+import android.widget.Switch;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.orhanobut.logger.Logger;
@@ -31,30 +39,49 @@ import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.PreferenceSettingA
 import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
 
 public class PhoneActivity extends Activity {
-    private Intent mPhoneProxyServiceIntent;
-
+    private Switch mCacheSwitch;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_phone);
-        mPhoneProxyServiceIntent = new Intent(this, PhoneProxyService.class);
         checkPermissions();
+        final TextView resetCacheButton = (TextView) findViewById(R.id.btn_purge_cache);
+        mCacheSwitch = (Switch) findViewById(R.id.switch_cache);
+        mCacheSwitch.setChecked(true);
+        mCacheSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                Intent proxyIntent = new Intent(getApplicationContext(), PhoneProxyService.class);
+                if (isChecked) {
+                    resetCacheButton.setEnabled(true);
+                    proxyIntent.putExtra(CACHE_STATUS_KEY, CACHE_ENABLED);
+                    startService(proxyIntent);
+                } else {
+                    resetCacheButton.setEnabled(false);
+                    proxyIntent.putExtra(CACHE_STATUS_KEY, CACHE_DISABLED);
+                    startService(proxyIntent);
+                }
+            }
+        });
     }
+
 
     public void startProxyService(View startButton) {
         startActivityForResult(ACCESSIBILITY_SETTING_INTENT, ACCESSIBILITY_SERVICE_REQUEST_CODE);
     }
 
-    public void stopProxyService(View stopButton) {
-        finishAffinity();
-        stopService(mPhoneProxyServiceIntent);
-        startActivity(ACCESSIBILITY_SETTING_INTENT);
-//        android.os.Process.killProcess(android.os.Process.myPid());
-    }
+//    public void stopProxyService(View stopButton) {
+//        finishAffinity();
+//        Intent proxyIntent = new Intent(this, PhoneProxyService.class);
+//        stopService(proxyIntent);
+//        startActivity(ACCESSIBILITY_SETTING_INTENT);
+////        android.os.Process.killProcess(android.os.Process.myPid());
+//    }
 
     public void startPreferenceSetting(View setButton) {
-        mPhoneProxyServiceIntent.putExtra(PREFERENCE_SETTING_KEY, PREFERENCE_SETTING_CODE);
-        startService(mPhoneProxyServiceIntent);
+        Intent proxyIntent = new Intent(this, PhoneProxyService.class);
+        proxyIntent.putExtra(PREFERENCE_SETTING_KEY, PREFERENCE_SETTING_CODE);
+        startService(proxyIntent);
         raisePreferenceSettingNotification();
         finish();
     }
@@ -63,13 +90,30 @@ public class PhoneActivity extends Activity {
         startActivity(new Intent(this, AppSettingActivity.class));
     }
 
+    public void purgeCache(View view) {
+        Intent proxyIntent = new Intent(this, PhoneProxyService.class);
+        proxyIntent.putExtra(PURGE_CACHE_KEY, true);
+        startService(proxyIntent);
+    }
+
+    public void resetDiff(View view) {
+        Intent proxyIntent = new Intent(this, PhoneProxyService.class);
+        proxyIntent.putExtra(RESET_DIFF_KEY, true);
+        startService(proxyIntent);
+    }
+
+    public void setCacheStatus(View view) {
+        mCacheSwitch.toggle();
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
         if (requestCode == ACCESSIBILITY_SERVICE_REQUEST_CODE) {
             if (isAccessibilityEnabled()) {
                 Toast.makeText(this, R.string.service_enabled, Toast.LENGTH_SHORT).show();
-                startService(mPhoneProxyServiceIntent);
+                Intent proxyIntent = new Intent(this, PhoneProxyService.class);
+                startService(proxyIntent);
             } else {
                 Toast.makeText(this, R.string.service_not_enabled, Toast.LENGTH_SHORT).show();
             }
@@ -120,9 +164,10 @@ public class PhoneActivity extends Activity {
         PendingIntent preferenceSettingPendingIntent = PendingIntent.getActivity(this, 0,
                 preferenceSettingIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        mPhoneProxyServiceIntent.putExtra(PREFERENCE_STOP_KEY, PREFERENCE_STOP_CODE);
+        Intent proxyIntent = new Intent(this, PhoneProxyService.class);
+        proxyIntent.putExtra(PREFERENCE_STOP_KEY, PREFERENCE_STOP_CODE);
         PendingIntent stopPreferenceSetting = PendingIntent.getService(this, 1,
-                mPhoneProxyServiceIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+                proxyIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         mBuilder.setContentIntent(preferenceSettingPendingIntent);
         mBuilder.setDeleteIntent(stopPreferenceSetting);
