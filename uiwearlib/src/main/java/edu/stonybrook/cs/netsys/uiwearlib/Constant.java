@@ -69,4 +69,7 @@ public class Constant {
     public static final String RESET_DIFF_KEY = "RESET_DIFF_KEY";
 
     public static final String CACHE_STATUS_PATH = "/CACHE_STATUS_PATH";
+
+    public static final String PROXY_STARTED = "PROXY_STARTED";
+    public static final String PROXY_STATUS_PREF = "PROXY_STATUS_PREF";
 }

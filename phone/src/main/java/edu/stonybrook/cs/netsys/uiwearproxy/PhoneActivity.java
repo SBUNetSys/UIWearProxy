@@ -9,6 +9,8 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_COD
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PROXY_STARTED;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PROXY_STATUS_PREF;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PURGE_CACHE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RESET_DIFF_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_STATUS_KEY;
@@ -41,6 +43,8 @@ import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.PreferenceSettingA
 import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
 
 public class PhoneActivity extends Activity {
+
+    private boolean mIsProxyStarted;
     private Switch mCacheSwitch;
     private TextView mResetDiffTextView;
     private TextView mPrefSettingTextView;
@@ -61,7 +65,10 @@ public class PhoneActivity extends Activity {
         mPurgeCacheTextView = (TextView) findViewById(R.id.tv_purge_cache);
         mCacheSwitch = (Switch) findViewById(R.id.switch_cache);
 
-        setControlState(false);
+        SharedPreferences settings = getSharedPreferences(PROXY_STATUS_PREF, MODE_PRIVATE);
+        mIsProxyStarted = settings.getBoolean(PROXY_STARTED, false);
+        Logger.i("onCreate: " + mIsProxyStarted);
+        setControlState(mIsProxyStarted);
 
         final SharedPreferences cachePref = getSharedPreferences(CACHE_STATUS_PREF,
                 Context.MODE_PRIVATE);
@@ -96,7 +103,6 @@ public class PhoneActivity extends Activity {
         mPurgeCacheTextView.setEnabled(enabled);
         mCacheSwitch.setEnabled(enabled);
     }
-
 
     public void startProxyService(View startButton) {
         startActivityForResult(ACCESSIBILITY_SETTING_INTENT, ACCESSIBILITY_SERVICE_REQUEST_CODE);
@@ -143,14 +149,15 @@ public class PhoneActivity extends Activity {
 
         if (requestCode == ACCESSIBILITY_SERVICE_REQUEST_CODE) {
             if (isAccessibilityEnabled()) {
-                setControlState(true);
+                mIsProxyStarted = true;
                 Toast.makeText(this, R.string.service_enabled, Toast.LENGTH_SHORT).show();
                 Intent proxyIntent = new Intent(this, PhoneProxyService.class);
                 startService(proxyIntent);
             } else {
-                setControlState(false);
+                mIsProxyStarted = false;
                 Toast.makeText(this, R.string.service_not_enabled, Toast.LENGTH_SHORT).show();
             }
+            setControlState(mIsProxyStarted);
         }
     }
 
@@ -239,30 +246,34 @@ public class PhoneActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-//        Logger.v("");
+        Logger.d(": " + mIsProxyStarted);
     }
 
     @Override
     protected void onResume() {
-//        Logger.v("");
+        Logger.d(": " + mIsProxyStarted);
         super.onResume();
     }
 
     @Override
     protected void onPause() {
-//        Logger.v("");
+        SharedPreferences settings = getSharedPreferences(PROXY_STATUS_PREF, MODE_PRIVATE);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putBoolean(PROXY_STARTED, mIsProxyStarted);
+        editor.commit();
+        Logger.d(": " + mIsProxyStarted);
         super.onPause();
     }
 
     @Override
     protected void onStop() {
-//        Logger.v("");
+        Logger.d(": " + mIsProxyStarted);
         super.onStop();
     }
 
     @Override
     protected void onDestroy() {
-//        Logger.v("onDestroy");
+        Logger.d("onDestroy: " + mIsProxyStarted);
         super.onDestroy();
     }
 

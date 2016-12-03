@@ -20,6 +20,8 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_SAV
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_STARTED;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PROXY_STARTED;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PROXY_STATUS_PREF;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PURGE_CACHE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.READ_PREFERENCE_NODES_SUCCESS;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RESET_DIFF_KEY;
@@ -1069,11 +1071,17 @@ public class PhoneProxyService extends AccessibilityService {
             Logger.v("gms connect");
             mGmsApi.connect();
         }
+        SharedPreferences settings = getSharedPreferences(PROXY_STATUS_PREF, MODE_PRIVATE);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putBoolean(PROXY_STARTED, true);
+        editor.commit();
+        Logger.v("onServiceConnected");
+
     }
 
     @Override
-    public void onDestroy() {
-        Logger.v("");
+    public boolean onUnbind(Intent intent) {
+        Logger.v("onUnbind");
         stopRunningNotification();
 //        mGmsWear.removeWearConsumer(mDataConsumer);
 //        mGmsWear.removeCapabilities(PHONE_CAPABILITY);
@@ -1083,6 +1091,23 @@ public class PhoneProxyService extends AccessibilityService {
             Logger.v("gms disconnect");
             mGmsApi.disconnect();
         }
+        SharedPreferences settings = getSharedPreferences(PROXY_STATUS_PREF, MODE_PRIVATE);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putBoolean(PROXY_STARTED, false);
+        editor.commit();
+        stopSelf(START_NOT_STICKY);
+        return super.onUnbind(intent);
+    }
+
+    @Override
+    public void onLowMemory() {
+        Logger.v("onLowMemory");
+        super.onLowMemory();
+    }
+
+    @Override
+    public void onDestroy() {
+        Logger.v("onDestroy");
         super.onDestroy();
     }
 

@@ -16,6 +16,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -26,7 +28,7 @@ import java.util.List;
 
 public class AppUtil {
     // Get a list of installed app
-    public static List<String> getInstalledPackages(Context mContext) {
+    public static List<String> getInstalledPackages(final Context mContext) {
         // Initialize a new Intent which action is main
         Intent intent = new Intent(Intent.ACTION_MAIN, null);
 
@@ -55,9 +57,19 @@ public class AppUtil {
             if (!isSystemPackage(resolveInfo) && !mContext.getPackageName().equals(
                     activityInfo.applicationInfo.packageName)) {
                 // Add the non system package to the list
-                packageNames.add(activityInfo.applicationInfo.packageName);
+                if (!packageNames.contains(activityInfo.applicationInfo.packageName)) {
+                    packageNames.add(activityInfo.applicationInfo.packageName);
+                }
             }
         }
+
+        Collections.sort(packageNames, new Comparator<String>() {
+            @Override
+            public int compare(String lhs, String rhs) {
+                return getApplicationLabelByPackageName(mContext, lhs).compareToIgnoreCase(
+                        getApplicationLabelByPackageName(mContext, rhs));
+            }
+        });
 
         return packageNames;
 

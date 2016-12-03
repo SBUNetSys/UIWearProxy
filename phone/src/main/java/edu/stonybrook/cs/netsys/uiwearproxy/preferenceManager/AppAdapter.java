@@ -5,11 +5,12 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ENABLED_APPS_PREF_NAME
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.drawable.Drawable;
-import android.widget.CompoundButton;
+import android.view.View;
 import android.widget.Switch;
 
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.chad.library.adapter.base.BaseViewHolder;
+import com.orhanobut.logger.Logger;
 
 import java.util.List;
 
@@ -30,22 +31,37 @@ class AppAdapter extends BaseQuickAdapter<String, BaseViewHolder> {
 
     @Override
     protected void convert(BaseViewHolder viewHolder, final String pkgName) {
-        String label = AppUtil.getApplicationLabelByPackageName(mContext, pkgName);
+        final String label = AppUtil.getApplicationLabelByPackageName(mContext, pkgName);
         Drawable icon = AppUtil.getAppIconByPackageName(mContext, pkgName);
         boolean isAppEnabled = mSharedPreferences.getBoolean(pkgName, false);
+        final int position = viewHolder.getAdapterPosition();
         viewHolder.setImageDrawable(R.id.iv_icon, icon)
                 .setText(R.id.tv_app_label, label)
                 .setText(R.id.tv_app_pkg, pkgName)
                 .setChecked(R.id.switch_select, isAppEnabled);
 
-        Switch enableSwitch = viewHolder.getView(R.id.switch_select);
-        enableSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+        final Switch enableSwitch = viewHolder.getView(R.id.switch_select);
+
+        viewHolder.convertView.setOnClickListener(new View.OnClickListener() {
             @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                setAppStatus(isChecked, pkgName);
+            public void onClick(View v) {
+                enableSwitch.toggle();
+                boolean isChecked = enableSwitch.isChecked();
+                Logger.d("app click %s status %s at %d: ", label, isChecked, position);
+                setAppStatus(pkgName, isChecked);
             }
         });
 
+        enableSwitch.setClickable(false);
+
+
+//        enableSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+//            @Override
+//            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+//                Logger.d("app check change %s status %s at %d: ", label, isChecked, position);
+//                setAppStatus(pkgName, isChecked);
+//            }
+//        });
     }
 
     void enableAllApps() {
@@ -56,16 +72,16 @@ class AppAdapter extends BaseQuickAdapter<String, BaseViewHolder> {
         setAllApps(false);
     }
 
-    private void setAllApps(boolean value) {
+    private void setAllApps(boolean isEnabled) {
         List<String> pkgNames = getData();
         for (String pkgName : pkgNames) {
-            setAppStatus(value, pkgName);
+            setAppStatus(pkgName, isEnabled);
         }
     }
 
-    private void setAppStatus(boolean value, String pkgName) {
+    private void setAppStatus(String pkgName, boolean isEnabled) {
         SharedPreferences.Editor editor = mSharedPreferences.edit();
-        editor.putBoolean(pkgName, value);
+        editor.putBoolean(pkgName, isEnabled);
         editor.commit();
     }
 }
