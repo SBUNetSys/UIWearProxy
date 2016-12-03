@@ -889,11 +889,7 @@ public class PhoneProxyService extends AccessibilityService {
 
         DataNode dataNode = new DataNode(nodeInfo);
 
-        String bitmapHash = mImageHashCache.get(dataNode.getId());
-        if (bitmapHash == null) {
-            bitmapHash = getNodeBitmapHash(nodeInfo);
-            mImageHashCache.put(dataNode.getId(), bitmapHash);
-        }
+        String bitmapHash = getNodeBitmapHash(nodeInfo);
 
         dataNode.setImageHash(bitmapHash);
         Logger.i(dataNode.toString());
