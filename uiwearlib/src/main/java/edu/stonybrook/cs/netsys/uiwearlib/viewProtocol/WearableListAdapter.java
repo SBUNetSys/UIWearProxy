@@ -21,11 +21,11 @@ public class WearableListAdapter extends WearableListView.Adapter {
     private int mItemLayoutResId;
     private List<String> mPhoneItemViewIdList;
     private int[] mItemIds;
-    private ArrayList<DataNode[]> mListDataNodes;
+    private ArrayList<ArrayList<DataNode>> mListDataNodes;
 
     public WearableListAdapter(Context context, int itemLayoutResId,
             List<String> phoneItemViewIdList,
-            int[] itemIds, ArrayList<DataNode[]> listDataNodes) {
+            int[] itemIds, ArrayList<ArrayList<DataNode>> listDataNodes) {
         mContext = context;
         mItemLayoutResId = itemLayoutResId;
         mPhoneItemViewIdList = phoneItemViewIdList;
@@ -42,7 +42,7 @@ public class WearableListAdapter extends WearableListView.Adapter {
 
     @Override
     public void onBindViewHolder(WearableListView.ViewHolder holder, int position) {
-        DataNode[] dataNodes = mListDataNodes.get(position);
+        ArrayList<DataNode> dataNodes = mListDataNodes.get(position);
         for (DataNode node : dataNodes) {
             Logger.d("new item node: " + node);
             if (node == null) {

@@ -37,6 +37,7 @@ public class AppSettingActivity extends Activity {
 
         // Set the adapter for RecyclerView
         mRecyclerView.setAdapter(mAdapter);
+
     }
 
     @Override
@@ -56,9 +57,11 @@ public class AppSettingActivity extends Activity {
                     @Override
                     public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                         if (b) {
-                            mAdapter.setEnabledAll(true);
+                            mAdapter.enableAllApps();
+                            mAdapter.notifyDataSetChanged();
                         } else {
-                            mAdapter.setEnabledAll(false);
+                            mAdapter.disableAllApps();
+                            mAdapter.notifyDataSetChanged();
                         }
                     }
                 });

@@ -1,5 +1,6 @@
 package edu.stonybrook.cs.netsys.uiwearproxy;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_STATUS_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_REQUIRED_IMAGE_PATH;
@@ -7,6 +8,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.IMAGE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.MSG_CAPABILITY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_REQUEST_PATH;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_STATUS_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_ID_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.INTENT_PREFIX;
@@ -23,6 +25,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Point;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -75,6 +78,7 @@ public class WearProxyService extends Service {
     };
 
     private ThreadPoolExecutor mThreadPool;
+    private boolean mIsCacheEnabled = true;
 
     @Nullable
     @Override
@@ -101,6 +105,22 @@ public class WearProxyService extends Service {
                     case DATA_BUNDLE_PATH:
                         parseDataBundleAsync(messageEvent.getData());
                         break;
+                    case CACHE_STATUS_PATH:
+                        byte[] cacheStatusBytes = messageEvent.getData();
+                        if (cacheStatusBytes != null && cacheStatusBytes.length > 0) {
+                            if (cacheStatusBytes[0] != 0) {
+                                mIsCacheEnabled = true;
+                                Toast.makeText(getApplicationContext(), "Cache enabled ",
+                                        Toast.LENGTH_SHORT).show();
+                            } else {
+                                mIsCacheEnabled = false;
+                                Toast.makeText(getApplicationContext(), "Cache disabled",
+                                        Toast.LENGTH_SHORT).show();
+                                purgeCache();
+                            }
+
+                        }
+                        break;
                     default:
                         Logger.w("unknown msg");
                 }
@@ -123,6 +143,36 @@ public class WearProxyService extends Service {
 
         mThreadPool = new ThreadPoolExecutor(2, 4, 10, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>());
+    }
+
+    private void purgeCache() {
+        final Handler mMainThreadHandler = new Handler(getMainLooper());
+        mThreadPool.execute(new Runnable() {
+            @Override
+            public void run() {
+                // delete image folders
+                String imageCacheFolder = getImageCacheFolderPath();
+                try {
+                    FileUtils.deleteDirectory(new File(imageCacheFolder));
+                    mMainThreadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(getApplicationContext(), "Cache Purged",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                } catch (IOException e) {
+                    mMainThreadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(getApplicationContext(), "Cache Purge Failed",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     private void parseDataBundleAsync(final byte[] data) {
@@ -163,16 +213,25 @@ public class WearProxyService extends Service {
             }
         }
         // list nodes parsing
-        ArrayList<DataNode[]> listNodes = dataBundle.getListNodes();
-        for (DataNode[] list : listNodes) {
+        ArrayList<ArrayList<DataNode>> listNodes = dataBundle.getListNodes();
+        for (ArrayList<DataNode> list : listNodes) {
             for (DataNode node : list) {
-                isNodeImageValid(node);
                 Logger.d("new node list: " + node);
+                if (!isNodeImageValid(node)) {
+                    //request real image from phone proxy
+                    byte[] dataBundleBytes = marshall(dataBundle);
+                    mGmsApi.sendMsg(DATA_BUNDLE_REQUIRED_IMAGE_PATH, dataBundleBytes, null);
+                    return;
+                }
             }
         }
 
         Intent appIntent = new Intent(INTENT_PREFIX + appPkgName + INTENT_SUFFIX);
         Logger.i("filter : " + INTENT_PREFIX + appPkgName + INTENT_SUFFIX);
+
+        // send cache status to wear app
+        appIntent.putExtra(CACHE_STATUS_KEY, mIsCacheEnabled);
+
         Bundle bundle = new Bundle();
         bundle.putParcelable(DATA_BUNDLE_KEY, dataBundle);
         appIntent.putExtra(DATA_BUNDLE_KEY, bundle);
@@ -188,7 +247,8 @@ public class WearProxyService extends Service {
         // read hash of image first
         String imageFileHash = node.getImageHash();
         if (imageFileHash == null) {
-            // normally imageFileHash can't be null, the only one case is list view container
+            // normally imageFileHash can't be null, the only one case is list view container, or
+            // text view
             return true;
         }
 
@@ -208,18 +268,19 @@ public class WearProxyService extends Service {
 
     private void storeImageToDiskCache(final byte[] image) {
         if (image == null) {
+            Logger.w("image null");
             return;
         }
-
         mThreadPool.execute(new Runnable() {
             @Override
             public void run() {
                 String imageHash = Integer.toHexString(Arrays.hashCode(image));
                 File imageFile = new File(getImageCacheFolderPath(), imageHash);
-                Logger.v("image path: " + imageFile.getPath());
                 try {
                     FileUtils.writeByteArrayToFile(imageFile, image);
+                    Logger.v("image path: " + imageFile.getPath());
                 } catch (IOException e) {
+                    Logger.w("image path cannot write: " + imageFile.getPath());
                     e.printStackTrace();
                 }
             }

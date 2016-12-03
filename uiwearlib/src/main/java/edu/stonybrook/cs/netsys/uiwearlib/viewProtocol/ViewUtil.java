@@ -9,8 +9,10 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.support.wearable.view.CircularButton;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
@@ -18,7 +20,10 @@ import com.bumptech.glide.request.animation.GlideAnimation;
 import com.bumptech.glide.request.target.SimpleTarget;
 import com.orhanobut.logger.Logger;
 
+import org.apache.commons.io.FileUtils;
+
 import java.io.File;
+import java.io.IOException;
 
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataNode;
 
@@ -29,6 +34,9 @@ import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataNode;
  */
 
 public class ViewUtil {
+    public static boolean isCachedEnable = true;
+    private static File imageFile;
+
     public static void setViewListener(DataNode node, View nodeView) {
         final int clickId = node.getClickId();
         final Context context = nodeView.getContext();
@@ -56,7 +64,7 @@ public class ViewUtil {
         }
 
         if (hasImageInfo(node)) {
-            File imageFile = new File(node.getImageHash());
+            imageFile = new File(node.getImageHash());
 //            Uri imageUri = Uri.parse(node.getImageHash());
             Logger.v("image file: " + imageFile);
             Glide.with(context).load(imageFile).asBitmap().into(getViewTarget(context, nodeView));
@@ -69,7 +77,27 @@ public class ViewUtil {
             public void onResourceReady(Bitmap resource,
                     GlideAnimation<? super Bitmap> glideAnimation) {
                 Drawable drawable = new BitmapDrawable(context.getResources(), resource);
-                nodeView.setBackground(drawable);
+                if (nodeView instanceof CircularButton) {
+                    ((CircularButton) nodeView).setImageDrawable(drawable);
+                } else if (nodeView instanceof ImageView) {
+                    ((ImageView) nodeView).setImageDrawable(drawable);
+                } else {
+                    nodeView.setBackground(drawable);
+                }
+                if (!isCachedEnable) {
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                FileUtils.forceDelete(imageFile);
+                                Logger.i("image file deleted: " + imageFile);
+                                Glide.get(context).clearDiskCache();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }).start();
+                }
             }
         };
     }

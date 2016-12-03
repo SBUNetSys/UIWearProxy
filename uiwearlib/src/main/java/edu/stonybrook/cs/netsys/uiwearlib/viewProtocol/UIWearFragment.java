@@ -41,7 +41,7 @@ public class UIWearFragment extends Fragment {
                 if (child instanceof WearableListView) {
                     WearableListView listView = (WearableListView) child;
                     listView.setAdapter(new WearableListAdapter(getActivity(), 0, null, null,
-                            new ArrayList<DataNode[]>()));
+                            new ArrayList<ArrayList<DataNode>>()));
                 }
             }
         }

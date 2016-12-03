@@ -4,8 +4,6 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 
 /**
  * Data Bundle is the our UIWear data protocol for phone proxy to communicate with wear proxy
@@ -37,7 +35,7 @@ public class DataBundle implements Parcelable {
     private String mAppPkgName;
     private String mPreferenceId;
     private ArrayList<DataNode> mDataNodes;
-    private ArrayList<DataNode[]> mListNodes;
+    private ArrayList<ArrayList<DataNode>> mListNodes;
 
     public DataBundle(String appPkgName, String preferenceId) {
         mAppPkgName = appPkgName;
@@ -63,7 +61,7 @@ public class DataBundle implements Parcelable {
         int listCount = in.readInt();
         this.mListNodes = new ArrayList<>(listCount);
         for (int i = 0; i < listCount; i++) {
-            this.mListNodes.add(in.createTypedArray(DataNode.CREATOR));
+            this.mListNodes.add(in.createTypedArrayList(DataNode.CREATOR));
         }
     }
 
@@ -71,7 +69,7 @@ public class DataBundle implements Parcelable {
         mDataNodes.add(node);
     }
 
-    public void add(DataNode[] nodes) {
+    public void add(ArrayList<DataNode> nodes) {
         mListNodes.add(nodes);
     }
 
@@ -79,7 +77,7 @@ public class DataBundle implements Parcelable {
         mDataNodes.remove(node);
     }
 
-    public void remove(DataNode[] node) {
+    public void remove(ArrayList<DataNode> node) {
         mListNodes.remove(node);
     }
 
@@ -103,29 +101,28 @@ public class DataBundle implements Parcelable {
         return mDataNodes;
     }
 
-    public ArrayList<DataNode[]> getListNodes() {
+    public ArrayList<ArrayList<DataNode>> getListNodes() {
         return mListNodes;
     }
 
-    public ArrayList<DataNode> getAllListNodes() {
-        ArrayList<DataNode> nodes = new ArrayList<>(listSize());
-        for (DataNode[] listNodes : mListNodes) {
-            Collections.addAll(nodes, listNodes);
-        }
-        return nodes;
-    }
+//    public ArrayList<DataNode> getAllListNodes() {
+//        ArrayList<DataNode> nodes = new ArrayList<>(listSize());
+//        for (ArrayList<DataNode> listNodes : mListNodes) {
+//            Collections.addAll(nodes, listNodes);
+//        }
+//        return nodes;
+//    }
 
     public int normalSize() {
         return mDataNodes.size();
     }
 
     public int listSize() {
-        int listCount = mListNodes.size();
-        int itemCount = 1;
-        if (listCount > 0) {
-            itemCount = mListNodes.get(0).length;
+        int itemCount = 0;
+        for (ArrayList<DataNode> nodes : mListNodes) {
+            itemCount += nodes.size();
         }
-        return listCount * itemCount;
+        return itemCount;
     }
 
     @Override
@@ -134,6 +131,11 @@ public class DataBundle implements Parcelable {
         if (!(o instanceof DataBundle)) return false;
 
         DataBundle bundle = (DataBundle) o;
+
+//        Logger.d("equals mAppPkgName: " + mAppPkgName.equals(bundle.mAppPkgName));
+//        Logger.d("equals mPreferenceId: " + mPreferenceId.equals(bundle.mPreferenceId));
+//        Logger.d("equals mDataNodes: " + mDataNodes.equals(bundle.mDataNodes));
+//        Logger.d("equals mListNodes: " + mListNodes.equals(bundle.mListNodes));
 
         return mAppPkgName.equals(bundle.mAppPkgName) && mPreferenceId.equals(bundle.mPreferenceId)
                 && mDataNodes.equals(bundle.mDataNodes) && mListNodes.equals(bundle.mListNodes);
@@ -158,8 +160,8 @@ public class DataBundle implements Parcelable {
         }
 
         StringBuilder sbList = new StringBuilder();
-        for (DataNode[] node : mListNodes) {
-            sbList.append(Arrays.toString(node));
+        for (ArrayList<DataNode> node : mListNodes) {
+            sbList.append(node);
             sbList.append("; ");
         }
 
@@ -184,8 +186,8 @@ public class DataBundle implements Parcelable {
         dest.writeTypedList(this.mDataNodes);
         int listCount = this.mListNodes.size();
         dest.writeInt(listCount);
-        for (DataNode[] nodes : this.mListNodes) {
-            dest.writeTypedArray(nodes, flags);
+        for (ArrayList<DataNode> nodes : this.mListNodes) {
+            dest.writeTypedList(nodes);
         }
     }
 

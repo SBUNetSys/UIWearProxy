@@ -52,7 +52,8 @@ public class AppUtil {
             ActivityInfo activityInfo = resolveInfo.activityInfo;
 
             // If this is not a system app package
-            if (!isSystemPackage(resolveInfo)) {
+            if (!isSystemPackage(resolveInfo) && !mContext.getPackageName().equals(
+                    activityInfo.applicationInfo.packageName)) {
                 // Add the non system package to the list
                 packageNames.add(activityInfo.applicationInfo.packageName);
             }

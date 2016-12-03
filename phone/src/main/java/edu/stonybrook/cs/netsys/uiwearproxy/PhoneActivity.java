@@ -4,7 +4,6 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SERVICE_
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_DISABLED;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_ENABLED;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_STATUS_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PERMISSIONS_REQUEST_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
@@ -12,6 +11,8 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PURGE_CACHE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RESET_DIFF_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_STATUS_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_STATUS_PREF;
 
 import android.Manifest;
 import android.app.Activity;
@@ -19,6 +20,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -40,29 +42,59 @@ import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
 
 public class PhoneActivity extends Activity {
     private Switch mCacheSwitch;
+    private TextView mResetDiffTextView;
+    private TextView mPrefSettingTextView;
+    private TextView mSetAppTextView;
+    private TextView mCacheHintTextView;
+    private TextView mPurgeCacheTextView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_phone);
         checkPermissions();
-        final TextView resetCacheButton = (TextView) findViewById(R.id.btn_purge_cache);
+
+        mResetDiffTextView = (TextView) findViewById(R.id.tv_reset_diff);
+        mCacheHintTextView = (TextView) findViewById(R.id.tv_cache_status);
+        mPrefSettingTextView = (TextView) findViewById(R.id.tv_pref_set);
+        mSetAppTextView = (TextView) findViewById(R.id.tv_set_app);
+        mPurgeCacheTextView = (TextView) findViewById(R.id.tv_purge_cache);
         mCacheSwitch = (Switch) findViewById(R.id.switch_cache);
-        mCacheSwitch.setChecked(true);
+
+        setControlState(false);
+
+        final SharedPreferences cachePref = getSharedPreferences(CACHE_STATUS_PREF,
+                Context.MODE_PRIVATE);
+        mCacheSwitch.setChecked(cachePref.getBoolean(CACHE_STATUS_KEY, true));
         mCacheSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 Intent proxyIntent = new Intent(getApplicationContext(), PhoneProxyService.class);
+                SharedPreferences.Editor editor = cachePref.edit();
                 if (isChecked) {
-                    resetCacheButton.setEnabled(true);
+                    mPurgeCacheTextView.setEnabled(true);
                     proxyIntent.putExtra(CACHE_STATUS_KEY, CACHE_ENABLED);
-                    startService(proxyIntent);
+                    editor.putBoolean(CACHE_STATUS_KEY, true);
+                    editor.apply();
                 } else {
-                    resetCacheButton.setEnabled(false);
+                    mPurgeCacheTextView.setEnabled(false);
                     proxyIntent.putExtra(CACHE_STATUS_KEY, CACHE_DISABLED);
-                    startService(proxyIntent);
+                    editor.putBoolean(CACHE_STATUS_KEY, false);
                 }
+                startService(proxyIntent);
+                editor.apply();
+
             }
         });
+    }
+
+    private void setControlState(boolean enabled) {
+        mResetDiffTextView.setEnabled(enabled);
+        mPrefSettingTextView.setEnabled(enabled);
+        mSetAppTextView.setEnabled(enabled);
+        mCacheHintTextView.setEnabled(enabled);
+        mPurgeCacheTextView.setEnabled(enabled);
+        mCacheSwitch.setEnabled(enabled);
     }
 
 
@@ -111,10 +143,12 @@ public class PhoneActivity extends Activity {
 
         if (requestCode == ACCESSIBILITY_SERVICE_REQUEST_CODE) {
             if (isAccessibilityEnabled()) {
+                setControlState(true);
                 Toast.makeText(this, R.string.service_enabled, Toast.LENGTH_SHORT).show();
                 Intent proxyIntent = new Intent(this, PhoneProxyService.class);
                 startService(proxyIntent);
             } else {
+                setControlState(false);
                 Toast.makeText(this, R.string.service_not_enabled, Toast.LENGTH_SHORT).show();
             }
         }

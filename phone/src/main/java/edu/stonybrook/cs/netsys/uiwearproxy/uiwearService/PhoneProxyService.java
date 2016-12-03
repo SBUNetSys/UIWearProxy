@@ -4,7 +4,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_DISABLED;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_ENABLED;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_STATUS_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_STATUS_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_REQUIRED_IMAGE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ENABLED_APPS_PREF_NAME;
@@ -31,8 +31,8 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_PREF_
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_REQUEST_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_WIDTH_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.XML_EXT;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_STATUS_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_PATH;
-import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.MAPPING_RULE_DIR;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.PREFERENCE_DIR;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.getResDir;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.marshall;
@@ -57,6 +57,7 @@ import android.media.ThumbnailUtils;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
@@ -136,6 +137,13 @@ public class PhoneProxyService extends AccessibilityService {
 
     // to avoid same data retransmission due to duplicate accessibility events
     private DataBundle mLastSentDataBundle;
+
+    private boolean mIsCacheEnabled;
+
+    // for debouncing
+    private long mLastEventTimestamp;
+
+    private SparseArray<String> mImageHashCache = new SparseArray<>();
 
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
         @Override
@@ -283,20 +291,58 @@ public class PhoneProxyService extends AccessibilityService {
                 }
             }
 
-            private void updateDataBundleImage(DataBundle dataBundle) {
+            private void updateDataBundleImage(final DataBundle dataBundle) {
                 // process data bundle with image data
                 // FIXME: 11/30/16Wednesday need to load image from disk and send to wear
                 // cannot happen usually, since all image data are immediately send to wear
-                ArrayList<DataNode> nodes = dataBundle.getDataNodes();
-                for (DataNode node : nodes) {
-                    String imageHash = node.getImageHash();
-                    sendCachedImageToWear(imageHash);
-                }
+                mThreadPool.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        ArrayList<DataNode> nodes = dataBundle.getDataNodes();
+                        for (DataNode node : nodes) {
+                            if (!processDataNodeImageAndSendToWear(node)) {
+                                return;
+                            }
+                        }
 
-                byte[] dataBundleBytes = marshall(dataBundle);
-                mGmsApi.sendMsg(DATA_BUNDLE_PATH, dataBundleBytes, null);
+                        ArrayList<ArrayList<DataNode>> listNodes = dataBundle.getListNodes();
+                        for (ArrayList<DataNode> list : listNodes) {
+                            for (DataNode node : list) {
+                                if (!processDataNodeImageAndSendToWear(node)) {
+                                    return;
+                                }
+                            }
+                        }
+                        byte[] dataBundleBytes = marshall(dataBundle);
+                        mGmsApi.sendMsg(DATA_BUNDLE_PATH, dataBundleBytes, null);
+                    }
+
+                    private boolean processDataNodeImageAndSendToWear(DataNode node) {
+                        String imageHash = node.getImageHash();
+                        if (imageHash != null) {
+                            byte[] imageBytes = getImageInDisk(imageHash);
+                            mGmsApi.sendMsg(IMAGE_PATH, imageBytes, null);
+                            return true;
+                        } else {
+                            return false;
+                        }
+                    }
+
+                    private byte[] getImageInDisk(String imageHash) {
+                        String imagePath = getImageCacheFolderPath();
+                        File imageFile = new File(imagePath, imageHash + ".png");
+                        try {
+                            return FileUtils.readFileToByteArray(imageFile);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        return null;
+                    }
+                });
+
             }
         });
+
         mGmsApi.setOnDataChangedListener(new GmsApi.OnDataChangedListener() {
             @Override
             public void onDataChanged(DataMap dataMap) {
@@ -310,31 +356,6 @@ public class PhoneProxyService extends AccessibilityService {
 
         mThreadPool = new ThreadPoolExecutor(2, 4, 10, TimeUnit.SECONDS,
                 new LinkedBlockingQueue<Runnable>());
-    }
-
-    private void sendCachedImageToWear(final String imageHash) {
-        if (imageHash == null) {
-            return;
-        }
-
-        mThreadPool.execute(new Runnable() {
-            @Override
-            public void run() {
-                byte[] imageBytes = getImageInDisk(imageHash);
-                mGmsApi.sendMsg(IMAGE_PATH, imageBytes, null);
-            }
-
-            private byte[] getImageInDisk(String imageHash) {
-                String imagePath = getImageCacheFolderPath();
-                File imageFile = new File(imagePath, imageHash + ".png");
-                try {
-                    return FileUtils.readFileToByteArray(imageFile);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                return null;
-            }
-        });
     }
 
     private void performActionOnPhone(DataAction dataAction) {
@@ -369,6 +390,11 @@ public class PhoneProxyService extends AccessibilityService {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (mGmsApi != null) {
+            Logger.v("gms connect");
+            mGmsApi.connect();
+        }
+
         if (intent != null) {
             int startCode = intent.getIntExtra(PREFERENCE_SETTING_KEY, 0);
             if (startCode == PREFERENCE_SETTING_CODE) {
@@ -392,25 +418,65 @@ public class PhoneProxyService extends AccessibilityService {
 
             int cacheEnable = intent.getIntExtra(CACHE_STATUS_KEY, -1);
             if (cacheEnable == CACHE_ENABLED) {
+                mIsCacheEnabled = true;
                 Toast.makeText(this, "Cache enabled ", Toast.LENGTH_SHORT).show();
+                byte[] cacheStatusBytes = new byte[]{(byte) (1)};
+                mGmsApi.sendMsg(CACHE_STATUS_PATH, cacheStatusBytes, null);
 
             } else if (cacheEnable == CACHE_DISABLED) {
+                mIsCacheEnabled = false;
                 Toast.makeText(this, "Cache disabled", Toast.LENGTH_SHORT).show();
-
+                byte[] cacheStatusBytes = new byte[]{(byte) (0)};
+                mGmsApi.sendMsg(CACHE_STATUS_PATH, cacheStatusBytes, null);
+                purgeCache();
             }
 
             boolean resetDiff = intent.getBooleanExtra(RESET_DIFF_KEY, false);
             if (resetDiff) {
                 Logger.v("reset diff");
                 mLastSentDataBundle = null;
+                mPairAccessibilityNodeMap.clear();
+                mAppPreferenceNodesCache.evictAll();
+                mAppRootNodePkgName = null;
+                mViewIdCountMap.clear();
+                mImageHashCache.clear();
+                mActionNodes.clear();
+                Toast.makeText(this, "Diff reset", Toast.LENGTH_SHORT).show();
             }
         }
 
         return START_STICKY;
     }
 
-    private void purageCache() {
+    private void purgeCache() {
+        mThreadPool.execute(new Runnable() {
+            @Override
+            public void run() {
+                mAppPreferenceNodesCache.evictAll();
+                // delete image folders
+                String imageCacheFolder = getImageCacheFolderPath();
+                try {
+                    FileUtils.deleteDirectory(new File(imageCacheFolder));
+                    mMainThreadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(getApplicationContext(), "Cache Purged",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                } catch (IOException e) {
+                    mMainThreadHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Toast.makeText(getApplicationContext(), "Cache Purge Failed",
+                                    Toast.LENGTH_SHORT).show();
+                        }
+                    });
 
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     @Override
@@ -419,7 +485,7 @@ public class PhoneProxyService extends AccessibilityService {
             Log.d("BENCH", "action click trigger event");
             mIsLoggingActionBenchmark = false;
         }
-        setAppBackgroundAlive("com.contacts1800.ecomapp");  // By XUJAY
+//        setAppBackgroundAlive("com.contacts1800.ecomapp");  // By XUJAY
         final AccessibilityNodeInfo rootNode = getRootInActiveWindow();
 
         // skip non app node
@@ -449,7 +515,7 @@ public class PhoneProxyService extends AccessibilityService {
         /********** Extracting Sub View Tree Based on App Preference  *********/
         final String appPkgName = getNodePkgName(rootNode);
         // register app for background processing
-        setAppBackgroundAlive(appPkgName);
+//        setAppBackgroundAlive(appPkgName);
         Log.i("STATS", event.toString() + sourceNode.toString());
         // even root node is app, if accessibility event is from non app node, then skip
         if (!appPkgName.equals(sourceNode.getPackageName())) {
@@ -467,11 +533,19 @@ public class PhoneProxyService extends AccessibilityService {
             return;
         }
 
-        File mappingRuleFolder = new File(getResDir(MAPPING_RULE_DIR, appPkgName));
-        if (!mappingRuleFolder.exists()) {
-            Logger.t("mapping").v("%s mapping rule not exists!", mappingRuleFolder.getPath());
+//        File mappingRuleFolder = new File(getResDir(MAPPING_RULE_DIR, appPkgName));
+//        if (!mappingRuleFolder.exists()) {
+//            Logger.t("mapping").v("%s mapping rule not exists!", mappingRuleFolder.getPath());
+//            return;
+//        }
+
+        // debounce
+        long currentTimestamp = SystemClock.uptimeMillis();
+        if (currentTimestamp - mLastEventTimestamp < 500) {
+            Logger.i("new event too fast, skip ");
             return;
         }
+        mLastEventTimestamp = currentTimestamp;
 
         mWorkerThread.postTask(new Runnable() {
             @Override
@@ -617,7 +691,9 @@ public class PhoneProxyService extends AccessibilityService {
                     Logger.t("pref").v("path: " + preferenceFile.getPath() + " name: "
                             + preferenceFile.getName());
 
-                    String cacheKey = FileUtil.getParentName(preferenceFile) + File.separator
+                    String cacheKey = new File(
+                            new File(preferenceFile.getParent()).getParent()).getName()
+                            + File.separator
                             + FileUtil.getBaseName(preferenceFile);
                     Logger.t("pref").v("cache key: " + cacheKey);
 
@@ -669,13 +745,26 @@ public class PhoneProxyService extends AccessibilityService {
                 int count = mViewIdCountMap.getInt(appNode.getViewId());
                 //multiple nodes have the same id
                 if (count > 1) {
-                    oneNodeMatched = prefNode.matches(appNode, 0);
-                    if (oneNodeMatched) {
-                        atLeastOneNodeMatched = true;
-                        Logger.v("node match: multiple app- " + appNode + " pref-" + prefNode);
-                        // need to update the prefNode to appNode
-                        updatePreferenceNode(preferenceNodes, prefNode, appNode);
-                        // do not break here, need iterate all nodes that have the same viewID
+                    if (prefNode.getChildCount() > 0) {
+                        oneNodeMatched = prefNode.matches(appNode, 0);
+                        if (oneNodeMatched) {
+                            atLeastOneNodeMatched = true;
+                            Logger.v("node match: multiple app- " + appNode + " pref-" + prefNode);
+                            // need to update the prefNode to appNode
+                            updatePreferenceNode(preferenceNodes, prefNode, appNode);
+                            // do not break here, need iterate all nodes that have the same viewID
+                        }
+                    } else {
+                        // single node
+                        oneNodeMatched = prefNode.getRectInScreen().equals(
+                                appNode.getRectInScreen());
+                        if (oneNodeMatched) {
+                            Logger.v("node match: multiple nodes single meet app- " + appNode
+                                    + " pref- " + prefNode);
+                            // need to update the prefNode to appNode
+                            updatePreferenceNode(preferenceNodes, prefNode, appNode);
+                            break;
+                        }
                     }
                 } else {
                     //no two nodes have the same id
@@ -739,11 +828,13 @@ public class PhoneProxyService extends AccessibilityService {
                 // normal single node item
                 AccessibilityNodeInfo nodeInfo = mPairAccessibilityNodeMap.get(accNode);
                 if (nodeInfo == null) {
-                    Logger.w("accNode norm child null for dataBundle: " + dataBundle);
+                    Logger.w("accNode norm child null for accNode: " + accNode);
                     return;
                 }
                 Logger.d("accNode norm child: " + getBriefNodeInfo(nodeInfo));
                 DataNode dataNode = getDataNode(nodeInfo);
+                dataNode.setViewId(accNode.getViewId());
+
                 dataBundle.add(dataNode);
             }
         }
@@ -775,19 +866,19 @@ public class PhoneProxyService extends AccessibilityService {
         // parse list nodes and set to dataBundle
         for (AccNode accNode : listNodes) {
             int count = accNode.getChildCount();
-            DataNode[] dataNodes = new DataNode[count];
+            ArrayList<DataNode> nodes = new ArrayList<>(count);
             for (int i = 0; i < count; i++) {
                 AccNode node = accNode.getChild(i);
                 // get AccessibilityNodeInfo based on node
                 AccessibilityNodeInfo nodeInfo = mPairAccessibilityNodeMap.get(node);
                 if (nodeInfo != null) {
                     Logger.d("accNode list child: " + getBriefNodeInfo(nodeInfo));
-                    dataNodes[i] = getDataNode(nodeInfo);
+                    nodes.add(getDataNode(nodeInfo));
                 } else {
                     Logger.w("accNode list child null");
                 }
             }
-            dataBundle.add(dataNodes);
+            dataBundle.add(nodes);
         }
     }
 
@@ -797,7 +888,13 @@ public class PhoneProxyService extends AccessibilityService {
         mActionNodes.put(nodeInfo.hashCode(), nodeInfo);
 
         DataNode dataNode = new DataNode(nodeInfo);
-        String bitmapHash = getNodeBitmapHash(nodeInfo);
+
+        String bitmapHash = mImageHashCache.get(dataNode.getId());
+        if (bitmapHash == null) {
+            bitmapHash = getNodeBitmapHash(nodeInfo);
+            mImageHashCache.put(dataNode.getId(), bitmapHash);
+        }
+
         dataNode.setImageHash(bitmapHash);
         Logger.i(dataNode.toString());
         return dataNode;
@@ -835,20 +932,31 @@ public class PhoneProxyService extends AccessibilityService {
             @Override
             public void run() {
                 // save to local disk cache repo
-                try {
-                    File imageFile = new File(bitmapPath, imageHash + ".png");
-                    if (!imageFile.exists()) {
-                        mGmsApi.sendMsg(IMAGE_PATH, imageBytes, null);
-                        FileUtils.writeByteArrayToFile(imageFile, imageBytes);
-                        Logger.v("image saved:" + imageFile);
-                    }
-                } catch (Throwable e) {
-                    e.printStackTrace();
-                }
+                processImageData(bitmapPath, imageHash, imageBytes);
             }
         });
 
         return imageHash;
+    }
+
+    private void processImageData(String bitmapPath, String imageHash, byte[] imageBytes) {
+        if (!mIsCacheEnabled) {
+            mGmsApi.sendMsg(IMAGE_PATH, imageBytes, null);
+            return;
+        }
+
+        try {
+            File imageFile = new File(bitmapPath, imageHash + ".png");
+            if (imageFile.exists()) {
+                return;
+            }
+
+            mGmsApi.sendMsg(IMAGE_PATH, imageBytes, null);
+            FileUtils.writeByteArrayToFile(imageFile, imageBytes);
+            Logger.v("image saved:" + imageFile);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
     }
 
     private Bitmap getScaledBitmap(Bitmap nodeBitmap) {
@@ -907,15 +1015,13 @@ public class PhoneProxyService extends AccessibilityService {
         DataBundle savedDataBundleBeforePruning = new DataBundle(dataBundle);
         if (mLastSentDataBundle != null) {
             // prune list nodes
-            ArrayList<DataNode[]> listNodes = new ArrayList<>(dataBundle.getListNodes());
-            ArrayList<DataNode> allLastListNodes = mLastSentDataBundle.getAllListNodes();
-            for (DataNode[] nodes : listNodes) {
-                for (DataNode node : nodes) {
-                    if (allLastListNodes.contains(node)) {
-                        Logger.d("new data bundle removed list node: " + node);
-                        // should remove duplicate nodes that were sent last time
-                        dataBundle.remove(node);
-                    }
+            ArrayList<ArrayList<DataNode>> listNodes = new ArrayList<>(dataBundle.getListNodes());
+            ArrayList<ArrayList<DataNode>> allLastListNodes = mLastSentDataBundle.getListNodes();
+            for (ArrayList<DataNode> nodes : listNodes) {
+                if (allLastListNodes.contains(nodes)) {
+                    Logger.d("new data bundle should not removed list node: " + nodes);
+                    // should remove duplicate nodes that were sent last time
+//                    dataBundle.remove(nodes);
                 }
             }
 

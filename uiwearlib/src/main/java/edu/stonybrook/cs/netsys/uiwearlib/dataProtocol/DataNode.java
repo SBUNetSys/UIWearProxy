@@ -68,6 +68,10 @@ public class DataNode implements Parcelable {
         mText = text;
     }
 
+    public int getId() {
+        return (mClickId + mViewId + mText).hashCode();
+    }
+
     @Override
     public String toString() {
         return "DataNode{"

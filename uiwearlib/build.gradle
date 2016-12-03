@@ -46,7 +46,7 @@ dependencies {
     compile rootProject.ext.dependencies["rxjava"]
     compile rootProject.ext.dependencies["rxandroid"]
     compile rootProject.ext.dependencies["glide"]
-
+    compile rootProject.ext.dependencies["listview"]
 
     testCompile rootProject.ext.dependencies["junit"]
     testCompile rootProject.ext.dependencies["mockito"]
