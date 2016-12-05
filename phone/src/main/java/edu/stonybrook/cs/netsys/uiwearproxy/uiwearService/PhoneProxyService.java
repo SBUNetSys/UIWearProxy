@@ -85,6 +85,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -303,6 +304,7 @@ public class PhoneProxyService extends AccessibilityService {
                         ArrayList<DataNode> nodes = dataBundle.getDataNodes();
                         for (DataNode node : nodes) {
                             if (!processDataNodeImageAndSendToWear(node)) {
+                                Logger.w("new no required image on phone: %s ", node);
                                 return;
                             }
                         }
@@ -311,6 +313,7 @@ public class PhoneProxyService extends AccessibilityService {
                         for (ArrayList<DataNode> list : listNodes) {
                             for (DataNode node : list) {
                                 if (!processDataNodeImageAndSendToWear(node)) {
+                                    Logger.w("new no required list image on phone: %s ", node);
                                     return;
                                 }
                             }
@@ -323,6 +326,8 @@ public class PhoneProxyService extends AccessibilityService {
                         String imageHash = node.getImageHash();
                         if (imageHash != null) {
                             byte[] imageBytes = getImageInDisk(imageHash);
+                            Logger.d("new send required image hash %s, len: %d ", imageHash,
+                                    imageBytes != null ? imageBytes.length : 0);
                             mGmsApi.sendMsg(IMAGE_PATH, imageBytes, null);
                             return true;
                         } else {
@@ -543,8 +548,8 @@ public class PhoneProxyService extends AccessibilityService {
 
         // debounce
         long currentTimestamp = SystemClock.uptimeMillis();
-        if (currentTimestamp - mLastEventTimestamp < 500) {
-            Logger.i("new event too fast, skip ");
+        if (currentTimestamp - mLastEventTimestamp < 200) {
+            Logger.i("acc event too fast, skip ");
             return;
         }
         mLastEventTimestamp = currentTimestamp;
@@ -770,7 +775,13 @@ public class PhoneProxyService extends AccessibilityService {
                     }
                 } else {
                     //no two nodes have the same id
-                    oneNodeMatched = prefNode.getViewId().equals(appNode.getViewId());
+                    // detect viewId mapping N(phone) to 1(wear) case
+                    List<String> prefViewIdList = Arrays.asList(prefNode.getViewId()
+                            .split(" \\| "));
+                    oneNodeMatched = prefViewIdList.indexOf(appNode.getViewId()) != -1;
+//                    Logger.d("node id list: " + prefViewIdList + " app node: "
+//                            + appNode.getViewId() + " index: " + prefViewIdList.indexOf(
+//                            appNode.getViewId()));
                     if (oneNodeMatched) {
                         Logger.v("node match: single app- " + appNode + " pref- " + prefNode);
                         // need to update the prefNode to appNode

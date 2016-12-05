@@ -31,7 +31,6 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
 import android.view.View;
-import android.widget.CompoundButton;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -51,6 +50,7 @@ public class PhoneActivity extends Activity {
     private TextView mSetAppTextView;
     private TextView mCacheHintTextView;
     private TextView mPurgeCacheTextView;
+    private SharedPreferences mCachePref;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,34 +65,8 @@ public class PhoneActivity extends Activity {
         mPurgeCacheTextView = (TextView) findViewById(R.id.tv_purge_cache);
         mCacheSwitch = (Switch) findViewById(R.id.switch_cache);
 
-        SharedPreferences settings = getSharedPreferences(PROXY_STATUS_PREF, MODE_PRIVATE);
-        mIsProxyStarted = settings.getBoolean(PROXY_STARTED, false);
-        Logger.i("onCreate: " + mIsProxyStarted);
-        setControlState(mIsProxyStarted);
-
-        final SharedPreferences cachePref = getSharedPreferences(CACHE_STATUS_PREF,
+        mCachePref = getSharedPreferences(CACHE_STATUS_PREF,
                 Context.MODE_PRIVATE);
-        mCacheSwitch.setChecked(cachePref.getBoolean(CACHE_STATUS_KEY, true));
-        mCacheSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                Intent proxyIntent = new Intent(getApplicationContext(), PhoneProxyService.class);
-                SharedPreferences.Editor editor = cachePref.edit();
-                if (isChecked) {
-                    mPurgeCacheTextView.setEnabled(true);
-                    proxyIntent.putExtra(CACHE_STATUS_KEY, CACHE_ENABLED);
-                    editor.putBoolean(CACHE_STATUS_KEY, true);
-                    editor.apply();
-                } else {
-                    mPurgeCacheTextView.setEnabled(false);
-                    proxyIntent.putExtra(CACHE_STATUS_KEY, CACHE_DISABLED);
-                    editor.putBoolean(CACHE_STATUS_KEY, false);
-                }
-                startService(proxyIntent);
-                editor.apply();
-
-            }
-        });
     }
 
     private void setControlState(boolean enabled) {
@@ -142,6 +116,21 @@ public class PhoneActivity extends Activity {
 
     public void setCacheStatus(View view) {
         mCacheSwitch.toggle();
+        boolean isChecked = mCacheSwitch.isChecked();
+        Intent proxyIntent = new Intent(getApplicationContext(), PhoneProxyService.class);
+        SharedPreferences.Editor editor = mCachePref.edit();
+        if (isChecked) {
+            mPurgeCacheTextView.setEnabled(true);
+            proxyIntent.putExtra(CACHE_STATUS_KEY, CACHE_ENABLED);
+            editor.putBoolean(CACHE_STATUS_KEY, true);
+            editor.apply();
+        } else {
+            mPurgeCacheTextView.setEnabled(false);
+            proxyIntent.putExtra(CACHE_STATUS_KEY, CACHE_DISABLED);
+            editor.putBoolean(CACHE_STATUS_KEY, false);
+        }
+        startService(proxyIntent);
+        editor.apply();
     }
 
     @Override
@@ -150,6 +139,7 @@ public class PhoneActivity extends Activity {
         if (requestCode == ACCESSIBILITY_SERVICE_REQUEST_CODE) {
             if (isAccessibilityEnabled()) {
                 mIsProxyStarted = true;
+                Logger.d("onActivityResult");
                 Toast.makeText(this, R.string.service_enabled, Toast.LENGTH_SHORT).show();
                 Intent proxyIntent = new Intent(this, PhoneProxyService.class);
                 startService(proxyIntent);
@@ -157,8 +147,16 @@ public class PhoneActivity extends Activity {
                 mIsProxyStarted = false;
                 Toast.makeText(this, R.string.service_not_enabled, Toast.LENGTH_SHORT).show();
             }
+            persistProxyStatus();
             setControlState(mIsProxyStarted);
         }
+    }
+
+    private void persistProxyStatus() {
+        SharedPreferences settings = getSharedPreferences(PROXY_STATUS_PREF, MODE_PRIVATE);
+        SharedPreferences.Editor editor = settings.edit();
+        editor.putBoolean(PROXY_STARTED, mIsProxyStarted);
+        editor.commit();
     }
 
     private boolean isAccessibilityEnabled() {
@@ -246,22 +244,24 @@ public class PhoneActivity extends Activity {
     @Override
     protected void onStart() {
         super.onStart();
-        Logger.d(": " + mIsProxyStarted);
+        Logger.d("onStart: " + mIsProxyStarted);
     }
 
     @Override
     protected void onResume() {
-        Logger.d(": " + mIsProxyStarted);
+        SharedPreferences settings = getSharedPreferences(PROXY_STATUS_PREF, MODE_PRIVATE);
+        mIsProxyStarted = settings.getBoolean(PROXY_STARTED, false);
+        Logger.i("onResume: " + mIsProxyStarted);
+        setControlState(mIsProxyStarted);
+        mCacheSwitch.setChecked(mCachePref.getBoolean(CACHE_STATUS_KEY, true));
+        Logger.d("onResume: " + mCacheSwitch.isChecked());
         super.onResume();
     }
 
     @Override
     protected void onPause() {
-        SharedPreferences settings = getSharedPreferences(PROXY_STATUS_PREF, MODE_PRIVATE);
-        SharedPreferences.Editor editor = settings.edit();
-        editor.putBoolean(PROXY_STARTED, mIsProxyStarted);
-        editor.commit();
-        Logger.d(": " + mIsProxyStarted);
+        persistProxyStatus();
+        Logger.d("onPause: " + mIsProxyStarted);
         super.onPause();
     }
 
