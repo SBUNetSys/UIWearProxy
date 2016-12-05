@@ -18,6 +18,11 @@ public class AccNode {
     private String mViewId;
     private Rect mRectInScreen = new Rect();
     private String mClassName;
+    // for mapping rule, whether need text or not (empty means not need),
+    // not set boolean here for easy debugging
+    private String mText;
+    // for mapping rule, whether need image or not
+    private boolean mImage;
 
     public AccNode(AccessibilityNodeInfo nodeInfo) {
         AccessibilityNodeInfo node = AccessibilityNodeInfo.obtain(nodeInfo);
@@ -216,5 +221,21 @@ public class AccNode {
         result = 31 * result + mRectInScreen.hashCode();
         result = 31 * result + (mClassName != null ? mClassName.hashCode() : 0);
         return result;
+    }
+
+    public String getText() {
+        return mText;
+    }
+
+    public void setText(String text) {
+        mText = text;
+    }
+
+    public boolean isImage() {
+        return mImage;
+    }
+
+    public void setImage(boolean image) {
+        mImage = image;
     }
 }

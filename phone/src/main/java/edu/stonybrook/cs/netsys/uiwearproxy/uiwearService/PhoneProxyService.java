@@ -35,6 +35,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_WIDTH_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.XML_EXT;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_STATUS_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_PATH;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.MAPPING_RULE_DIR;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.PREFERENCE_DIR;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.getResDir;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.marshall;
@@ -540,11 +541,11 @@ public class PhoneProxyService extends AccessibilityService {
             return;
         }
 
-//        File mappingRuleFolder = new File(getResDir(MAPPING_RULE_DIR, appPkgName));
-//        if (!mappingRuleFolder.exists()) {
-//            Logger.t("mapping").v("%s mapping rule not exists!", mappingRuleFolder.getPath());
-//            return;
-//        }
+        File mappingRuleFolder = new File(getResDir(MAPPING_RULE_DIR, appPkgName));
+        if (!mappingRuleFolder.exists()) {
+            Logger.t("mapping").v("%s mapping rule not exists!", mappingRuleFolder.getPath());
+            return;
+        }
 
         // debounce
         long currentTimestamp = SystemClock.uptimeMillis();
@@ -715,6 +716,7 @@ public class PhoneProxyService extends AccessibilityService {
                         Logger.t("pref").v("from cache: " + prefNodesFromFile);
                     }
 
+                    // TODO: 12/5/16 here, parse mapping rule to decide if text or image is needed
                     HashSet<AccNode> nodes = new HashSet<>(prefNodesFromFile);
                     if (!appNodesContainPreferenceNodes(nodes)) {
                         //root node from non preference screen, so skip
@@ -763,8 +765,8 @@ public class PhoneProxyService extends AccessibilityService {
                         }
                     } else {
                         // single node
-                        oneNodeMatched = prefNode.getRectInScreen().equals(
-                                appNode.getRectInScreen());
+                        oneNodeMatched = prefNode.getViewId().equals(appNode.getViewId())
+                                && prefNode.getRectInScreen().equals(appNode.getRectInScreen());
                         if (oneNodeMatched) {
                             Logger.v("node match: multiple nodes single meet app- " + appNode
                                     + " pref- " + prefNode);
@@ -779,9 +781,9 @@ public class PhoneProxyService extends AccessibilityService {
                     List<String> prefViewIdList = Arrays.asList(prefNode.getViewId()
                             .split(" \\| "));
                     oneNodeMatched = prefViewIdList.indexOf(appNode.getViewId()) != -1;
-//                    Logger.d("node id list: " + prefViewIdList + " app node: "
-//                            + appNode.getViewId() + " index: " + prefViewIdList.indexOf(
-//                            appNode.getViewId()));
+                    Logger.d("node id list: " + prefViewIdList + " app node: "
+                            + appNode.getViewId() + " index: " + prefViewIdList.indexOf(
+                            appNode.getViewId()));
                     if (oneNodeMatched) {
                         Logger.v("node match: single app- " + appNode + " pref- " + prefNode);
                         // need to update the prefNode to appNode
@@ -844,6 +846,7 @@ public class PhoneProxyService extends AccessibilityService {
                     Logger.w("accNode norm child null for accNode: " + accNode);
                     return;
                 }
+                nodeInfo.refresh();
                 Logger.d("accNode norm child: " + getBriefNodeInfo(nodeInfo));
                 DataNode dataNode = getDataNode(nodeInfo);
                 dataNode.setViewId(accNode.getViewId());
