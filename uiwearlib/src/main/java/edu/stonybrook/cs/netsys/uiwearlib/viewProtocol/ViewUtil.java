@@ -67,7 +67,8 @@ public class ViewUtil {
             imageFile = new File(node.getImageHash());
 //            Uri imageUri = Uri.parse(node.getImageHash());
             Logger.v("image file: " + imageFile);
-            Glide.with(context).load(imageFile).asBitmap().into(getViewTarget(context, nodeView));
+            Glide.with(context).load(imageFile).asBitmap().override(nodeView.getWidth(),
+                    nodeView.getHeight()).centerCrop().into(getViewTarget(context, nodeView));
         }
     }
 

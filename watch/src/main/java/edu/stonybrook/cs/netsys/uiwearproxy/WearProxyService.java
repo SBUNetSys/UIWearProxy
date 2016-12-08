@@ -27,6 +27,7 @@ import android.graphics.Point;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.SystemClock;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import android.view.WindowManager;
@@ -176,15 +177,17 @@ public class WearProxyService extends Service {
     }
 
     private void parseDataBundleAsync(final byte[] data) {
-
         mThreadPool.execute(new Runnable() {
             @Override
             public void run() {
+                long beginTime = SystemClock.currentThreadTimeMillis();
                 if (data != null) {
                     Logger.t("data").d("new bytes: " + data.length);
                     DataBundle dataBundle = unmarshall(data, DataBundle.CREATOR);
                     Logger.t("data").d("new data bundle: " + dataBundle);
                     sendDataBundleToWearApp(dataBundle);
+                    long duration = SystemClock.currentThreadTimeMillis() - beginTime;
+                    Log.i("MICRO", "watch proxy local parse time: " + duration);
 //                    mDataBundleLruCache.put(Integer.toHexString(dataBundle.hashCode()),
 //                            data);
                 } else {

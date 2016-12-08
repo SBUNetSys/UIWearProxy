@@ -142,6 +142,8 @@ public class PhoneActivity extends Activity {
                 Logger.d("onActivityResult");
                 Toast.makeText(this, R.string.service_enabled, Toast.LENGTH_SHORT).show();
                 Intent proxyIntent = new Intent(this, PhoneProxyService.class);
+                proxyIntent.putExtra(CACHE_STATUS_KEY,
+                        mCachePref.getBoolean(CACHE_STATUS_KEY, true));
                 startService(proxyIntent);
             } else {
                 mIsProxyStarted = false;

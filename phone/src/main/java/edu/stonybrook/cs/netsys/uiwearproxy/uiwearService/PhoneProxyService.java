@@ -35,7 +35,6 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_WIDTH_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.XML_EXT;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_STATUS_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_PATH;
-import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.MAPPING_RULE_DIR;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.PREFERENCE_DIR;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.getResDir;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.marshall;
@@ -98,6 +97,7 @@ import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataBundle;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataNode;
 import edu.stonybrook.cs.netsys.uiwearlib.helper.FileUtil;
 import edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil;
+import edu.stonybrook.cs.netsys.uiwearlib.helper.Shell;
 import edu.stonybrook.cs.netsys.uiwearlib.helper.XmlUtil;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
@@ -146,6 +146,8 @@ public class PhoneProxyService extends AccessibilityService {
 
     // for debouncing
     private long mLastEventTimestamp;
+
+    private long mBeginTime;
 
     private SparseArray<String> mImageHashCache = new SparseArray<>();
 
@@ -297,7 +299,6 @@ public class PhoneProxyService extends AccessibilityService {
 
             private void updateDataBundleImage(final DataBundle dataBundle) {
                 // process data bundle with image data
-                // FIXME: 11/30/16Wednesday need to load image from disk and send to wear
                 // cannot happen usually, since all image data are immediately send to wear
                 mThreadPool.execute(new Runnable() {
                     @Override
@@ -372,13 +373,35 @@ public class PhoneProxyService extends AccessibilityService {
 
         int actionId = dataAction.getActionId();
         AccessibilityNodeInfo node = mActionNodes.get(actionId);
+        if (node == null) {
+            Logger.w("perform on null node");
+            return;
+        }
         Logger.d("action node: " + getBriefNodeInfo(node));
         boolean hasPerformed = performActionUseAccessibility(node);
         if (hasPerformed) {
-            Logger.i("performed success use acc");
+            Logger.i("perform success use acc");
         } else {
-            Logger.w("performed failed");
+            if (performActionUseAdbShel(node)) {
+                Logger.i("perform success use adb tap");
+            } else {
+                Logger.w("perform failed");
+            }
         }
+    }
+
+    private boolean performActionUseAdbShel(AccessibilityNodeInfo node) {
+        if (node != null) {
+            Rect rect = new Rect();
+            node.getBoundsInScreen(rect);
+            Logger.i("perform adb: " + getBriefNodeInfo(node));
+            String cmd = "input tap " + rect.centerX() + " " + rect.centerY();
+            Logger.d("cmd is: " + cmd);
+            if (Shell.isSuAvailable()) {
+                return Shell.runCommand(cmd);
+            }
+        }
+        return false;
     }
 
     private boolean performActionUseAccessibility(AccessibilityNodeInfo node) {
@@ -488,7 +511,7 @@ public class PhoneProxyService extends AccessibilityService {
     }
 
     @Override
-    public void onAccessibilityEvent(AccessibilityEvent event) {
+    public void onAccessibilityEvent(final AccessibilityEvent event) {
         if (mIsLoggingActionBenchmark) {
             Log.d("BENCH", "action click trigger event");
             mIsLoggingActionBenchmark = false;
@@ -501,7 +524,7 @@ public class PhoneProxyService extends AccessibilityService {
             return;
         }
 
-        AccessibilityNodeInfo sourceNode = event.getSource();
+        final AccessibilityNodeInfo sourceNode = event.getSource();
         Logger.t("event").v("event : " + event);
         Logger.t("event").v("root node: " + NodeUtil.getBriefNodeInfo(rootNode));
         Logger.t("event").v("source node: " + NodeUtil.getBriefNodeInfo(sourceNode));
@@ -524,7 +547,7 @@ public class PhoneProxyService extends AccessibilityService {
         final String appPkgName = getNodePkgName(rootNode);
         // register app for background processing
 //        setAppBackgroundAlive(appPkgName);
-        Log.i("STATS", event.toString() + sourceNode.toString());
+
         // even root node is app, if accessibility event is from non app node, then skip
         if (!appPkgName.equals(sourceNode.getPackageName())) {
             return;
@@ -541,11 +564,11 @@ public class PhoneProxyService extends AccessibilityService {
             return;
         }
 
-        File mappingRuleFolder = new File(getResDir(MAPPING_RULE_DIR, appPkgName));
-        if (!mappingRuleFolder.exists()) {
-            Logger.t("mapping").v("%s mapping rule not exists!", mappingRuleFolder.getPath());
-            return;
-        }
+//        File mappingRuleFolder = new File(getResDir(MAPPING_RULE_DIR, appPkgName));
+//        if (!mappingRuleFolder.exists()) {
+//            Logger.t("mapping").v("%s mapping rule not exists!", mappingRuleFolder.getPath());
+//            return;
+//        }
 
         // debounce
         long currentTimestamp = SystemClock.uptimeMillis();
@@ -558,11 +581,14 @@ public class PhoneProxyService extends AccessibilityService {
         mWorkerThread.postTask(new Runnable() {
             @Override
             public void run() {
-//                mAppNodes.clear();
+                Log.i("STATS", event.toString() + sourceNode.toString());
+                mBeginTime = SystemClock.currentThreadTimeMillis();
                 mViewIdCountMap.clear();
                 mPairAccessibilityNodeMap.clear();
 //                NodeUtil.printNodeTree(rootNode);
+                Log.i("BENCH", "parseAppNodes begin:");
                 parseAppNodes(rootNode);
+                Log.i("BENCH", "parseAppNodes end:");
             }
         });
 
@@ -574,22 +600,27 @@ public class PhoneProxyService extends AccessibilityService {
                 Logger.v("pref id: " + preferenceId);
                 Logger.v("pref nodes: " + nodes);
 
+                Log.i("BENCH", "parseNodeData begin:");
                 // begin extracting preference view tree info
                 DataBundle dataBundle = new DataBundle(appPkgName, preferenceId);
                 parseNodeData(nodes, dataBundle);
-
+                Log.i("BENCH", "parseNodeData finished:");
                 if (isDataBundleDuplicate(dataBundle)) {
                     // no need to further processing
                     return;
                 } else {
                     pruneDataBundle(dataBundle);
                 }
+                Log.i("BENCH", "sendDataBundleToWear before:");
                 sendDataBundleToWear(dataBundle);
             }
 
             private void sendDataBundleToWear(DataBundle dataBundle) {
                 byte[] data = marshall(dataBundle);
                 Logger.i("new data bundle:" + dataBundle);
+                Log.i("BENCH", "sendDataBundleToWear ready:" + dataBundle);
+                long duration = SystemClock.currentThreadTimeMillis() - mBeginTime;
+                Log.i("MICRO", "phone local parse time: " + duration);
                 mGmsApi.sendMsg(DATA_BUNDLE_PATH, data, null);
             }
         });
@@ -780,6 +811,7 @@ public class PhoneProxyService extends AccessibilityService {
                     // detect viewId mapping N(phone) to 1(wear) case
                     List<String> prefViewIdList = Arrays.asList(prefNode.getViewId()
                             .split(" \\| "));
+                    // TODO: 12/6/16 need to support & case e.g. endomondo app, two buttons overlap
                     oneNodeMatched = prefViewIdList.indexOf(appNode.getViewId()) != -1;
                     Logger.d("node id list: " + prefViewIdList + " app node: "
                             + appNode.getViewId() + " index: " + prefViewIdList.indexOf(
@@ -832,7 +864,7 @@ public class PhoneProxyService extends AccessibilityService {
     }
 
     private void parseNodeData(HashSet<AccNode> accNodes, DataBundle dataBundle) {
-        Logger.d("accNodes: " + accNodes);
+        Log.i("BENCH", "parseNodeData before normal:");
         ArrayList<AccNode> listNodes = new ArrayList<>();
         for (AccNode accNode : accNodes) {
             Logger.i("accNode : " + accNode);
@@ -840,6 +872,7 @@ public class PhoneProxyService extends AccessibilityService {
                 // this is a list item preference node
                 listNodes.add(accNode);
             } else {
+                Log.i("BENCH", "normal single node begin :" + accNode);
                 // normal single node item
                 AccessibilityNodeInfo nodeInfo = mPairAccessibilityNodeMap.get(accNode);
                 if (nodeInfo == null) {
@@ -847,14 +880,18 @@ public class PhoneProxyService extends AccessibilityService {
                     return;
                 }
                 nodeInfo.refresh();
+                Log.i("BENCH", "normal single node begin fill data:" + accNode);
                 Logger.d("accNode norm child: " + getBriefNodeInfo(nodeInfo));
                 DataNode dataNode = getDataNode(nodeInfo);
                 dataNode.setViewId(accNode.getViewId());
 
                 dataBundle.add(dataNode);
+                Log.i("BENCH", "normal single node end :" + accNode);
+
             }
         }
-
+        Log.i("BENCH", "parseNodeData end normal:");
+        Log.i("BENCH", "parseNodeData begin list:");
         // need to sort list nodes based on the screen position
         Collections.sort(listNodes, new Comparator<AccNode>() {
             @Override
@@ -896,6 +933,7 @@ public class PhoneProxyService extends AccessibilityService {
             }
             dataBundle.add(nodes);
         }
+        Log.i("BENCH", "parseNodeData end list:");
     }
 
     @NonNull
@@ -904,9 +942,9 @@ public class PhoneProxyService extends AccessibilityService {
         mActionNodes.put(nodeInfo.hashCode(), nodeInfo);
 
         DataNode dataNode = new DataNode(nodeInfo);
-
+        Log.i("BENCH", "getNodeBitmapHash begin :" + dataNode);
         String bitmapHash = getNodeBitmapHash(nodeInfo);
-
+        Log.i("BENCH", "getNodeBitmapHash end :" + dataNode);
         dataNode.setImageHash(bitmapHash);
         Logger.i(dataNode.toString());
         return dataNode;
@@ -918,17 +956,20 @@ public class PhoneProxyService extends AccessibilityService {
             Logger.v("text view no need to extract bitmap");
             return null;
         }
+        Log.i("BENCH", "getNodeBitmapHash begin :");
 
         Bitmap nodeBitmap = requestBitmap(accNode);
         if (nodeBitmap == null) {
             Logger.w("cannot get bitmap");
             return null;
         }
-
+        Log.i("BENCH", "getScaledBitmap begin :");
         nodeBitmap = getScaledBitmap(nodeBitmap);
+        Log.i("BENCH", "getScaledBitmap end :");
         final String bitmapPath = getImageCacheFolderPath();
 
         final byte[] imageBytes = getBitmapBytes(nodeBitmap);
+        Log.i("BENCH", "getBitmapBytes end :");
         if (imageBytes != null) {
             Logger.i("image bytes: " + imageBytes.length);
         } else {
@@ -936,7 +977,9 @@ public class PhoneProxyService extends AccessibilityService {
             return null;
         }
 
+
         final String imageHash = Integer.toHexString(Arrays.hashCode(imageBytes));
+        Log.i("BENCH", "getNodeBitmapHash end :");
         // for the new nodes, instead of sending heavy image data, tell wear proxy
         // the hash value of image, if found not found real image data in wear's
         // cache, need notify phone proxy to send real data
