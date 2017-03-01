@@ -6,6 +6,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_REQUIRED_IMAGE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.IMAGE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.MSG_CAPABILITY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PURGE_CACHE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_REQUEST_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_STATUS_KEY;
@@ -17,6 +18,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.PKG_K
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.marshall;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.unmarshall;
 import static edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil.getImageCacheFolderPath;
+import static edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil.purgeImageCache;
 
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -25,7 +27,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Point;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.SystemClock;
 import android.support.annotation.Nullable;
@@ -35,6 +36,7 @@ import android.widget.Toast;
 
 import com.cscao.libs.gmsapi.GmsApi;
 import com.google.android.gms.wearable.DataMap;
+import com.google.android.gms.wearable.MessageEvent;
 import com.orhanobut.logger.Logger;
 
 import org.apache.commons.io.FileUtils;
@@ -42,7 +44,6 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -50,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataAction;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataBundle;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataNode;
+import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataPayload;
 
 //import com.cscao.libs.gmswear.GmsWear;
 
@@ -97,8 +99,10 @@ public class WearProxyService extends Service {
             public void onMessageReceived(GmsApi.MessageData messageEvent) {
                 switch (messageEvent.getPath()) {
                     case IMAGE_PATH:
-                        byte[] imageBytes = messageEvent.getData();
-                        storeImageToDiskCache(imageBytes);
+                        storeImageToDiskCache(messageEvent);
+                        break;
+                    case PURGE_CACHE_PATH:
+                        purgeCache();
                         break;
                     case WATCH_RESOLUTION_REQUEST_PATH:
                         sendResolutionToPhone();
@@ -147,31 +151,10 @@ public class WearProxyService extends Service {
     }
 
     private void purgeCache() {
-        final Handler mMainThreadHandler = new Handler(getMainLooper());
         mThreadPool.execute(new Runnable() {
             @Override
             public void run() {
-                // delete image folders
-                String imageCacheFolder = getImageCacheFolderPath();
-                try {
-                    FileUtils.deleteDirectory(new File(imageCacheFolder));
-                    mMainThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(getApplicationContext(), "Cache Purged",
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                } catch (IOException e) {
-                    mMainThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(getApplicationContext(), "Cache Purge Failed",
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                    e.printStackTrace();
-                }
+                purgeImageCache(getApplicationContext());
             }
         });
     }
@@ -269,18 +252,22 @@ public class WearProxyService extends Service {
 
     }
 
-    private void storeImageToDiskCache(final byte[] image) {
-        if (image == null) {
-            Logger.w("image null");
-            return;
-        }
+    private void storeImageToDiskCache(final MessageEvent messageEvent) {
+
         mThreadPool.execute(new Runnable() {
             @Override
             public void run() {
-                String imageHash = Integer.toHexString(Arrays.hashCode(image));
+                byte[] bitmapData = messageEvent.getData();
+                Logger.d("bitmapData: %d", bitmapData.length);
+                DataPayload dataPayload = unmarshall(bitmapData, DataPayload.CREATOR);
+                Logger.d("bitmap payload: %s", dataPayload);
+
+                byte[] imageBytes = dataPayload.getBitmapBytes();
+                String imageHash = dataPayload.getBitmapHash();
+
                 File imageFile = new File(getImageCacheFolderPath(), imageHash);
                 try {
-                    FileUtils.writeByteArrayToFile(imageFile, image);
+                    FileUtils.writeByteArrayToFile(imageFile, imageBytes);
                     Logger.v("image path: " + imageFile.getPath());
                 } catch (IOException e) {
                     Logger.w("image path cannot write: " + imageFile.getPath());

@@ -9,12 +9,17 @@ import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.os.Environment;
+import android.os.Handler;
+import android.widget.Toast;
 
 import com.orhanobut.logger.Logger;
+
+import org.apache.commons.io.FileUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -166,4 +171,39 @@ public class AppUtil {
         return stream.toByteArray();
     }
 
+    public static String hashBitmap(Bitmap bmp) {
+        int hash = 1;
+        // use step 10 for better calculation performance
+        for (int x = 0; x < bmp.getWidth(); x += 10) {
+            for (int y = 0; y < bmp.getHeight(); y += 10) {
+                hash = 31 * hash + bmp.getPixel(x, y);
+            }
+        }
+        return Integer.toHexString(hash);
+    }
+
+    public static void purgeImageCache(final Context context) {
+        final Handler mMainThreadHandler = new Handler(context.getMainLooper());
+        // delete image folders
+        String imageCacheFolder = getImageCacheFolderPath();
+        try {
+            FileUtils.deleteDirectory(new File(imageCacheFolder));
+            mMainThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(context, "Cache Purged",
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
+        } catch (IOException e) {
+            mMainThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(context, "Cache Purge Failed",
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
+            e.printStackTrace();
+        }
+    }
 }

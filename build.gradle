@@ -61,7 +61,7 @@ ext {
             "listview" : 'com.github.CymChad:BaseRecyclerViewAdapterHelper:2.6.2',
 
             'wearable'       : 'com.google.android.support:wearable:1.4.0',
-            "gmswear"        : 'com.cscao.libs:gmsapi:0.94',
+            "gmswear"        : 'com.github.csarron:GmsWear:0.94.1',
             "logger"         : 'com.orhanobut:logger:1.15',
             "javapoet"       : 'com.squareup:javapoet:1.7.0',
             "droidplugin"    : 'com.github.csarron:DroidPluginUIWear:0.9.2',

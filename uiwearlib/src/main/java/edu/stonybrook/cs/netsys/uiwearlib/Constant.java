@@ -63,12 +63,13 @@ public class Constant {
     public static final String WATCH_WIDTH_KEY = "WATCH_WIDTH_KEY";
     public static final String WATCH_RESOLUTION_REQUEST_PATH = "/WATCH_RESOLUTION_REQUEST_PATH";
 
-    public static final int CACHE_ENABLED = 8;
-    public static final int CACHE_DISABLED = 9;
+    public static final boolean CACHE_ENABLED = true;
+    public static final boolean CACHE_DISABLED = false;
     public static final String PURGE_CACHE_KEY = "PURGE_CACHE_KEY";
     public static final String RESET_DIFF_KEY = "RESET_DIFF_KEY";
 
     public static final String CACHE_STATUS_PATH = "/CACHE_STATUS_PATH";
+    public static final String PURGE_CACHE_PATH = "/PURGE_CACHE_PATH";
 
     public static final String PROXY_STARTED = "PROXY_STARTED";
     public static final String PROXY_STATUS_PREF = "PROXY_STATUS_PREF";
