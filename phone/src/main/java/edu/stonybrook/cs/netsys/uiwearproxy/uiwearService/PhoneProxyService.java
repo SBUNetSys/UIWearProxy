@@ -598,9 +598,10 @@ public class PhoneProxyService extends AccessibilityService {
                 if (isDataBundleDuplicate(dataBundle)) {
                     // no need to further processing
                     return;
-                } else {
-                    pruneDataBundle(dataBundle);
                 }
+//                else {
+//                    pruneDataBundle(dataBundle);
+//                }
                 Log.i("BENCH", "    marshallNodeData begin: " + dataBundle);
                 sendDataBundleToWear(dataBundle);
             }
