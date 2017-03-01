@@ -559,6 +559,7 @@ public class PhoneProxyService extends AccessibilityService {
 //            Logger.t("mapping").v("%s mapping rule not exists!", mappingRuleFolder.getPath());
 //            return;
 //        }
+        // TODO: 3/1/17Wednesday  need to remove unrelated events, use better mechanism
 
         // debounce
         long currentTimestamp = SystemClock.uptimeMillis();
