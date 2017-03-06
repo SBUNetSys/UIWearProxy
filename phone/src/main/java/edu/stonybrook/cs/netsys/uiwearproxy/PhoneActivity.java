@@ -1,5 +1,33 @@
 package edu.stonybrook.cs.netsys.uiwearproxy;
 
+import android.Manifest;
+import android.app.Activity;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.provider.Settings;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.content.ContextCompat;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.Switch;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.orhanobut.logger.Logger;
+
+import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.AppSettingActivity;
+import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.PreferenceSettingActivity;
+import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
+
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SERVICE_REQUEST_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_DISABLED;
@@ -15,31 +43,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PURGE_CACHE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RESET_DIFF_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_STATUS_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_STATUS_PREF;
-
-import android.Manifest;
-import android.app.Activity;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.Intent;
-import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.os.Bundle;
-import android.provider.Settings;
-import android.support.annotation.NonNull;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.content.ContextCompat;
-import android.view.View;
-import android.widget.Switch;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import com.orhanobut.logger.Logger;
-
-import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.AppSettingActivity;
-import edu.stonybrook.cs.netsys.uiwearproxy.preferenceManager.PreferenceSettingActivity;
-import edu.stonybrook.cs.netsys.uiwearproxy.uiwearService.PhoneProxyService;
+import static edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil.dumpAppsInfo;
 
 public class PhoneActivity extends Activity {
 
@@ -240,6 +244,25 @@ public class PhoneActivity extends Activity {
             } else {
                 Toast.makeText(this, "Please grant write permission", Toast.LENGTH_LONG).show();
             }
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_dump_apps_info, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.menu_dump_apps_info:
+                dumpAppsInfo(this);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
     }
 
