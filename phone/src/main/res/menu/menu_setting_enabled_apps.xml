@@ -7,6 +7,10 @@
     <item
         android:id="@+id/menu_set_all"
         android:actionViewClass="android.widget.CheckBox"
-        android:showAsAction="always|collapseActionView"
+        android:showAsAction="ifRoom|collapseActionView"
         android:title="@string/action_set_all" />
+    <item
+        android:id="@+id/menu_dump_app_info"
+        android:showAsAction="collapseActionView"
+        android:title="@string/action_dump" />
 </menu>

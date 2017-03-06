@@ -25,6 +25,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import edu.stonybrook.cs.netsys.uiwearlib.R;
+
 /**
  * Created by qqcao on 10/24/16.
  * <p>
@@ -115,13 +117,33 @@ public class AppUtil {
         return label;
     }
 
+    public static void dumpAppsInfo(final Context context) {
+        StringBuilder sb = new StringBuilder();
+
+        List<String> appPkgList = getInstalledPackages(context);
+        for (String pkgName : appPkgList) {
+            String appName = getApplicationLabelByPackageName(context, pkgName);
+            sb.append(appName).append(", ").append(pkgName).append("\n");
+        }
+
+        try {
+            String infoFile = getInfoFilePath();
+            FileUtils.writeStringToFile(new File(infoFile), sb.toString());
+            String successInfo = context.getString(R.string.dump_info_success, infoFile);
+            Toast.makeText(context, successInfo, Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            Toast.makeText(context, R.string.dump_info_failed, Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        }
+    }
+
     public static boolean isActionAvailable(Context context, String action) {
         Intent intent = new Intent(action);
         return context.getPackageManager().resolveActivity(intent, 0) != null;
     }
 
     public static void storeBitmapAsync(final Bitmap bitmap, final String folder,
-            final String imageName) {
+                                        final String imageName) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -156,6 +178,12 @@ public class AppUtil {
         File sdcard = Environment.getExternalStorageDirectory();
         return sdcard.getPath() + File.separator + "UIWear" + File.separator
                 + "ImageCache";
+    }
+
+    private static String getInfoFilePath() {
+        File sdcard = Environment.getExternalStorageDirectory();
+        return sdcard.getPath() + File.separator + "UIWear" + File.separator
+                + "apps_info.txt";
     }
 
     public static byte[] getBitmapBytes(Bitmap bitmap) {

@@ -28,4 +28,5 @@
     <string name="cache_status">Cache Status</string>
     <string name="reset_cache">Purge Cache</string>
     <string name="reset_diff">Reset Diff</string>
+    <string name="action_dump">Dump app info</string>
 </resources>
