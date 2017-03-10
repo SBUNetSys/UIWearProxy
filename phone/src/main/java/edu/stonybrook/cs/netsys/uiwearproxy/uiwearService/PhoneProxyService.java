@@ -788,8 +788,7 @@ public class PhoneProxyService extends AccessibilityService {
                         }
                     } else {
                         // single node
-                        oneNodeMatched = prefNode.getViewId().equals(appNode.getViewId())
-                                && prefNode.getRectInScreen().equals(appNode.getRectInScreen());
+                        oneNodeMatched = prefNode.matches(appNode);
                         if (oneNodeMatched) {
                             Logger.v("node match: multiple nodes single meet app- " + appNode
                                     + " pref- " + prefNode);
