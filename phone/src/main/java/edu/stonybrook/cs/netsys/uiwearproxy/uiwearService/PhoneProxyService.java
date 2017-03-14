@@ -2,7 +2,8 @@ package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_ENABLED;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_DISABLED_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_ENABLED_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_STATUS_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_REQUIRED_IMAGE_PATH;
@@ -33,7 +34,8 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_PREF_
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_REQUEST_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_WIDTH_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.XML_EXT;
-import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_STATUS_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_DISABLED_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_ENABLED_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.PREFERENCE_DIR;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.getResDir;
@@ -459,16 +461,21 @@ public class PhoneProxyService extends AccessibilityService {
                 Toast.makeText(this, "Cache Purged", Toast.LENGTH_SHORT).show();
             }
 
-            mIsCacheEnabled = intent.getBooleanExtra(CACHE_STATUS_KEY, CACHE_ENABLED);
-            if (mIsCacheEnabled) {
+            int cacheEnabled = intent.getIntExtra(CACHE_ENABLED_KEY, 0);
+            if (cacheEnabled == CACHE_ENABLED_CODE) {
+                mIsCacheEnabled = true;
                 Toast.makeText(this, "Cache enabled ", Toast.LENGTH_SHORT).show();
                 byte[] cacheStatusBytes = new byte[]{(byte) (1)};
                 mGmsApi.sendMsg(CACHE_STATUS_PATH, cacheStatusBytes, null);
-            } else {
+
+            }
+
+            int cacheDisabled = intent.getIntExtra(CACHE_DISABLED_KEY, 0);
+            if (cacheDisabled == CACHE_DISABLED_CODE) {
+                mIsCacheEnabled = false;
                 Toast.makeText(this, "Cache disabled", Toast.LENGTH_SHORT).show();
                 byte[] cacheStatusBytes = new byte[]{(byte) (0)};
                 mGmsApi.sendMsg(CACHE_STATUS_PATH, cacheStatusBytes, null);
-                purgeCache();
             }
 
             boolean resetDiff = intent.getBooleanExtra(RESET_DIFF_KEY, false);
@@ -983,10 +990,9 @@ public class PhoneProxyService extends AccessibilityService {
 
             byte[] bitmapPayload = marshall(dataPayload);
             mGmsApi.sendMsg(IMAGE_PATH, bitmapPayload, null);
-
-            if (!mIsCacheEnabled) {
-                return;
-            }
+//            if (!mIsCacheEnabled) {
+//                return;
+//            }
 
             // save to local disk cache repo
             FileUtils.writeByteArrayToFile(imageFile, imageBytes);

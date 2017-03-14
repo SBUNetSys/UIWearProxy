@@ -73,4 +73,7 @@ public class Constant {
 
     public static final String PROXY_STARTED = "PROXY_STARTED";
     public static final String PROXY_STATUS_PREF = "PROXY_STATUS_PREF";
+
+    public static final int CACHE_ENABLED_CODE = 8;
+    public static final int CACHE_DISABLED_CODE = 9;
 }

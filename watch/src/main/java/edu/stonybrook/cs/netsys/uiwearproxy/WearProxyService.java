@@ -44,6 +44,7 @@ import org.apache.commons.io.FileUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -82,6 +83,7 @@ public class WearProxyService extends Service {
 
     private ThreadPoolExecutor mThreadPool;
     private boolean mIsCacheEnabled = true;
+    private HashSet<String> mImageHashes = new HashSet<>(10);
 
     @Nullable
     @Override
@@ -121,7 +123,6 @@ public class WearProxyService extends Service {
                                 mIsCacheEnabled = false;
                                 Toast.makeText(getApplicationContext(), "Cache disabled",
                                         Toast.LENGTH_SHORT).show();
-                                purgeCache();
                             }
 
                         }
@@ -188,6 +189,7 @@ public class WearProxyService extends Service {
         String appPkgName = dataBundle.getAppPkgName();
         ArrayList<DataNode> nodes = dataBundle.getDataNodes();
 
+        mImageHashes.clear();
         // save image from bytes and return Uri to avoid large intent data
         for (DataNode node : nodes) {
             Logger.d("new node normal: " + node);
@@ -195,8 +197,9 @@ public class WearProxyService extends Service {
                 //request real image from phone proxy
                 byte[] dataBundleBytes = marshall(dataBundle);
                 mGmsApi.sendMsg(DATA_BUNDLE_REQUIRED_IMAGE_PATH, dataBundleBytes, null);
-                return;
+//                return;
             }
+            mImageHashes.add(node.getImageHash());
         }
         // list nodes parsing
         ArrayList<ArrayList<DataNode>> listNodes = dataBundle.getListNodes();
@@ -207,8 +210,9 @@ public class WearProxyService extends Service {
                     //request real image from phone proxy
                     byte[] dataBundleBytes = marshall(dataBundle);
                     mGmsApi.sendMsg(DATA_BUNDLE_REQUIRED_IMAGE_PATH, dataBundleBytes, null);
-                    return;
+//                    return;
                 }
+                mImageHashes.add(node.getImageHash());
             }
         }
 
@@ -223,6 +227,46 @@ public class WearProxyService extends Service {
         appIntent.putExtra(DATA_BUNDLE_KEY, bundle);
         sendBroadcast(appIntent);
         Logger.t("data").i("new send " + dataBundle.toString());
+        if (!mIsCacheEnabled) {
+            mThreadPool.execute(new Runnable() {
+                @Override
+                public void run() {
+                    Logger.d("clean images 2000ms later...");
+                    try {
+                        Thread.sleep(2000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+
+                    cleanImages(new HashSet<>(mImageHashes));
+                    Logger.d("all images cleaned");
+                }
+            });
+
+        }
+    }
+
+    private void cleanImages(HashSet<String> imageHashes) {
+
+        for (String imageHash : imageHashes) {
+            if (imageHash == null) {
+                Logger.d("no images");
+                break;
+            }
+            File image = new File(getImageCacheFolderPath(), imageHash);
+            if (!image.exists()) {
+                Logger.v("image %s not exists!", imageHash);
+                continue;
+            }
+            try {
+                FileUtils.forceDelete(image);
+                Logger.v("image %s cleaned", imageHash);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+
     }
 
     private boolean isNodeImageValid(DataNode node) {

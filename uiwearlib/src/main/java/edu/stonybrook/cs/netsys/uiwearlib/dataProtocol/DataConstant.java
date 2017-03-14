@@ -26,4 +26,6 @@ public class DataConstant {
     public static final String CACHE_STATUS_KEY = "CACHE_STATUS_KEY";
     public static final String CACHE_STATUS_PREF = "CACHE_STATUS_PREF";
 
+    public static final String CACHE_ENABLED_KEY = "CACHE_ENABLED_KEY";
+    public static final String CACHE_DISABLED_KEY = "CACHE_DISABLED_KEY";
 }
