@@ -979,7 +979,7 @@ public class PhoneProxyService extends AccessibilityService {
             Bitmap nodeBitmap) {
         try {
             File imageFile = new File(getImageCacheFolderPath(), bitmapHash + ".png");
-            if (imageFile.exists()) {
+            if (imageFile.exists() && mIsCacheEnabled) {
                 return;
             }
 
