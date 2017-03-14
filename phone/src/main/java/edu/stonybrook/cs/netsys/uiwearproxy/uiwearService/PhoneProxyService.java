@@ -599,10 +599,9 @@ public class PhoneProxyService extends AccessibilityService {
                 if (isDataBundleDuplicate(dataBundle)) {
                     // no need to further processing
                     return;
+                } else {
+                    pruneDataBundle(dataBundle);
                 }
-//                else {
-//                    pruneDataBundle(dataBundle);
-//                }
                 Log.i("BENCH", "    marshallNodeData begin: " + dataBundle);
                 sendDataBundleToWear(dataBundle);
             }
@@ -778,7 +777,7 @@ public class PhoneProxyService extends AccessibilityService {
                 //multiple nodes have the same id
                 if (count > 1) {
                     if (prefNode.getChildCount() > 0) {
-                        oneNodeMatched = prefNode.matches(appNode, 0);
+                        oneNodeMatched = prefNode.matches(appNode);
                         if (oneNodeMatched) {
                             atLeastOneNodeMatched = true;
                             Logger.v("node match: multiple app- " + appNode + " pref-" + prefNode);
