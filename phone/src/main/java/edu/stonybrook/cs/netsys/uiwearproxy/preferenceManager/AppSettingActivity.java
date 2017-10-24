@@ -13,6 +13,7 @@ import android.widget.CompoundButton;
 import edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil;
 import edu.stonybrook.cs.netsys.uiwearproxy.R;
 
+import static edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil.dumpAppsInfo;
 /**
  * For selecting apps that use UIWear service
  */
@@ -65,6 +66,9 @@ public class AppSettingActivity extends Activity {
                         }
                     }
                 });
+                return true;
+            case R.id.menu_dump_app_info:
+                dumpAppsInfo(this);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

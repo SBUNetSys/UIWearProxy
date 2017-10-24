@@ -2,8 +2,8 @@ package edu.stonybrook.cs.netsys.uiwearproxy.uiwearService;
 
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.AVAILABLE_NODES_PREFERENCE_SETTING_KEY;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_DISABLED;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_ENABLED;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_DISABLED_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_ENABLED_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_STATUS_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.DATA_BUNDLE_REQUIRED_IMAGE_PATH;
@@ -23,6 +23,7 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_STOP_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PROXY_STARTED;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PROXY_STATUS_PREF;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PURGE_CACHE_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PURGE_CACHE_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.READ_PREFERENCE_NODES_SUCCESS;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RESET_DIFF_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RUNNING_APP_PREF_CACHE_SIZE;
@@ -33,7 +34,8 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_PREF_
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_RESOLUTION_REQUEST_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.WATCH_WIDTH_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.XML_EXT;
-import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_STATUS_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_DISABLED_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_ENABLED_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CLICK_PATH;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.PREFERENCE_DIR;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.getResDir;
@@ -41,7 +43,10 @@ import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.marshall;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataUtil.unmarshall;
 import static edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil.getBitmapBytes;
 import static edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil.getImageCacheFolderPath;
+import static edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil.hashBitmap;
+import static edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil.purgeImageCache;
 import static edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil.getBriefNodeInfo;
+import static edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil.getNodeIdText;
 import static edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil.getNodePkgName;
 
 import android.accessibilityservice.AccessibilityService;
@@ -95,6 +100,7 @@ import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.AccNode;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataAction;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataBundle;
 import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataNode;
+import edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataPayload;
 import edu.stonybrook.cs.netsys.uiwearlib.helper.FileUtil;
 import edu.stonybrook.cs.netsys.uiwearlib.helper.NodeUtil;
 import edu.stonybrook.cs.netsys.uiwearlib.helper.Shell;
@@ -332,7 +338,14 @@ public class PhoneProxyService extends AccessibilityService {
                             byte[] imageBytes = getImageInDisk(imageHash);
                             Logger.d("new send required image hash %s, len: %d ", imageHash,
                                     imageBytes != null ? imageBytes.length : 0);
-                            mGmsApi.sendMsg(IMAGE_PATH, imageBytes, null);
+                            if (imageBytes == null || imageBytes.length <= 0) {
+                                return false;
+                            }
+                            DataPayload dataPayload = new DataPayload(imageHash, imageBytes);
+                            Logger.d("bitmap payload update: %s", dataPayload);
+                            byte[] bitmapPayload = marshall(dataPayload);
+
+                            mGmsApi.sendMsg(IMAGE_PATH, bitmapPayload, null);
                             return true;
                         } else {
                             return false;
@@ -446,22 +459,25 @@ public class PhoneProxyService extends AccessibilityService {
 
             boolean purgeCache = intent.getBooleanExtra(PURGE_CACHE_KEY, false);
             if (purgeCache) {
+                purgeCache();
                 Toast.makeText(this, "Cache Purged", Toast.LENGTH_SHORT).show();
             }
 
-            int cacheEnable = intent.getIntExtra(CACHE_STATUS_KEY, -1);
-            if (cacheEnable == CACHE_ENABLED) {
+            int cacheEnabled = intent.getIntExtra(CACHE_ENABLED_KEY, 0);
+            if (cacheEnabled == CACHE_ENABLED_CODE) {
                 mIsCacheEnabled = true;
                 Toast.makeText(this, "Cache enabled ", Toast.LENGTH_SHORT).show();
                 byte[] cacheStatusBytes = new byte[]{(byte) (1)};
                 mGmsApi.sendMsg(CACHE_STATUS_PATH, cacheStatusBytes, null);
 
-            } else if (cacheEnable == CACHE_DISABLED) {
+            }
+
+            int cacheDisabled = intent.getIntExtra(CACHE_DISABLED_KEY, 0);
+            if (cacheDisabled == CACHE_DISABLED_CODE) {
                 mIsCacheEnabled = false;
                 Toast.makeText(this, "Cache disabled", Toast.LENGTH_SHORT).show();
                 byte[] cacheStatusBytes = new byte[]{(byte) (0)};
                 mGmsApi.sendMsg(CACHE_STATUS_PATH, cacheStatusBytes, null);
-                purgeCache();
             }
 
             boolean resetDiff = intent.getBooleanExtra(RESET_DIFF_KEY, false);
@@ -482,32 +498,13 @@ public class PhoneProxyService extends AccessibilityService {
     }
 
     private void purgeCache() {
+        // notify wear proxy to purge cache
+        mGmsApi.sendMsg(PURGE_CACHE_PATH, null, null);
         mThreadPool.execute(new Runnable() {
             @Override
             public void run() {
                 mAppPreferenceNodesCache.evictAll();
-                // delete image folders
-                String imageCacheFolder = getImageCacheFolderPath();
-                try {
-                    FileUtils.deleteDirectory(new File(imageCacheFolder));
-                    mMainThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(getApplicationContext(), "Cache Purged",
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    });
-                } catch (IOException e) {
-                    mMainThreadHandler.post(new Runnable() {
-                        @Override
-                        public void run() {
-                            Toast.makeText(getApplicationContext(), "Cache Purge Failed",
-                                    Toast.LENGTH_SHORT).show();
-                        }
-                    });
-
-                    e.printStackTrace();
-                }
+                purgeImageCache(getApplicationContext());
             }
         });
     }
@@ -615,6 +612,7 @@ public class PhoneProxyService extends AccessibilityService {
 //            Logger.t("mapping").v("%s mapping rule not exists!", mappingRuleFolder.getPath());
 //            return;
 //        }
+        // TODO: 3/1/17Wednesday  need to remove unrelated events, use better mechanism
 
         // debounce
         long currentTimestamp = SystemClock.uptimeMillis();
@@ -652,25 +650,25 @@ public class PhoneProxyService extends AccessibilityService {
                 Logger.v("pref id: " + preferenceId);
                 Logger.v("pref nodes: " + nodes);
 
-                Log.i("BENCH", "parseNodeData begin:");
+                Log.i("BENCH", "    parseNodeData begin:");
                 // begin extracting preference view tree info
                 DataBundle dataBundle = new DataBundle(eventPkgName, preferenceId);
                 parseNodeData(nodes, dataBundle);
-                Log.i("BENCH", "parseNodeData finished:");
+                Log.i("BENCH", "    parseNodeData end:");
                 if (isDataBundleDuplicate(dataBundle)) {
                     // no need to further processing
                     return;
                 } else {
                     pruneDataBundle(dataBundle);
                 }
-                Log.i("BENCH", "sendDataBundleToWear before:");
+                Log.i("BENCH", "    marshallNodeData begin: " + dataBundle);
                 sendDataBundleToWear(dataBundle);
             }
 
             private void sendDataBundleToWear(DataBundle dataBundle) {
                 byte[] data = marshall(dataBundle);
-                Logger.i("new data bundle:" + dataBundle);
-                Log.i("BENCH", "sendDataBundleToWear ready:" + dataBundle);
+                Logger.i("new data bundle: " + dataBundle);
+                Log.i("BENCH", "    marshallNodeData end: " + dataBundle);
                 long duration = SystemClock.currentThreadTimeMillis() - mBeginTime;
                 Log.i("MICRO", "phone local parse time: " + duration);
                 mGmsApi.sendMsg(DATA_BUNDLE_PATH, data, null);
@@ -838,7 +836,7 @@ public class PhoneProxyService extends AccessibilityService {
                 //multiple nodes have the same id
                 if (count > 1) {
                     if (prefNode.getChildCount() > 0) {
-                        oneNodeMatched = prefNode.matches(appNode, 0);
+                        oneNodeMatched = prefNode.matches(appNode);
                         if (oneNodeMatched) {
                             atLeastOneNodeMatched = true;
                             Log.d("event",
@@ -849,8 +847,7 @@ public class PhoneProxyService extends AccessibilityService {
                         }
                     } else {
                         // single node
-                        oneNodeMatched = prefNode.getViewId().equals(appNode.getViewId())
-                                && prefNode.getRectInScreen().equals(appNode.getRectInScreen());
+                        oneNodeMatched = prefNode.matches(appNode);
                         if (oneNodeMatched) {
                             Log.d("event", "node match: multiple nodes single meet app- " + appNode
                                     + " pref- " + prefNode);
@@ -917,7 +914,7 @@ public class PhoneProxyService extends AccessibilityService {
     }
 
     private void parseNodeData(HashSet<AccNode> accNodes, DataBundle dataBundle) {
-        Log.i("BENCH", "parseNodeData before normal:");
+        Log.i("BENCH", "        parseNodeData normal begin: " + dataBundle);
         ArrayList<AccNode> listNodes = new ArrayList<>();
         for (AccNode accNode : accNodes) {
             Log.i("event", "accNode : " + accNode);
@@ -925,7 +922,7 @@ public class PhoneProxyService extends AccessibilityService {
                 // this is a list item preference node
                 listNodes.add(accNode);
             } else {
-                Log.i("BENCH", "normal single node begin :" + accNode);
+                Log.i("BENCH", "            normal single node begin: " + getNodeIdText(accNode));
                 // normal single node item
                 AccessibilityNodeInfo nodeInfo = mPairAccessibilityNodeMap.get(accNode);
                 if (nodeInfo == null) {
@@ -933,18 +930,17 @@ public class PhoneProxyService extends AccessibilityService {
                     return;
                 }
                 nodeInfo.refresh();
-                Log.i("BENCH", "normal single node begin fill data:" + accNode);
                 Logger.d("accNode norm child: " + getBriefNodeInfo(nodeInfo));
                 DataNode dataNode = getDataNode(nodeInfo);
                 dataNode.setViewId(accNode.getViewId());
 
                 dataBundle.add(dataNode);
-                Log.i("BENCH", "normal single node end :" + accNode);
+                Log.i("BENCH", "            normal single node end: " + getNodeIdText(accNode));
 
             }
         }
-        Log.i("BENCH", "parseNodeData end normal:");
-        Log.i("BENCH", "parseNodeData begin list:");
+        Log.i("BENCH", "        parseNodeData normal end: " + dataBundle);
+        Log.i("BENCH", "        parseNodeData list begin: " + dataBundle);
         // need to sort list nodes based on the screen position
         Collections.sort(listNodes, new Comparator<AccNode>() {
             @Override
@@ -986,7 +982,7 @@ public class PhoneProxyService extends AccessibilityService {
             }
             dataBundle.add(nodes);
         }
-        Log.i("BENCH", "parseNodeData end list:");
+        Log.i("BENCH", "        parseNodeData list end:" + dataBundle);
     }
 
     @NonNull
@@ -995,82 +991,91 @@ public class PhoneProxyService extends AccessibilityService {
         mActionNodes.put(nodeInfo.hashCode(), nodeInfo);
 
         DataNode dataNode = new DataNode(nodeInfo);
-        Log.i("BENCH", "getNodeBitmapHash begin :" + dataNode);
+        Log.i("BENCH", "                getNodeBitmapHash begin: " + getNodeIdText(nodeInfo));
         String bitmapHash = getNodeBitmapHash(nodeInfo);
-        Log.i("BENCH", "getNodeBitmapHash end :" + dataNode);
+        Log.i("BENCH", "                getNodeBitmapHash end: " + getNodeIdText(nodeInfo));
         dataNode.setImageHash(bitmapHash);
         Logger.i(dataNode.toString());
         return dataNode;
     }
 
-    private String getNodeBitmapHash(AccessibilityNodeInfo accNode) {
+    private String getNodeBitmapHash(final AccessibilityNodeInfo accNode) {
         // FIXME: 11/12/16 based on mapping rule, not all mNodes need image/bitmap
         if ("android.widget.TextView".equals(accNode.getClassName())) {
             Logger.v("text view no need to extract bitmap");
             return null;
         }
-        Log.i("BENCH", "getNodeBitmapHash begin :");
 
-        Bitmap nodeBitmap = requestBitmap(accNode);
+        final Bitmap nodeBitmap = requestBitmap(accNode);
         if (nodeBitmap == null) {
             Logger.w("cannot get bitmap");
             return null;
         }
-        Log.i("BENCH", "getScaledBitmap begin :");
-        nodeBitmap = getScaledBitmap(nodeBitmap);
-        Log.i("BENCH", "getScaledBitmap end :");
-        final String bitmapPath = getImageCacheFolderPath();
 
-        final byte[] imageBytes = getBitmapBytes(nodeBitmap);
-        Log.i("BENCH", "getBitmapBytes end :");
-        if (imageBytes != null) {
-            Logger.i("image bytes: " + imageBytes.length);
-        } else {
-            Logger.w("image bytes null");
-            return null;
-        }
-
-
-        final String imageHash = Integer.toHexString(Arrays.hashCode(imageBytes));
-        Log.i("BENCH", "getNodeBitmapHash end :");
-        // for the new nodes, instead of sending heavy image data, tell wear proxy
-        // the hash value of image, if found not found real image data in wear's
-        // cache, need notify phone proxy to send real data
+        // FIXME: 2/23/17Thursday use other ways to calculate hashcode of bitmap
+        final String bitmapHash = hashBitmap(nodeBitmap);
+        Logger.d("bitmapHash: %s, node: %s", bitmapHash, getNodeIdText(accNode));
+        // for new image data, phone proxy will send image bytes in addition to bitmap hash.
+        // wear proxy also maintain the same key-value cache, i.e., bitmap hash as key and
+        // image bytes as value.
         mThreadPool.execute(new Runnable() {
             @Override
             public void run() {
-                // save to local disk cache repo
-                processImageData(bitmapPath, imageHash, imageBytes);
+                processNodeBitmap(bitmapHash, accNode, nodeBitmap);
             }
         });
 
-        return imageHash;
+        return bitmapHash;
     }
 
-    private void processImageData(String bitmapPath, String imageHash, byte[] imageBytes) {
-        if (!mIsCacheEnabled) {
-            mGmsApi.sendMsg(IMAGE_PATH, imageBytes, null);
-            return;
-        }
-
+    private void processNodeBitmap(String bitmapHash, AccessibilityNodeInfo accNode,
+            Bitmap nodeBitmap) {
         try {
-            File imageFile = new File(bitmapPath, imageHash + ".png");
-            if (imageFile.exists()) {
+            File imageFile = new File(getImageCacheFolderPath(), bitmapHash + ".png");
+            if (imageFile.exists() && mIsCacheEnabled) {
                 return;
             }
 
-            mGmsApi.sendMsg(IMAGE_PATH, imageBytes, null);
+            final byte[] imageBytes = getBytesFromNodeBitmap(accNode, nodeBitmap);
+
+            DataPayload dataPayload = new DataPayload(bitmapHash, imageBytes);
+            Logger.d("bitmap payload first time: %s", dataPayload);
+
+            byte[] bitmapPayload = marshall(dataPayload);
+            mGmsApi.sendMsg(IMAGE_PATH, bitmapPayload, null);
+//            if (!mIsCacheEnabled) {
+//                return;
+//            }
+
+            // save to local disk cache repo
             FileUtils.writeByteArrayToFile(imageFile, imageBytes);
-            Logger.v("image saved:" + imageFile);
+            Logger.v("image saved: " + imageFile);
         } catch (Throwable e) {
             e.printStackTrace();
         }
     }
 
+    private byte[] getBytesFromNodeBitmap(AccessibilityNodeInfo accNode, Bitmap nodeBitmap) {
+        Log.i("BENCH", "                    getScaledBitmap begin: " + getNodeIdText(accNode));
+        Bitmap scaledBitmap = getScaledBitmap(nodeBitmap);
+        Log.i("BENCH", "                    getScaledBitmap end: " + getNodeIdText(accNode));
+
+        Log.i("BENCH", "                    getBitmapBytes begin: " + getNodeIdText(accNode));
+        final byte[] imageBytes = getBitmapBytes(scaledBitmap);
+        Log.i("BENCH", "                    getBitmapBytes end: " + getNodeIdText(accNode));
+
+        if (imageBytes != null) {
+            Logger.i("image bytes: " + imageBytes.length);
+        } else {
+            Logger.w("image bytes null");
+        }
+        return imageBytes;
+    }
+
     private Bitmap getScaledBitmap(Bitmap nodeBitmap) {
         int width = nodeBitmap.getWidth();
         int height = nodeBitmap.getHeight();
-        Logger.d("ScaledBitmap :" + nodeBitmap.getByteCount()
+        Logger.d("ScaledBitmap: " + nodeBitmap.getByteCount()
                 + " bytes, width: " + width + " height: " + height);
         int watchWidth = mWatchPhoneResolutionRatioSharedPref.getInt(WATCH_WIDTH_KEY, 0);
         int watchHeight = mWatchPhoneResolutionRatioSharedPref.getInt(WATCH_HEIGHT_KEY, 0);

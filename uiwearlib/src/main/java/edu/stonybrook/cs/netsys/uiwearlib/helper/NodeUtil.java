@@ -87,6 +87,22 @@ public class NodeUtil {
                 + "click: " + source.isClickable();
     }
 
+    public static String getNodeIdText(AccessibilityNodeInfo source) {
+        if (source == null) {
+            return "null";
+        }
+        return "viewID: " + source.getViewIdResourceName() + "; "
+                + "text: " + source.getText();
+    }
+
+    public static String getNodeIdText(AccNode source) {
+        if (source == null) {
+            return "null";
+        }
+        return "viewID: " + source.getViewId() + "; "
+                + "text: " + source.getText();
+    }
+
     public static String getNodePkgName(AccessibilityNodeInfo nodeInfo) {
         if (nodeInfo == null)
                 return "";

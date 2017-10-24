@@ -2,8 +2,8 @@ package edu.stonybrook.cs.netsys.uiwearproxy;
 
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SERVICE_REQUEST_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.ACCESSIBILITY_SETTING_INTENT;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_DISABLED;
-import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_ENABLED;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_DISABLED_CODE;
+import static edu.stonybrook.cs.netsys.uiwearlib.Constant.CACHE_ENABLED_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PERMISSIONS_REQUEST_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_CODE;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PREFERENCE_SETTING_KEY;
@@ -13,8 +13,11 @@ import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PROXY_STARTED;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PROXY_STATUS_PREF;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.PURGE_CACHE_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.Constant.RESET_DIFF_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_DISABLED_KEY;
+import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_ENABLED_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_STATUS_KEY;
 import static edu.stonybrook.cs.netsys.uiwearlib.dataProtocol.DataConstant.CACHE_STATUS_PREF;
+import static edu.stonybrook.cs.netsys.uiwearlib.helper.AppUtil.dumpAppsInfo;
 
 import android.Manifest;
 import android.app.Activity;
@@ -30,6 +33,9 @@ import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.ContextCompat;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -120,13 +126,11 @@ public class PhoneActivity extends Activity {
         Intent proxyIntent = new Intent(getApplicationContext(), PhoneProxyService.class);
         SharedPreferences.Editor editor = mCachePref.edit();
         if (isChecked) {
-            mPurgeCacheTextView.setEnabled(true);
-            proxyIntent.putExtra(CACHE_STATUS_KEY, CACHE_ENABLED);
+            proxyIntent.putExtra(CACHE_ENABLED_KEY, CACHE_ENABLED_CODE);
             editor.putBoolean(CACHE_STATUS_KEY, true);
             editor.apply();
         } else {
-            mPurgeCacheTextView.setEnabled(false);
-            proxyIntent.putExtra(CACHE_STATUS_KEY, CACHE_DISABLED);
+            proxyIntent.putExtra(CACHE_DISABLED_KEY, CACHE_DISABLED_CODE);
             editor.putBoolean(CACHE_STATUS_KEY, false);
         }
         startService(proxyIntent);
@@ -240,6 +244,25 @@ public class PhoneActivity extends Activity {
             } else {
                 Toast.makeText(this, "Please grant write permission", Toast.LENGTH_LONG).show();
             }
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_dump_apps_info, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.menu_dump_apps_info:
+                dumpAppsInfo(this);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
     }
 

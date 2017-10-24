@@ -9,16 +9,23 @@ import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.os.Environment;
+import android.os.Handler;
+import android.widget.Toast;
 
 import com.orhanobut.logger.Logger;
+
+import org.apache.commons.io.FileUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+
+import edu.stonybrook.cs.netsys.uiwearlib.R;
 
 /**
  * Created by qqcao on 10/24/16.
@@ -110,13 +117,33 @@ public class AppUtil {
         return label;
     }
 
+    public static void dumpAppsInfo(final Context context) {
+        StringBuilder sb = new StringBuilder();
+
+        List<String> appPkgList = getInstalledPackages(context);
+        for (String pkgName : appPkgList) {
+            String appName = getApplicationLabelByPackageName(context, pkgName);
+            sb.append(appName).append(", ").append(pkgName).append("\n");
+        }
+
+        try {
+            String infoFile = getInfoFilePath();
+            FileUtils.writeStringToFile(new File(infoFile), sb.toString());
+            String successInfo = context.getString(R.string.dump_info_success, infoFile);
+            Toast.makeText(context, successInfo, Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            Toast.makeText(context, R.string.dump_info_failed, Toast.LENGTH_SHORT).show();
+            e.printStackTrace();
+        }
+    }
+
     public static boolean isActionAvailable(Context context, String action) {
         Intent intent = new Intent(action);
         return context.getPackageManager().resolveActivity(intent, 0) != null;
     }
 
     public static void storeBitmapAsync(final Bitmap bitmap, final String folder,
-            final String imageName) {
+                                        final String imageName) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -153,6 +180,12 @@ public class AppUtil {
                 + "ImageCache";
     }
 
+    private static String getInfoFilePath() {
+        File sdcard = Environment.getExternalStorageDirectory();
+        return sdcard.getPath() + File.separator + "UIWear" + File.separator
+                + "apps_info.txt";
+    }
+
     public static byte[] getBitmapBytes(Bitmap bitmap) {
         if (bitmap == null) {
             return null;
@@ -166,4 +199,39 @@ public class AppUtil {
         return stream.toByteArray();
     }
 
+    public static String hashBitmap(Bitmap bmp) {
+        int hash = 1;
+        // use step 10 for better calculation performance
+        for (int x = 0; x < bmp.getWidth(); x += 10) {
+            for (int y = 0; y < bmp.getHeight(); y += 10) {
+                hash = 31 * hash + bmp.getPixel(x, y);
+            }
+        }
+        return Integer.toHexString(hash);
+    }
+
+    public static void purgeImageCache(final Context context) {
+        final Handler mMainThreadHandler = new Handler(context.getMainLooper());
+        // delete image folders
+        String imageCacheFolder = getImageCacheFolderPath();
+        try {
+            FileUtils.deleteDirectory(new File(imageCacheFolder));
+            mMainThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(context, "Cache Purged",
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
+        } catch (IOException e) {
+            mMainThreadHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(context, "Cache Purge Failed",
+                            Toast.LENGTH_SHORT).show();
+                }
+            });
+            e.printStackTrace();
+        }
+    }
 }

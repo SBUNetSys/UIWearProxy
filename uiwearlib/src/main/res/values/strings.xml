@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">UIWearLib</string>
+    <string name="dump_info_failed">Dump Apps Info Failed!</string>
+    <string name="dump_info_success">Apps Info Saved to %1$s!</string>
 </resources>

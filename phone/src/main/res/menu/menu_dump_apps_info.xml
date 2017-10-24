@@ -3,14 +3,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    tools:context=".preferenceManager.AppSettingActivity">
+    tools:context=".PhoneActivity">
     <item
-        android:id="@+id/menu_set_all"
-        android:actionViewClass="android.widget.CheckBox"
-        android:showAsAction="ifRoom|collapseActionView"
-        android:title="@string/action_set_all" />
-    <item
-        android:id="@+id/menu_dump_app_info"
+        android:id="@+id/menu_dump_apps_info"
         android:showAsAction="collapseActionView"
         android:title="@string/action_dump" />
 </menu>
