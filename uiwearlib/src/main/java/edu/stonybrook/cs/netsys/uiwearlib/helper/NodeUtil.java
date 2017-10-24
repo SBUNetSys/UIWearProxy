@@ -88,6 +88,8 @@ public class NodeUtil {
     }
 
     public static String getNodePkgName(AccessibilityNodeInfo nodeInfo) {
+        if (nodeInfo == null)
+                return "";
         CharSequence pkg = nodeInfo.getPackageName();
         if (pkg != null) {
             return pkg.toString();

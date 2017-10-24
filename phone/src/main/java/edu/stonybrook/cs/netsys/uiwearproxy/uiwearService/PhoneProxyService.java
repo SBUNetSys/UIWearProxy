@@ -149,6 +149,8 @@ public class PhoneProxyService extends AccessibilityService {
 
     private long mBeginTime;
 
+    public static long mIdx = 1;
+
     private SparseArray<String> mImageHashCache = new SparseArray<>();
 
     private BroadcastReceiver mBroadcastReceiver = new BroadcastReceiver() {
@@ -516,19 +518,56 @@ public class PhoneProxyService extends AccessibilityService {
             Log.d("BENCH", "action click trigger event");
             mIsLoggingActionBenchmark = false;
         }
-//        setAppBackgroundAlive("com.contacts1800.ecomapp");  // By XUJAY
         final AccessibilityNodeInfo rootNode = getRootInActiveWindow();
 
-        // skip non app node
-        if (!NodeUtil.isAppRootNode(this, rootNode)) {
-            return;
-        }
 
+
+        final String bgAppName = "com.spotify.music";
+
+        setAppBackgroundAlive("com.uramaks.music.player");
+        setAppBackgroundAlive("com.anghami");
+        setAppBackgroundAlive("com.bandlab.bandlab");
+        setAppBackgroundAlive("com.northpark.drinkwater");
+        setAppBackgroundAlive("com.itunestoppodcastplayer.app");
+        setAppBackgroundAlive("com.clearchannel.iheartradio.controller");
+        setAppBackgroundAlive("com.contacts1800.ecomapp");
+        setAppBackgroundAlive("com.pfizer.us.QuittersCircle");
+        setAppBackgroundAlive("com.skimble.workouts");
+        setAppBackgroundAlive("com.spotify.music");
+        setAppBackgroundAlive("com.bravetheskies.ghostracer");
+        setAppBackgroundAlive("com.kiss.countit");
+        setAppBackgroundAlive("com.appgeneration.itunerfree");
+        setAppBackgroundAlive("biz.mobidev.mdplayer");
+        setAppBackgroundAlive("com.google.android.music");
+        setAppBackgroundAlive("com.endomondo.android");
+        setAppBackgroundAlive("com.musicplayer.player.mp3player.white");
+        setAppBackgroundAlive("com.aplicaciones.listacompra");
+        setAppBackgroundAlive("com.codium.hydrocoach");
+        setAppBackgroundAlive("com.SearingMedia.Parrot");
+
+        // TODO: Add bgAppName into the dict for filtering check
+
+        final String eventPkgName =
+                event.getPackageName() == null ? "" : event.getPackageName().toString();
+        Log.i("event", "event package name is " + eventPkgName);
         final AccessibilityNodeInfo sourceNode = event.getSource();
-        Logger.t("event").v("event : " + event);
+        Log.d("event", "event : " + event);
         Logger.t("event").v("root node: " + NodeUtil.getBriefNodeInfo(rootNode));
         Logger.t("event").v("source node: " + NodeUtil.getBriefNodeInfo(sourceNode));
         if (sourceNode == null) {
+            return;
+        }
+
+        if (eventPkgName.equals(bgAppName)) {
+            Log.d("event", "This event is the background app");
+
+        } else if (rootNode != null && rootNode.getPackageName() != null
+                && rootNode.getPackageName().toString().equals(bgAppName)) {
+            Log.d("event", "This rootNode belongs to the background app");
+
+        } else if (!NodeUtil.isAppRootNode(this, rootNode)) {
+            // skip non app node
+            Log.d("event", "Skip the event as it is neither the background nor the app");
             return;
         }
 
@@ -546,21 +585,28 @@ public class PhoneProxyService extends AccessibilityService {
         /********** Extracting Sub View Tree Based on App Preference  *********/
         final String appPkgName = getNodePkgName(rootNode);
         // register app for background processing
-//        setAppBackgroundAlive(appPkgName);
 
-        // even root node is app, if accessibility event is from non app node, then skip
-        if (!appPkgName.equals(sourceNode.getPackageName())) {
+        if (bgAppName.equals(sourceNode.getPackageName())) {
+            Log.d("event", "Proceeding as background app");
+        } else if (!appPkgName.equals(sourceNode.getPackageName())) {
+            // even root node is app, if accessibility event is from non app node, then skip
             return;
         }
 
         boolean isAppEnabled = mEnabledAppsSharedPref.getBoolean(appPkgName, false);
-        if (!isAppEnabled) {
+        if (bgAppName.equals(sourceNode.getPackageName())) {
+
+        } else if (!isAppEnabled) {
+            Log.d("event", "This app: " + appPkgName + " is not enabled in Preference");
             return;
         }
 
-        File preferenceFolder = new File(getResDir(PREFERENCE_DIR, appPkgName));
-        if (!preferenceFolder.exists()) {
-            Logger.t("pref").v("%s pref not exists!", preferenceFolder.getPath());
+        //File preferenceFolder = new File(getResDir(PREFERENCE_DIR, appPkgName));
+        File preferenceFolder = new File(getResDir(PREFERENCE_DIR, eventPkgName));
+        if (bgAppName.equals(sourceNode.getPackageName())) {
+
+        } else if (!preferenceFolder.exists()) {
+            Log.d("event", "%s pref not exists!" + preferenceFolder.getPath());
             return;
         }
 
@@ -573,11 +619,16 @@ public class PhoneProxyService extends AccessibilityService {
         // debounce
         long currentTimestamp = SystemClock.uptimeMillis();
         if (currentTimestamp - mLastEventTimestamp < 200) {
-            Logger.i("acc event too fast, skip ");
+            Log.w("event", "acc event too fast, skip ");
             return;
         }
         mLastEventTimestamp = currentTimestamp;
 
+        AccessibilityNodeInfo parentSource = sourceNode;
+        while (parentSource.getParent() != null) {
+            parentSource = parentSource.getParent();
+        }
+        final AccessibilityNodeInfo rootSource = parentSource;
         mWorkerThread.postTask(new Runnable() {
             @Override
             public void run() {
@@ -587,7 +638,8 @@ public class PhoneProxyService extends AccessibilityService {
                 mPairAccessibilityNodeMap.clear();
 //                NodeUtil.printNodeTree(rootNode);
                 Log.i("BENCH", "parseAppNodes begin:");
-                parseAppNodes(rootNode);
+                //parseAppNodes(rootNode);
+                parseAppNodes(rootSource);
                 Log.i("BENCH", "parseAppNodes end:");
             }
         });
@@ -602,7 +654,7 @@ public class PhoneProxyService extends AccessibilityService {
 
                 Log.i("BENCH", "parseNodeData begin:");
                 // begin extracting preference view tree info
-                DataBundle dataBundle = new DataBundle(appPkgName, preferenceId);
+                DataBundle dataBundle = new DataBundle(eventPkgName, preferenceId);
                 parseNodeData(nodes, dataBundle);
                 Log.i("BENCH", "parseNodeData finished:");
                 if (isDataBundleDuplicate(dataBundle)) {
@@ -751,10 +803,10 @@ public class PhoneProxyService extends AccessibilityService {
                     HashSet<AccNode> nodes = new HashSet<>(prefNodesFromFile);
                     if (!appNodesContainPreferenceNodes(nodes)) {
                         //root node from non preference screen, so skip
-                        Logger.t("pref").v("not contain preference nodes, skip");
+                        Log.d("pref", "not contain preference nodes, skip");
                         continue;
                     }
-                    Logger.t("pref").v("from contain preference nodes: " + nodes);
+                    Log.d("pref", "from contain preference nodes: " + nodes);
 
                     appNodesReadyCallback.onAppNodesReady(FileUtil.getBaseName(preferenceFile),
                             nodes);
@@ -789,7 +841,8 @@ public class PhoneProxyService extends AccessibilityService {
                         oneNodeMatched = prefNode.matches(appNode, 0);
                         if (oneNodeMatched) {
                             atLeastOneNodeMatched = true;
-                            Logger.v("node match: multiple app- " + appNode + " pref-" + prefNode);
+                            Log.d("event",
+                                    "node match: multiple app- " + appNode + " pref-" + prefNode);
                             // need to update the prefNode to appNode
                             updatePreferenceNode(preferenceNodes, prefNode, appNode);
                             // do not break here, need iterate all nodes that have the same viewID
@@ -799,7 +852,7 @@ public class PhoneProxyService extends AccessibilityService {
                         oneNodeMatched = prefNode.getViewId().equals(appNode.getViewId())
                                 && prefNode.getRectInScreen().equals(appNode.getRectInScreen());
                         if (oneNodeMatched) {
-                            Logger.v("node match: multiple nodes single meet app- " + appNode
+                            Log.d("event", "node match: multiple nodes single meet app- " + appNode
                                     + " pref- " + prefNode);
                             // need to update the prefNode to appNode
                             updatePreferenceNode(preferenceNodes, prefNode, appNode);
@@ -813,11 +866,11 @@ public class PhoneProxyService extends AccessibilityService {
                             .split(" \\| "));
                     // TODO: 12/6/16 need to support & case e.g. endomondo app, two buttons overlap
                     oneNodeMatched = prefViewIdList.indexOf(appNode.getViewId()) != -1;
-                    Logger.d("node id list: " + prefViewIdList + " app node: "
+                    Log.d("event", "node id list: " + prefViewIdList + " app node: "
                             + appNode.getViewId() + " index: " + prefViewIdList.indexOf(
                             appNode.getViewId()));
                     if (oneNodeMatched) {
-                        Logger.v("node match: single app- " + appNode + " pref- " + prefNode);
+                        Log.d("event", "node match: single app- " + appNode + " pref- " + prefNode);
                         // need to update the prefNode to appNode
                         updatePreferenceNode(preferenceNodes, prefNode, appNode);
                         break;
@@ -827,14 +880,14 @@ public class PhoneProxyService extends AccessibilityService {
 
             if (!oneNodeMatched && !atLeastOneNodeMatched) {
                 // find one node that does not in appNodes
-                Logger.d("node not match");
+                Log.w("event", "node not match");
                 return false;
             }
         }
 
-        Logger.d("node matched");
-        Logger.v("node matched app  set: " + appNodes.toString());
-        Logger.v("node matched pref set: " + preferenceNodes.toString());
+        Log.d("event", "node matched");
+        Log.v("event", "node matched app set: " + appNodes.toString());
+        Log.v("event", "node matched pref set: " + preferenceNodes.toString());
         return true;
     }
 
@@ -867,7 +920,7 @@ public class PhoneProxyService extends AccessibilityService {
         Log.i("BENCH", "parseNodeData before normal:");
         ArrayList<AccNode> listNodes = new ArrayList<>();
         for (AccNode accNode : accNodes) {
-            Logger.i("accNode : " + accNode);
+            Log.i("event", "accNode : " + accNode);
             if (accNode.getChildCount() > 0) {
                 // this is a list item preference node
                 listNodes.add(accNode);
@@ -1048,6 +1101,9 @@ public class PhoneProxyService extends AccessibilityService {
         Bundle bitmapBundle = new Bundle();
         accNode.requestSnapshot(bitmapBundle);
         nodeBitmap = (Bitmap) bitmapBundle.get("bitmap");
+        Log.i("debugging", "storing bitmap");
+        //FileUtil.storeBitmap(nodeBitmap, "bitmaps", String.valueOf(mIdx));
+        mIdx++;
         return nodeBitmap;
     }
 

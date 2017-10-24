@@ -87,7 +87,8 @@ public class AccNode {
         return mChildNodes;
     }
 
-    public void setChildNodes(ArrayList<AccNode> childNodes) {
+    public void
+    setChildNodes(ArrayList<AccNode> childNodes) {
         mChildNodes = new ArrayList<>(childNodes);
     }
 
